@@ -9,6 +9,7 @@ import {
   unitSchema,
 } from "./schemas";
 import { z } from "zod";
+import { clean } from "./clean";
 
 export const getSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -28,7 +29,7 @@ export const saveSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("profiles")
-      .update(data)
+      .update(clean(data))
       .eq("id", context.userId);
     if (error) throw error;
     return { ok: true };
@@ -125,7 +126,7 @@ export const saveProperty = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => propertySchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const payload = { ...rest, code: rest.code.toUpperCase(), landlord_id: context.userId };
+    const payload = clean({ ...rest, code: rest.code.toUpperCase(), landlord_id: context.userId });
     const query = id
       ? context.supabase.from("properties").update(payload).eq("id", id)
       : context.supabase.from("properties").insert(payload);
@@ -164,7 +165,7 @@ export const saveUnit = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => unitSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const payload = { ...rest, landlord_id: context.userId };
+    const payload = clean({ ...rest, landlord_id: context.userId });
     const { error } = id
       ? await context.supabase.from("units").update(payload).eq("id", id)
       : await context.supabase.from("units").insert(payload);
@@ -197,13 +198,13 @@ export const saveTenant = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => tenantSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const payload = {
+    const payload = clean({
       ...rest,
       email: rest.email || null,
       lease_start: rest.lease_start || null,
       lease_end: rest.lease_end || null,
       landlord_id: context.userId,
-    };
+    });
     const { error } = id
       ? await context.supabase.from("tenants").update(payload).eq("id", id)
       : await context.supabase.from("tenants").insert(payload);
@@ -384,7 +385,7 @@ export const saveAnnouncement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("announcements")
-      .insert({ ...data, property_id: data.property_id || null, landlord_id: context.userId });
+      .insert(clean({ ...data, property_id: data.property_id || null, landlord_id: context.userId }));
     if (error) throw error;
     return { ok: true };
   });
