@@ -391,6 +391,7 @@ export const saveAnnouncement = createServerFn({ method: "POST" })
   });
 
 export const globalSearch = createServerFn({ method: "GET" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z.object({ term: z.string().trim().min(2).max(80) }).parse(data),
