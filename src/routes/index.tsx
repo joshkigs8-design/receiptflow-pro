@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 
 const title = "Rent Receipt Pro — Digital Rent Receipts & Property Management";
 const description =
-  "Manage properties smarter and generate QR-verified digital rent receipts instantly. Crossbridge Rent Receipt Pro for landlords and tenants in Kenya.";
+  "Manage properties smarter and generate QR-verified digital rent receipts instantly. Codevanta Ventures Rent Receipt Pro for landlords and tenants in Kenya.";
 
 export const Route = createFileRoute("/")({
   head: () => ({

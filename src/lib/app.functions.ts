@@ -297,9 +297,9 @@ export const recordPayment = createServerFn({ method: "POST" })
         receipt_number: receiptNumber,
         amount: data.amount,
         balance,
-        issued_by: data.issued_by || profile?.company_name || "Crossbridge",
+        issued_by: data.issued_by || profile?.company_name || "Codevanta Ventures",
         snapshot: {
-          company: profile?.company_name ?? "Crossbridge",
+          company: profile?.company_name ?? "Codevanta Ventures",
           currency: profile?.currency ?? "KSh",
           logo_url: profile?.logo_url ?? null,
           company_phone: profile?.phone ?? null,

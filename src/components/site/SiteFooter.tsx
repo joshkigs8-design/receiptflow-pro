@@ -13,7 +13,7 @@ export function SiteFooter() {
             <span className="font-display font-bold">Rent Receipt Pro</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            A Crossbridge product. Premium property management and QR-verified digital rent
+            A Codevanta Ventures product. Premium property management and QR-verified digital rent
             receipts.
           </p>
         </div>
@@ -45,7 +45,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border px-6 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Crossbridge. All rights reserved.
+        © {new Date().getFullYear()} Codevanta Ventures. All rights reserved.
       </div>
     </footer>
   );

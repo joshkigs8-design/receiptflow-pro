@@ -76,7 +76,7 @@ export function Hero() {
           transition={{ duration: 0.6 }}
           className="glass-strong inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-white"
         >
-          <FileCheck2 className="size-3.5" /> QR-verified digital receipts by Crossbridge
+          <FileCheck2 className="size-3.5" /> QR-verified digital receipts by Codevanta Ventures
         </motion.span>
 
         <motion.h1
