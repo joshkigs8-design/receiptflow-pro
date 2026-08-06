@@ -390,11 +390,17 @@ export const saveAnnouncement = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteAnnouncement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("announcements").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const globalSearch = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ term: z.string().trim().min(2).max(80) }).parse(data),
-  )
   .inputValidator((data: unknown) =>
     z.object({ term: z.string().trim().min(2).max(80) }).parse(data),
   )
