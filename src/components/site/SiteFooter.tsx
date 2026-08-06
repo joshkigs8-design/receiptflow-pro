@@ -13,8 +13,8 @@ export function SiteFooter() {
             <span className="font-display font-bold">Rent Receipt Pro</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            A Codevanta Ventures product. Premium property management and QR-verified digital rent
-            receipts.
+            A Codevanta Ventures product. Premium property management and QR-verified digital
+            rent receipts.
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export function SiteFooter() {
         <div>
           <h3 className="text-sm font-semibold">Contact</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li>hello@crossbridge.co.ke</li>
+            <li>WhatsApp: 0742868209</li>
             <li>Nairobi, Kenya</li>
           </ul>
         </div>
