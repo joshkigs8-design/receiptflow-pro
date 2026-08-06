@@ -2,9 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { listAnnouncements, listProperties, saveAnnouncement } from "@/lib/app.functions";
+import {
+  deleteAnnouncement,
+  listAnnouncements,
+  listProperties,
+  saveAnnouncement,
+} from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
 import { Button } from "@/components/ui/button";
@@ -43,6 +48,7 @@ function AnnouncementsPage() {
   const fetchAll = useServerFn(listAnnouncements);
   const fetchProperties = useServerFn(listProperties);
   const save = useServerFn(saveAnnouncement);
+  const remove = useServerFn(deleteAnnouncement);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "", category: "general", property_id: "" });
 
@@ -58,6 +64,15 @@ function AnnouncementsPage() {
       qc.invalidateQueries({ queryKey: ["announcements"] });
     },
     onError: (e: Error) => toast.error(e.message || "Could not publish"),
+  });
+
+  const removal = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Announcement deleted");
+      qc.invalidateQueries({ queryKey: ["announcements"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not delete"),
   });
 
   return (
@@ -78,9 +93,21 @@ function AnnouncementsPage() {
         <div className="space-y-4">
           {(list.data ?? []).map((a) => (
             <article key={a.id} className="surface-card p-5">
-              <div className="flex items-center gap-2">
-                <Megaphone className="size-4 text-primary" />
-                <h2 className="font-semibold">{a.title}</h2>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="size-4 text-primary" />
+                  <h2 className="font-semibold">{a.title}</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete ${a.title}`}
+                  disabled={removal.isPending}
+                  onClick={() => removal.mutate(a.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{a.body}</p>
               <p className="mt-3 text-xs text-muted-foreground">
