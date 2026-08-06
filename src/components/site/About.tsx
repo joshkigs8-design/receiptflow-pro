@@ -21,7 +21,7 @@ export function About() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           <p className="text-sm font-semibold tracking-[0.2em] text-primary uppercase">
-            About Crossbridge
+            About Codevanta Ventures
           </p>
           <h2 className="mt-4 text-3xl font-bold sm:text-5xl">
             Property management that finally feels <span className="gradient-text">effortless</span>.

@@ -84,9 +84,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Crossbridge Rent Receipt Pro: manage properties, tenants, payments and instant digital rent receipts with QR verification.",
+          "Codevanta Ventures Rent Receipt Pro: manage properties, tenants, payments and instant digital rent receipts with QR verification.",
       },
-      { name: "author", content: "Crossbridge" },
+      { name: "author", content: "Codevanta Ventures" },
       { property: "og:title", content: "Rent Receipt Pro" },
       {
         property: "og:description",

@@ -44,7 +44,7 @@ export async function buildReceiptPdf(receipt: ReceiptRecord) {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.text(snap.company ?? "Crossbridge", 40, 46);
+  doc.text(snap.company ?? "Codevanta Ventures", 40, 46);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.text("Official Rent Receipt", 40, 68);
@@ -108,7 +108,7 @@ export async function buildReceiptPdf(receipt: ReceiptRecord) {
 
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
-  doc.text(`Issued by: ${receipt.issued_by ?? snap.company ?? "Crossbridge"}`, 40, y + 190);
+  doc.text(`Issued by: ${receipt.issued_by ?? snap.company ?? "Codevanta Ventures"}`, 40, y + 190);
   doc.setDrawColor(180, 180, 180);
   doc.line(40, y + 210, 220, y + 210);
   doc.setFontSize(9);

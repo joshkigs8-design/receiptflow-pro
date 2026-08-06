@@ -55,7 +55,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: name, company_name: company || "Crossbridge" },
+            data: { full_name: name, company_name: company || "Codevanta Ventures" },
           },
         });
         if (error) throw error;
@@ -110,7 +110,7 @@ function AuthPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           {signup
             ? "Start managing properties and issuing digital receipts."
-            : "Sign in to your Crossbridge dashboard."}
+            : "Sign in to your Codevanta Ventures dashboard."}
         </p>
 
         {sent ? (
@@ -131,7 +131,7 @@ function AuthPage() {
                     id="company"
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
-                    placeholder="Crossbridge"
+                    placeholder="Codevanta Ventures"
                     maxLength={120}
                   />
                 </div>

@@ -74,7 +74,7 @@ function ReceiptPage() {
             <div className="gradient-primary flex items-center justify-between p-6">
               <div>
                 <p className="font-display text-lg font-bold text-primary-foreground">
-                  {snap.company ?? "Crossbridge"}
+                  {snap.company ?? "Codevanta Ventures"}
                 </p>
                 <p className="text-xs text-primary-foreground/80">Official rent receipt</p>
               </div>
@@ -132,7 +132,7 @@ function ReceiptPage() {
                 </Button>
               </div>
               <p className="mt-6 text-xs text-muted-foreground">
-                Issued by {receipt.issued_by ?? snap.company ?? "Crossbridge"}
+                Issued by {receipt.issued_by ?? snap.company ?? "Codevanta Ventures"}
               </p>
             </div>
           </article>
