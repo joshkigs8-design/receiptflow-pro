@@ -1,38 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PLANS, type PlanKey } from "./plans";
+import { accessState, nextPeriodEnd, paystackKey } from "./billing.server";
 
-export const PLANS = {
-  monthly: { label: "Monthly", amount: 300, months: 1, blurb: "Billed every month" },
-  yearly: { label: "Yearly", amount: 3000, months: 12, blurb: "2 months free vs monthly" },
-} as const;
-
-export type PlanKey = keyof typeof PLANS;
-
-function paystackKey() {
-  const key = process.env["PAYSTACK_SECRET_KEY"] ?? process.env["STRIPE_LIVE_API_KEY"];
-  if (!key) throw new Error("Paystack secret key is not configured");
-  return key;
-}
-
-function accessState(row: {
-  status: string;
-  trial_ends_at: string;
-  current_period_end: string | null;
-}) {
-  const now = Date.now();
-  const trialEnds = new Date(row.trial_ends_at).getTime();
-  const periodEnds = row.current_period_end ? new Date(row.current_period_end).getTime() : 0;
-  const paidActive = periodEnds > now;
-  const trialActive = !paidActive && trialEnds > now;
-  const endsAt = paidActive ? row.current_period_end : row.trial_ends_at;
-  return {
-    active: paidActive || trialActive,
-    onTrial: trialActive,
-    endsAt,
-    daysLeft: Math.max(0, Math.ceil(((paidActive ? periodEnds : trialEnds) - now) / 86400000)),
-  };
-}
 
 export const getSubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -149,19 +120,14 @@ export const verifyCheckout = createServerFn({ method: "POST" })
         .eq("user_id", context.userId)
         .maybeSingle();
 
-      const base =
-        sub?.current_period_end && new Date(sub.current_period_end).getTime() > Date.now()
-          ? new Date(sub.current_period_end)
-          : new Date();
-      const next = new Date(base);
-      next.setMonth(next.getMonth() + plan.months);
+      const next = nextPeriodEnd(sub?.current_period_end ?? null, planKey);
 
       await supabaseAdmin
         .from("subscriptions")
         .update({
           plan: planKey,
           status: "active",
-          current_period_end: next.toISOString(),
+          current_period_end: next,
           last_reference: data.reference,
           last_amount: plan.amount,
         })

@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { BadgeCheck, Check, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import { PLANS, getSubscription, startCheckout, verifyCheckout, type PlanKey } from "@/lib/billing.functions";
+import { getSubscription, startCheckout, verifyCheckout } from "@/lib/billing.functions";
+import { PLANS, type PlanKey } from "@/lib/plans";
 import { money, shortDate } from "@/lib/format";
 
 const searchSchema = z.object({ reference: z.string().optional() });
