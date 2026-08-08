@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedPropertiesRouteImport } from './routes/_authenticated/properties'
@@ -25,6 +26,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTenantsRouteImport } from './routes/_authenticated/tenants'
 import { Route as AuthenticatedUnitsRouteImport } from './routes/_authenticated/units'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
+import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,6 +58,11 @@ const AuthenticatedAnnouncementsRoute =
     path: '/announcements',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -106,6 +113,12 @@ const ReceiptPublicIdRoute = ReceiptPublicIdRouteImport.update({
   path: '/receipt/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaystackWebhookRoute =
+  ApiPublicPaystackWebhookRouteImport.update({
+    id: '/api/public/paystack/webhook',
+    path: '/api/public/paystack/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -113,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
@@ -123,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -130,6 +145,7 @@ export interface FileRoutesByTo {
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
@@ -140,6 +156,7 @@ export interface FileRoutesByTo {
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,6 +166,7 @@ export interface FileRoutesById {
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/properties': typeof AuthenticatedPropertiesRoute
@@ -159,6 +177,7 @@ export interface FileRoutesById {
   '/_authenticated/tenants': typeof AuthenticatedTenantsRoute
   '/_authenticated/units': typeof AuthenticatedUnitsRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,6 +187,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/verify'
     | '/announcements'
+    | '/billing'
     | '/dashboard'
     | '/payments'
     | '/properties'
@@ -178,6 +198,7 @@ export interface FileRouteTypes {
     | '/tenants'
     | '/units'
     | '/receipt/$publicId'
+    | '/api/public/paystack/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,6 +206,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/verify'
     | '/announcements'
+    | '/billing'
     | '/dashboard'
     | '/payments'
     | '/properties'
@@ -195,6 +217,7 @@ export interface FileRouteTypes {
     | '/tenants'
     | '/units'
     | '/receipt/$publicId'
+    | '/api/public/paystack/webhook'
   id:
     | '__root__'
     | '/'
@@ -203,6 +226,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/verify'
     | '/_authenticated/announcements'
+    | '/_authenticated/billing'
     | '/_authenticated/dashboard'
     | '/_authenticated/payments'
     | '/_authenticated/properties'
@@ -213,6 +237,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tenants'
     | '/_authenticated/units'
     | '/receipt/$publicId'
+    | '/api/public/paystack/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -222,6 +247,7 @@ export interface RootRouteChildren {
   TenantRoute: typeof TenantRoute
   VerifyRoute: typeof VerifyRoute
   ReceiptPublicIdRoute: typeof ReceiptPublicIdRoute
+  ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -266,6 +292,13 @@ declare module '@tanstack/react-router' {
       path: '/announcements'
       fullPath: '/announcements'
       preLoaderRoute: typeof AuthenticatedAnnouncementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -338,11 +371,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReceiptPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/paystack/webhook': {
+      id: '/api/public/paystack/webhook'
+      path: '/api/public/paystack/webhook'
+      fullPath: '/api/public/paystack/webhook'
+      preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
+  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedPropertiesRoute: typeof AuthenticatedPropertiesRoute
@@ -356,6 +397,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
+  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedPropertiesRoute: AuthenticatedPropertiesRoute,
@@ -377,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   TenantRoute: TenantRoute,
   VerifyRoute: VerifyRoute,
   ReceiptPublicIdRoute: ReceiptPublicIdRoute,
+  ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
