@@ -4,9 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { BadgeCheck, Check, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { BadgeCheck, Check, CreditCard, Loader2, Sparkles, Ticket } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { redeemVoucher } from "@/lib/admin.functions";
 import { getSubscription, startCheckout, verifyCheckout } from "@/lib/billing.functions";
 import { PLANS, type PlanKey } from "@/lib/plans";
 import { money, shortDate } from "@/lib/format";
@@ -21,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/billing")({
       {
         name: "description",
         content:
-          "Manage your Rent Receipt Pro subscription — KSh 300 per month or KSh 3,000 per year, with 2 months free on signup.",
+          "Manage your Rent Receipt Pro subscription — KSh 300 per month or KSh 3,000 per year, with 1 month free on signup.",
       },
       { property: "og:title", content: "Billing & Subscription — Rent Receipt Pro" },
       { property: "og:description", content: "Activate or renew your Rent Receipt Pro plan." },
@@ -45,10 +47,28 @@ function BillingPage() {
   const fetchSubscription = useServerFn(getSubscription);
   const checkout = useServerFn(startCheckout);
   const verify = useServerFn(verifyCheckout);
+  const redeem = useServerFn(redeemVoucher);
   const [pending, setPending] = useState<PlanKey | null>(null);
+  const [voucher, setVoucher] = useState("");
   const verified = useRef(false);
 
   const { data } = useQuery({ queryKey: ["subscription"], queryFn: () => fetchSubscription() });
+
+  const redeemMutation = useMutation({
+    mutationFn: (code: string) => redeem({ data: { code } }),
+    onSuccess: async (res) => {
+      if (res.ok) {
+        toast.success(
+          `Voucher applied — ${res.months} free month${res.months === 1 ? "" : "s"} added.`,
+        );
+        setVoucher("");
+        await qc.invalidateQueries({ queryKey: ["subscription"] });
+      } else {
+        toast.error(res.message ?? "Voucher could not be applied");
+      }
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Voucher could not be applied"),
+  });
 
   const verifyMutation = useMutation({
     mutationFn: (ref: string) => verify({ data: { reference: ref } }),
@@ -167,6 +187,41 @@ function BillingPage() {
           Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 2 months
           free. Need help? WhatsApp 0742868209.
         </p>
+
+        <div className="surface-card p-6">
+          <h3 className="flex items-center gap-2 font-display text-base font-bold">
+            <Ticket className="size-4 text-primary" /> Have a voucher code?
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter your code to add free months to your account instantly.
+          </p>
+          <form
+            className="mt-4 flex flex-col gap-3 sm:flex-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (voucher.trim().length >= 4) redeemMutation.mutate(voucher.trim());
+            }}
+          >
+            <Input
+              value={voucher}
+              onChange={(e) => setVoucher(e.target.value.toUpperCase())}
+              placeholder="RRP-XXXXXX"
+              className="font-mono sm:max-w-xs"
+              aria-label="Voucher code"
+            />
+            <Button
+              type="submit"
+              className="rounded-full"
+              disabled={redeemMutation.isPending || voucher.trim().length < 4}
+            >
+              {redeemMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Apply voucher"
+              )}
+            </Button>
+          </form>
+        </div>
 
         <div className="surface-card p-6">
           <h3 className="font-display text-base font-bold">Payment history</h3>
