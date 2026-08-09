@@ -16,6 +16,7 @@ import {
   Receipt,
   Settings,
   Sparkles,
+  ShieldCheck,
   Users,
   Wrench,
   X,
@@ -25,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
 import { getSubscription } from "@/lib/billing.functions";
+import { getIsAdmin } from "@/lib/admin.functions";
 import { shortDate } from "@/lib/format";
 
 const nav = [
@@ -57,13 +59,19 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fetchSubscription = useServerFn(getSubscription);
+  const checkAdmin = useServerFn(getIsAdmin);
   const { data: sub } = useQuery({
     queryKey: ["subscription"],
     queryFn: () => fetchSubscription(),
     staleTime: 60_000,
   });
-  const exempt = pathname === "/billing" || pathname === "/settings";
-  const locked = sub ? !sub.active && !exempt : false;
+  const { data: role } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: () => checkAdmin(),
+    staleTime: 300_000,
+  });
+  const exempt = pathname === "/billing" || pathname === "/settings" || pathname === "/admin";
+  const locked = sub ? !sub.active && !exempt && !role?.admin : false;
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -92,7 +100,12 @@ export function AppShell({
         </div>
 
         <nav className="mt-2 space-y-1 px-3 pb-8">
-          {nav.map((item) => {
+          {[
+            ...nav,
+            ...(role?.admin
+              ? [{ to: "/admin", label: "Admin portal", icon: ShieldCheck } as const]
+              : []),
+          ].map((item) => {
             const active = pathname === item.to;
             return (
               <Link
