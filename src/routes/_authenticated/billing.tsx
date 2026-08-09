@@ -184,7 +184,7 @@ function BillingPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 2 months
+          Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 1 month
           free. Need help? WhatsApp 0742868209.
         </p>
 
