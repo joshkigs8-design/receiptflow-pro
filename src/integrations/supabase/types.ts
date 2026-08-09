@@ -670,6 +670,80 @@ export type Database = {
         }
         Relationships: []
       }
+      voucher_redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          months: number
+          user_id: string
+          voucher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          months?: number
+          user_id: string
+          voucher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          months?: number
+          user_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_redemptions_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vouchers: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          max_uses: number
+          months: number
+          note: string | null
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          months?: number
+          note?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          months?: number
+          note?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -682,6 +756,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_voucher: { Args: { _code: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "landlord" | "tenant"
