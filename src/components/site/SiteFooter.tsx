@@ -33,6 +33,8 @@ export function SiteFooter() {
             <li><Link to="/auth" className="hover:text-foreground">Landlord login</Link></li>
             <li><Link to="/tenant" className="hover:text-foreground">Tenant portal</Link></li>
             <li><Link to="/verify" className="hover:text-foreground">Verify a receipt</Link></li>
+            <li><Link to="/download" className="hover:text-foreground">Android app</Link></li>
+            <li><Link to="/admin-login" className="hover:text-foreground">Owner admin</Link></li>
           </ul>
         </div>
 
