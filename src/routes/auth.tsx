@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/lib/theme";
 const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
