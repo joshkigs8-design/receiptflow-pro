@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -38,9 +40,19 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TenantRoute = TenantRouteImport.update({
@@ -128,7 +140,9 @@ const ApiPublicPaystackWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -148,7 +162,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -170,7 +186,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -192,7 +210,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin-login'
     | '/auth'
+    | '/download'
     | '/tenant'
     | '/verify'
     | '/admin'
@@ -212,7 +232,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin-login'
     | '/auth'
+    | '/download'
     | '/tenant'
     | '/verify'
     | '/admin'
@@ -233,7 +255,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin-login'
     | '/auth'
+    | '/download'
     | '/tenant'
     | '/verify'
     | '/_authenticated/admin'
@@ -255,7 +279,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   AuthRoute: typeof AuthRoute
+  DownloadRoute: typeof DownloadRoute
   TenantRoute: typeof TenantRoute
   VerifyRoute: typeof VerifyRoute
   ReceiptPublicIdRoute: typeof ReceiptPublicIdRoute
@@ -278,11 +304,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tenant': {
@@ -436,7 +476,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   AuthRoute: AuthRoute,
+  DownloadRoute: DownloadRoute,
   TenantRoute: TenantRoute,
   VerifyRoute: VerifyRoute,
   ReceiptPublicIdRoute: ReceiptPublicIdRoute,
@@ -445,13 +487,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

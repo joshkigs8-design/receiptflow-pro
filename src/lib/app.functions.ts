@@ -39,23 +39,37 @@ export const getDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb = context.supabase;
+    const mine = context.userId;
     const [properties, units, tenants, payments, receipts, requests, notifications] =
       await Promise.all([
-        sb.from("properties").select("id,name,code,status,units_count,image_url,property_type"),
-        sb.from("units").select("id,status,rent,property_id"),
-        sb.from("tenants").select("id,full_name,rent_amount,status,lease_end,unit_id,property_id"),
-        sb.from("payments").select("id,amount,paid_at,method,status,tenant_id").order("paid_at", {
-          ascending: false,
-        }),
+        sb
+          .from("properties")
+          .select("id,name,code,status,units_count,image_url,property_type")
+          .eq("landlord_id", mine),
+        sb.from("units").select("id,status,rent,property_id").eq("landlord_id", mine),
+        sb
+          .from("tenants")
+          .select("id,full_name,rent_amount,status,lease_end,unit_id,property_id")
+          .eq("landlord_id", mine),
+        sb
+          .from("payments")
+          .select("id,amount,paid_at,method,status,tenant_id")
+          .eq("landlord_id", mine)
+          .order("paid_at", { ascending: false }),
         sb
           .from("receipts")
           .select("id,receipt_number,public_id,amount,issued_at,tenant_id")
+          .eq("landlord_id", mine)
           .order("issued_at", { ascending: false })
           .limit(6),
-        sb.from("maintenance_requests").select("id,status,category,priority,created_at,description"),
+        sb
+          .from("maintenance_requests")
+          .select("id,status,category,priority,created_at,description")
+          .eq("landlord_id", mine),
         sb
           .from("notifications")
           .select("*")
+          .eq("landlord_id", mine)
           .order("created_at", { ascending: false })
           .limit(8),
       ]);
@@ -116,6 +130,7 @@ export const listProperties = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("properties")
       .select("*, units(id,status,rent)")
+      .eq("landlord_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -128,7 +143,11 @@ export const saveProperty = createServerFn({ method: "POST" })
     const { id, ...rest } = data;
     const payload = clean({ ...rest, code: rest.code.toUpperCase(), landlord_id: context.userId });
     const query = id
-      ? context.supabase.from("properties").update(payload).eq("id", id)
+      ? context.supabase
+          .from("properties")
+          .update(payload)
+          .eq("id", id)
+          .eq("landlord_id", context.userId)
       : context.supabase.from("properties").insert(payload);
     const { error } = await query;
     if (error) throw error;
@@ -139,7 +158,11 @@ export const deleteProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("properties").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("properties")
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -153,6 +176,7 @@ export const listUnits = createServerFn({ method: "GET" })
     let query = context.supabase
       .from("units")
       .select("*, tenants(id,full_name,phone)")
+      .eq("landlord_id", context.userId)
       .order("unit_number");
     if (data.propertyId) query = query.eq("property_id", data.propertyId);
     const { data: rows, error } = await query;
@@ -167,7 +191,11 @@ export const saveUnit = createServerFn({ method: "POST" })
     const { id, ...rest } = data;
     const payload = clean({ ...rest, landlord_id: context.userId });
     const { error } = id
-      ? await context.supabase.from("units").update(payload).eq("id", id)
+      ? await context.supabase
+          .from("units")
+          .update(payload)
+          .eq("id", id)
+          .eq("landlord_id", context.userId)
       : await context.supabase.from("units").insert(payload);
     if (error) throw error;
     return { ok: true };
@@ -177,7 +205,11 @@ export const deleteUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("units").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("units")
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -188,6 +220,7 @@ export const listTenants = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("tenants")
       .select("*, properties(name,code), units(unit_number,room_number)")
+      .eq("landlord_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -206,11 +239,19 @@ export const saveTenant = createServerFn({ method: "POST" })
       landlord_id: context.userId,
     });
     const { error } = id
-      ? await context.supabase.from("tenants").update(payload).eq("id", id)
+      ? await context.supabase
+          .from("tenants")
+          .update(payload)
+          .eq("id", id)
+          .eq("landlord_id", context.userId)
       : await context.supabase.from("tenants").insert(payload);
     if (error) throw error;
     if (rest.unit_id) {
-      await context.supabase.from("units").update({ status: "occupied" }).eq("id", rest.unit_id);
+      await context.supabase
+        .from("units")
+        .update({ status: "occupied" })
+        .eq("id", rest.unit_id)
+        .eq("landlord_id", context.userId);
     }
     return { ok: true };
   });
@@ -219,7 +260,11 @@ export const deleteTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("tenants").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("tenants")
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -232,6 +277,7 @@ export const listPayments = createServerFn({ method: "GET" })
       .select(
         "*, tenants(full_name,phone,rent_amount), properties(name), units(unit_number,room_number), receipts(id,receipt_number,public_id)",
       )
+      .eq("landlord_id", context.userId)
       .order("paid_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -246,6 +292,7 @@ export const recordPayment = createServerFn({ method: "POST" })
       .from("tenants")
       .select("*, properties(name,code), units(unit_number,room_number)")
       .eq("id", data.tenant_id)
+      .eq("landlord_id", context.userId)
       .single();
     if (tenantError) throw tenantError;
 
@@ -254,6 +301,7 @@ export const recordPayment = createServerFn({ method: "POST" })
       .from("payments")
       .select("amount")
       .eq("tenant_id", tenant.id)
+      .eq("landlord_id", context.userId)
       .eq("period_label", period);
     const paidBefore = (existing ?? []).reduce((s, p) => s + Number(p.amount), 0);
     const balance = Number(tenant.rent_amount) - (paidBefore + data.amount);
@@ -336,6 +384,7 @@ export const listReceipts = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("receipts")
       .select("*, tenants(full_name,phone)")
+      .eq("landlord_id", context.userId)
       .order("issued_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -347,6 +396,7 @@ export const listRequests = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("maintenance_requests")
       .select("*, tenants(full_name,phone), properties(name), units(unit_number,room_number)")
+      .eq("landlord_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -363,7 +413,8 @@ export const updateRequestStatus = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("maintenance_requests")
       .update({ status: data.status })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -374,6 +425,7 @@ export const listAnnouncements = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("announcements")
       .select("*, properties(name)")
+      .eq("landlord_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -394,7 +446,11 @@ export const deleteAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("announcements").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("announcements")
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -407,20 +463,24 @@ export const globalSearch = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const like = `%${data.term}%`;
+    const mine = context.userId;
     const [tenants, properties, receipts] = await Promise.all([
       sb
         .from("tenants")
         .select("id,full_name,phone,status")
+        .eq("landlord_id", mine)
         .or(`full_name.ilike.${like},phone.ilike.${like},national_id.ilike.${like}`)
         .limit(6),
       sb
         .from("properties")
         .select("id,name,code")
+        .eq("landlord_id", mine)
         .or(`name.ilike.${like},code.ilike.${like}`)
         .limit(6),
       sb
         .from("receipts")
         .select("id,receipt_number,public_id,amount")
+        .eq("landlord_id", mine)
         .ilike("receipt_number", like)
         .limit(6),
     ]);
@@ -435,10 +495,11 @@ export const getReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb = context.supabase;
+    const mine = context.userId;
     const [payments, tenants, units] = await Promise.all([
-      sb.from("payments").select("amount,paid_at,method,status,tenant_id"),
-      sb.from("tenants").select("id,full_name,rent_amount,status"),
-      sb.from("units").select("id,status,rent"),
+      sb.from("payments").select("amount,paid_at,method,status,tenant_id").eq("landlord_id", mine),
+      sb.from("tenants").select("id,full_name,rent_amount,status").eq("landlord_id", mine),
+      sb.from("units").select("id,status,rent").eq("landlord_id", mine),
     ]);
     return {
       payments: payments.data ?? [],
