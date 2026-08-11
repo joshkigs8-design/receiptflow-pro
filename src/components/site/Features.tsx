@@ -1,49 +1,27 @@
 import { motion } from "motion/react";
-import {
-  BarChart3,
-  Bell,
-  Building2,
-  CloudUpload,
-  Download,
-  FileSignature,
-  FileText,
-  LineChart,
-  QrCode,
-  Users,
-  Wallet,
-  Wrench,
-} from "lucide-react";
+import { BarChart3, Building2, FileText, QrCode, Users, Wallet } from "lucide-react";
 
 const features = [
   { icon: Building2, title: "Property Management", text: "Unlimited properties with photos, GPS, amenities and notes." },
   { icon: Users, title: "Tenant Management", text: "Full tenant profiles, IDs, documents and lease dates." },
   { icon: FileText, title: "Digital Receipts", text: "Branded PDF receipts generated the moment rent is paid." },
-  { icon: Download, title: "Online Download", text: "Tenants download or print receipts from any device." },
   { icon: QrCode, title: "QR Verification", text: "Every receipt carries a QR code that proves it is genuine." },
   { icon: Wallet, title: "Payment Tracking", text: "Cash, M-Pesa, bank, card and cheque with balances." },
-  { icon: Wrench, title: "Maintenance Requests", text: "Tenants report issues; you track them to resolution." },
-  { icon: BarChart3, title: "Reports", text: "Income, occupancy, arrears and yearly revenue exports." },
-  { icon: LineChart, title: "Analytics", text: "Live charts on collections, vacancies and growth." },
-  { icon: FileSignature, title: "Lease Management", text: "Store leases, renewals and expiry alerts." },
-  { icon: Bell, title: "Notifications", text: "Rent reminders ready for email, SMS and WhatsApp." },
-  { icon: CloudUpload, title: "Cloud Storage", text: "Documents and photos stored securely in the cloud." },
+  { icon: BarChart3, title: "Reports & Analytics", text: "Income, occupancy, arrears and revenue exports." },
 ];
 
 export function Features() {
   return (
-    <section id="features" className="relative py-28">
+    <section id="features" className="relative py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold tracking-[0.2em] text-primary uppercase">Platform</p>
-          <h2 className="mt-4 text-3xl font-bold sm:text-5xl">
+          <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
             Everything a modern landlord needs
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            One platform for properties, people, payments and paperwork.
-          </p>
         </div>
 
-        <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
             <motion.article
               key={f.title}
