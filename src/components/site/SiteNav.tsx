@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
 
 const links = [
-  { label: "About", href: "/#about" },
   { label: "Features", href: "/#features" },
-  { label: "Dashboard", href: "/#preview" },
+  { label: "Pricing", href: "/#pricing" },
 ];
 
 export function SiteNav() {
