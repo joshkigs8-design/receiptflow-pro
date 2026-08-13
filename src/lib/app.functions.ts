@@ -432,7 +432,10 @@ export const updatePayment = createServerFn({ method: "POST" })
     const rent = Number(payment.tenants?.rent_amount ?? 0);
     const balance = rent - Number(data.amount);
     for (const r of receipts ?? []) {
-      const snapshot = { ...(r.snapshot as Record<string, unknown>) };
+      const snapshot = { ...((r.snapshot ?? {}) as Record<string, never>) } as Record<
+        string,
+        never
+      >;
       snapshot["method"] = data.method;
       snapshot["reference"] = data.reference ?? null;
       snapshot["period"] = data.period_label || data.paid_at.slice(0, 7);
