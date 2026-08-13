@@ -2,9 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { listPayments, listReceipts, listTenants, recordPayment } from "@/lib/app.functions";
+import {
+  deletePayment,
+  listPayments,
+  listReceipts,
+  listTenants,
+  recordPayment,
+  updatePayment,
+} from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
 import { Button } from "@/components/ui/button";
@@ -48,7 +55,18 @@ function PaymentsPage() {
   const fetchTenants = useServerFn(listTenants);
   const fetchReceipts = useServerFn(listReceipts);
   const record = useServerFn(recordPayment);
+  const update = useServerFn(updatePayment);
+  const remove = useServerFn(deletePayment);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<null | { id: string }>(null);
+  const [editDraft, setEditDraft] = useState({
+    amount: 0,
+    method: "mpesa",
+    reference: "",
+    paid_at: today(),
+    period_label: "",
+    notes: "",
+  });
   const [draft, setDraft] = useState({
     tenant_id: "",
     amount: 0,
@@ -81,6 +99,29 @@ function PaymentsPage() {
     onError: (e: Error) => toast.error(e.message || "Could not record payment"),
   });
 
+  const editMutation = useMutation({
+    mutationFn: () => update({ data: { id: editing!.id, ...editDraft } }),
+    onSuccess: () => {
+      toast.success("Payment updated");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["receipts"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not update payment"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Payment deleted");
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["receipts"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not delete payment"),
+  });
+
   return (
     <AppShell
       title="Payments"
@@ -108,6 +149,7 @@ function PaymentsPage() {
                 <th className="p-3">Receipt</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Amount</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -125,6 +167,43 @@ function PaymentsPage() {
                     </Badge>
                   </td>
                   <td className="p-3 text-right font-semibold">{money(p.amount)}</td>
+                  <td className="p-3">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 rounded-full"
+                        aria-label="Edit payment"
+                        onClick={() => {
+                          setEditing({ id: p.id });
+                          setEditDraft({
+                            amount: Number(p.amount),
+                            method: p.method,
+                            reference: p.reference ?? "",
+                            paid_at: String(p.paid_at).slice(0, 10),
+                            period_label: p.period_label ?? "",
+                            notes: p.notes ?? "",
+                          });
+                        }}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 rounded-full text-destructive"
+                        aria-label="Delete payment"
+                        onClick={() => {
+                          if (
+                            confirm("Delete this payment and its receipt? This cannot be undone.")
+                          )
+                            deleteMutation.mutate(p.id);
+                        }}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
