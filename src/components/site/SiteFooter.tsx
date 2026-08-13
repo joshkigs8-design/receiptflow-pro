@@ -45,7 +45,18 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border px-6 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Codevanta Ventures. All rights reserved.
+        <p>© {new Date().getFullYear()} Codevanta Ventures. All rights reserved.</p>
+        <p className="mt-1">
+          Designed by{" "}
+          <a
+            href="https://codevanta.online"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            CodeVanta
+          </a>
+        </p>
       </div>
     </footer>
   );
