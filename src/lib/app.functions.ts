@@ -390,6 +390,80 @@ export const listReceipts = createServerFn({ method: "GET" })
     return data;
   });
 
+export const updatePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        amount: z.coerce.number().positive(),
+        method: z.string().min(1).max(40),
+        reference: z.string().max(80).optional().nullable(),
+        paid_at: z.string().min(4),
+        period_label: z.string().max(40).optional().nullable(),
+        notes: z.string().max(1000).optional().nullable(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    const { data: payment, error } = await sb
+      .from("payments")
+      .update({
+        amount: data.amount,
+        method: data.method,
+        reference: data.reference || null,
+        paid_at: data.paid_at,
+        period_label: data.period_label || data.paid_at.slice(0, 7),
+        notes: data.notes || null,
+      })
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId)
+      .select("*, tenants(rent_amount)")
+      .single();
+    if (error) throw error;
+
+    const { data: receipts } = await sb
+      .from("receipts")
+      .select("id,snapshot")
+      .eq("payment_id", data.id)
+      .eq("landlord_id", context.userId);
+
+    const rent = Number(payment.tenants?.rent_amount ?? 0);
+    const balance = rent - Number(data.amount);
+    for (const r of receipts ?? []) {
+      const snapshot = { ...(r.snapshot as Record<string, unknown>) };
+      snapshot["method"] = data.method;
+      snapshot["reference"] = data.reference ?? null;
+      snapshot["period"] = data.period_label || data.paid_at.slice(0, 7);
+      snapshot["paid_at"] = data.paid_at;
+      await sb
+        .from("receipts")
+        .update({ amount: data.amount, balance, snapshot })
+        .eq("id", r.id)
+        .eq("landlord_id", context.userId);
+    }
+    return { ok: true };
+  });
+
+export const deletePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await context.supabase
+      .from("receipts")
+      .delete()
+      .eq("payment_id", data.id)
+      .eq("landlord_id", context.userId);
+    const { error } = await context.supabase
+      .from("payments")
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const listRequests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
