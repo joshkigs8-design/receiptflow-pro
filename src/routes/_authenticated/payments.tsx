@@ -311,6 +311,86 @@ function PaymentsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit payment</DialogTitle>
+          </DialogHeader>
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              editMutation.mutate();
+            }}
+          >
+            <Field label="Amount" htmlFor="eamt">
+              <Input
+                id="eamt"
+                type="number"
+                min={1}
+                required
+                value={editDraft.amount}
+                onChange={(e) => setEditDraft({ ...editDraft, amount: Number(e.target.value) })}
+              />
+            </Field>
+            <Field label="Method">
+              <Select
+                value={editDraft.method}
+                onValueChange={(v) => setEditDraft({ ...editDraft, method: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Payment date" htmlFor="epd">
+              <Input
+                id="epd"
+                type="date"
+                required
+                value={editDraft.paid_at}
+                onChange={(e) => setEditDraft({ ...editDraft, paid_at: e.target.value })}
+              />
+            </Field>
+            <Field label="Period (YYYY-MM)" htmlFor="eper">
+              <Input
+                id="eper"
+                maxLength={40}
+                value={editDraft.period_label}
+                onChange={(e) => setEditDraft({ ...editDraft, period_label: e.target.value })}
+              />
+            </Field>
+            <Field label="Reference (M-Pesa code)" htmlFor="eref" className="sm:col-span-2">
+              <Input
+                id="eref"
+                maxLength={80}
+                value={editDraft.reference}
+                onChange={(e) => setEditDraft({ ...editDraft, reference: e.target.value })}
+              />
+            </Field>
+            <Field label="Notes" className="sm:col-span-2">
+              <Textarea
+                maxLength={1000}
+                value={editDraft.notes}
+                onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
+              />
+            </Field>
+            <DialogFooter className="sm:col-span-2">
+              <Button type="submit" className="rounded-full" disabled={editMutation.isPending}>
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
