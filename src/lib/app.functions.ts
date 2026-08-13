@@ -432,14 +432,13 @@ export const updatePayment = createServerFn({ method: "POST" })
     const rent = Number(payment.tenants?.rent_amount ?? 0);
     const balance = rent - Number(data.amount);
     for (const r of receipts ?? []) {
-      const snapshot = { ...((r.snapshot ?? {}) as Record<string, never>) } as Record<
-        string,
-        never
-      >;
-      snapshot["method"] = data.method;
-      snapshot["reference"] = data.reference ?? null;
-      snapshot["period"] = data.period_label || data.paid_at.slice(0, 7);
-      snapshot["paid_at"] = data.paid_at;
+      const snapshot = {
+        ...((r.snapshot ?? {}) as Record<string, unknown>),
+        method: data.method,
+        reference: data.reference ?? null,
+        period: data.period_label || data.paid_at.slice(0, 7),
+        paid_at: data.paid_at,
+      } as never;
       await sb
         .from("receipts")
         .update({ amount: data.amount, balance, snapshot })
