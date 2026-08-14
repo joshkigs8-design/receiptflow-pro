@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rent Receipt Pro</string>
+    <string name="title_activity_main">Rent Receipt Pro</string>
+    <string name="package_name">com.rentreceiptpro.app</string>
+    <string name="custom_url_scheme">com.rentreceiptpro.app</string>
+</resources>
