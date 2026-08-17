@@ -80,23 +80,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Rent Receipt Pro — Property Management & Digital Receipts" },
+      { title: "RentReceipt — Rent Management Software in Kenya" },
       {
         name: "description",
         content:
-          "Codevanta Ventures Rent Receipt Pro: manage properties, tenants, payments and instant digital rent receipts with QR verification.",
+          "RentReceipt is a rent management and property management platform for landlords and property managers in Kenya.",
       },
       { name: "author", content: "Codevanta Ventures" },
-      { property: "og:title", content: "Rent Receipt Pro" },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://rentreceipt.co.ke/" },
+      { property: "og:title", content: "RentReceipt – Rent Management Software in Kenya" },
       {
         property: "og:description",
-        content: "Manage properties smarter and generate digital rent receipts instantly.",
+        content:
+          "Manage properties, tenants, rent payments and professional rent receipts with RentReceipt.",
       },
-      { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://rentreceipt.co.ke/favicon.png" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "RentReceipt – Rent Management Software in Kenya" },
+      {
+        name: "twitter:description",
+        content: "Manage properties, tenants and rent receipts with RentReceipt.",
+      },
     ],
     links: [
+      { rel: "canonical", href: "https://rentreceipt.co.ke/" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -121,6 +129,18 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "RentReceipt",
+              alternateName: "RentReceiptPro",
+              url: "https://rentreceipt.co.ke/",
+            }),
+          }}
+        />
         <HeadContent />
       </head>
       <body>

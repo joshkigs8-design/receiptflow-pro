@@ -85,10 +85,7 @@ export function Hero() {
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="mt-6 font-display text-4xl leading-[1.05] font-bold text-white sm:text-6xl lg:text-7xl"
         >
-          Manage properties smarter.
-          <span className="mt-2 block bg-gradient-to-r from-[oklch(0.82_0.16_65)] to-[oklch(0.72_0.2_47)] bg-clip-text text-transparent">
-            Generate digital rent receipts instantly.
-          </span>
+          RentReceipt — Simple Rent & Property Management
         </motion.h1>
 
         <motion.p
@@ -97,8 +94,8 @@ export function Hero() {
           transition={{ duration: 0.9, delay: 0.25 }}
           className="mx-auto mt-6 max-w-2xl text-base text-white/75 sm:text-lg"
         >
-          Manage tenants, properties, payments, leases and receipts from one beautiful dashboard —
-          while every tenant downloads their receipt in seconds.
+          RentReceipt helps landlords and property managers in Kenya manage properties, tenants,
+          rent payments and professional rent receipts from one platform.
         </motion.p>
 
         <motion.div
