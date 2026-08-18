@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://rentreceipt.co.ke/sitemap.xml
