@@ -138,9 +138,7 @@ function TenantsPage() {
       status: "PAID" | "PARTIAL" | "UNPAID";
     }> = {};
 
-    const allPayments = (payments.data ?? []).filter(
-      (p) => (p.landlord_id ?? "") === context?.userId || true,
-    );
+    const allPayments = payments.data ?? [];
 
     rows.forEach((t) => {
       const monthlyRent = Number(t.rent_amount ?? 0);
