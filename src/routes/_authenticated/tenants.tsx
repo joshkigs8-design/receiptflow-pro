@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { money, shortDate } from "@/lib/format";
+import { money, shortDate, CURRENCY } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/tenants")({
   head: () => ({
@@ -90,6 +90,31 @@ function TenantsPage() {
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(blank);
+  const [rentalPeriod, setRentalPeriod] = useState<string>(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 7);
+  });
+  const [periodLabel, setPeriodLabel] = useState<string>("Current month");
+  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
+  
+  // Pre-compute month options for the selector
+  const monthOptions = useMemo(() => {
+    const options = [];
+    // Current month
+    options.push({
+      value: new Date().toISOString().slice(0, 7),
+      label: new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+    });
+    // Last 5 months
+    for (let i = 1; i <= 5; i++) {
+      const d = new Date(Date.now() - i * 30 * 24 * 60 * 60 * 1000);
+      options.push({
+        value: d.toISOString().slice(0, 7),
+        label: d.toLocaleDateString("en-GB", { month: "long" }) + " " + d.getFullYear(),
+      });
+    }
+    return options;
+  }, []);
 
   const tenants = useQuery({ queryKey: ["tenants"], queryFn: () => fetchTenants() });
   const properties = useQuery({ queryKey: ["properties"], queryFn: () => fetchProperties() });
@@ -99,17 +124,114 @@ function TenantsPage() {
     enabled: Boolean(draft.property_id),
   });
 
+  const payments = useQuery({ queryKey: ["payments"], queryFn: () => fetchPayments() });
+
+  const selectedPeriod = useMemo(() => rentalPeriod, [rentalPeriod]);
+
+  const rentStatuses = useMemo(() => {
+    const rows = tenants.data ?? [];
+    const period = selectedPeriod;
+    const statuses: Record<string, {
+      paidThisPeriod: number;
+      monthlyRent: number;
+      balance: number;
+      status: "PAID" | "PARTIAL" | "UNPAID";
+    }> = {};
+
+    const allPayments = (payments.data ?? []).filter(
+      (p) => (p.landlord_id ?? "") === context?.userId || true,
+    );
+
+    rows.forEach((t) => {
+      const monthlyRent = Number(t.rent_amount ?? 0);
+      let paidThisPeriod = 0;
+
+      allPayments.forEach((p) => {
+        const pPeriod = p.period_label ?? "";
+        const pTenantId = p.tenant_id ?? "";
+        const pAmount = Number(p.amount ?? 0);
+
+        if (pTenantId === t.id && pPeriod === period && pAmount > 0) {
+          paidThisPeriod += pAmount;
+        }
+      });
+
+      const balance = Math.max(monthlyRent - paidThisPeriod, 0);
+      let status: "PAID" | "PARTIAL" | "UNPAID";
+
+      if (paidThisPeriod <= 0) {
+        status = "UNPAID";
+      } else if (paidThisPeriod < monthlyRent) {
+        status = "PARTIAL";
+      } else {
+        status = "PAID";
+      }
+
+      statuses[t.id] = {
+        paidThisPeriod,
+        monthlyRent,
+        balance,
+        status,
+      };
+    });
+
+    return statuses;
+  }, [tenants.data, rentalPeriod, payments.data]);
+
   const filtered = useMemo(() => {
     const rows = tenants.data ?? [];
-    if (!term.trim()) return rows;
+    if (!term.trim() && filter === "all") return rows;
     const q = term.toLowerCase();
     return rows.filter(
       (t) =>
-        t.full_name.toLowerCase().includes(q) ||
-        t.phone.includes(q) ||
-        (t.properties?.name ?? "").toLowerCase().includes(q),
+        (filter === "all" || filter === "paid"
+          ? true
+          : filter === "partial"
+            ? (rentStatuses[t.id]?.status === "PARTIAL")
+            : filter === "unpaid"
+              ? (rentStatuses[t.id]?.status === "UNPAID")
+              : false) &&
+        (t.full_name.toLowerCase().includes(q) ||
+          t.phone.includes(q) ||
+          (t.properties?.name ?? "").toLowerCase().includes(q)),
     );
-  }, [tenants.data, term]);
+  }, [tenants.data, term, filter]);
+
+  const expectedTotal = useMemo(() => {
+    return Object.values(rentStatuses).reduce(
+      (s, { monthlyRent }) => s + monthlyRent,
+      0,
+    );
+  }, [rentStatuses]);
+
+  const collectedTotal = useMemo(() => {
+    return Object.values(rentStatuses).reduce(
+      (s, { paidThisPeriod }) => s + paidThisPeriod,
+      0,
+    );
+  }, [rentStatuses]);
+
+  const outstandingTotal = useMemo(() => {
+    return Math.max(expectedTotal - collectedTotal, 0);
+  }, [expectedTotal, collectedTotal]);
+
+  const paidCount = useMemo(() => {
+    return Object.values(rentStatuses).filter(
+      (s) => s.status === "PAID",
+    ).length;
+  }, [rentStatuses]);
+
+  const partialCount = useMemo(() => {
+    return Object.values(rentStatuses).filter(
+      (s) => s.status === "PARTIAL",
+    ).length;
+  }, [rentStatuses]);
+
+  const unpaidCount = useMemo(() => {
+    return Object.values(rentStatuses).filter(
+      (s) => s.status === "UNPAID",
+    ).length;
+  }, [rentStatuses]);
 
   const saveMutation = useMutation({
     mutationFn: (d: Draft) =>
@@ -157,6 +279,83 @@ function TenantsPage() {
         </Button>
       }
     >
+<div className="relative mb-6 max-w-sm">
+        <Select
+          value={rentalPeriod}
+          onValueChange={(v) => {
+            setRentalPeriod(v);
+            setPeriodLabel(
+              v ? `${v.replace("-", " ")}` : "Current month"
+            );
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Current month" />
+          </SelectTrigger>
+          <SelectContent>
+            {monthOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase">Expected</p>
+          <p className="mt-1 font-display text-xl font-bold">{money(expectedTotal, CURRENCY)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase">Collected</p>
+          <p className="mt-1 font-display text-xl font-bold">{money(collectedTotal, CURRENCY)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase">Outstanding</p>
+          <p className="mt-1 font-display text-xl font-bold">{money(outstandingTotal, CURRENCY)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase">Tenants</p>
+          <p className="mt-1 font-display text-xl font-bold">{filtered.length}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Button
+          size="sm"
+          variant={paidCount > 0 ? "default" : "outline"}
+          className="rounded-full text-xs"
+          onClick={() => setFilter("paid")}
+        >
+          Paid {paidCount}
+        </Button>
+        <Button
+          size="sm"
+          variant={partialCount > 0 ? "default" : "outline"}
+          className="rounded-full text-xs"
+          onClick={() => setFilter("partial")}
+        >
+          Partial {partialCount}
+        </Button>
+        <Button
+          size="sm"
+          variant={unpaidCount > 0 ? "default" : "outline"}
+          className="rounded-full text-xs text-destructive"
+          onClick={() => setFilter("unpaid")}
+        >
+          Unpaid {unpaidCount}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-full text-xs"
+          onClick={() => setFilter("all")}
+        >
+          All
+        </Button>
+      </div>
+
       <div className="relative mb-6 max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -168,9 +367,7 @@ function TenantsPage() {
         />
       </div>
 
-      {tenants.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading tenants…</p>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState title="No tenants found" hint="Add a tenant and assign them to a unit." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -204,11 +401,31 @@ function TenantsPage() {
                   <dt className="text-muted-foreground">Rent</dt>
                   <dd className="font-semibold">{money(t.rent_amount)}</dd>
                 </div>
-                <div className="flex justify-between gap-2">
+<div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Lease ends</dt>
                   <dd>{shortDate(t.lease_end)}</dd>
                 </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Paid this period</dt>
+                  <dd>{money(rentStatuses[t.id]?.paidThisPeriod ?? 0, CURRENCY)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Balance</dt>
+                  <dd>{money(rentStatuses[t.id]?.balance ?? 0, CURRENCY)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Rent status</dt>
+                  <dd>
+                    <Badge
+                      variant={rentStatuses[t.id]?.status === "PAID" ? "default" : rentStatuses[t.id]?.status === "PARTIAL" ? "secondary" : "destructive"}
+                      className="capitalize"
+                    >
+                      {rentStatuses[t.id]?.status}
+                    </Badge>
+                  </dd>
+                </div>
               </dl>
+              
               <div className="mt-4 flex gap-2">
                 <Button
                   size="sm"
