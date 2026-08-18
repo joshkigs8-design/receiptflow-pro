@@ -14,7 +14,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TenantRouteImport } from './routes/tenant'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
@@ -55,9 +57,19 @@ const DownloadRoute = DownloadRouteImport.update({
   path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantRoute = TenantRouteImport.update({
   id: '/tenant',
   path: '/tenant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyRoute = VerifyRouteImport.update({
@@ -143,7 +155,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
+  '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -165,7 +179,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
+  '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -189,7 +205,9 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
+  '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -213,7 +231,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/download'
+    | '/privacy-policy'
     | '/tenant'
+    | '/terms'
     | '/verify'
     | '/announcements'
     | '/billing'
@@ -235,7 +255,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/download'
+    | '/privacy-policy'
     | '/tenant'
+    | '/terms'
     | '/verify'
     | '/announcements'
     | '/billing'
@@ -258,7 +280,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/download'
+    | '/privacy-policy'
     | '/tenant'
+    | '/terms'
     | '/verify'
     | '/_authenticated/announcements'
     | '/_authenticated/billing'
@@ -282,7 +306,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
   DownloadRoute: typeof DownloadRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TenantRoute: typeof TenantRoute
+  TermsRoute: typeof TermsRoute
   VerifyRoute: typeof VerifyRoute
   ReceiptPublicIdRoute: typeof ReceiptPublicIdRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
@@ -325,11 +351,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tenant': {
       id: '/tenant'
       path: '/tenant'
       fullPath: '/tenant'
       preLoaderRoute: typeof TenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify': {
@@ -487,7 +527,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
   DownloadRoute: DownloadRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   TenantRoute: TenantRoute,
+  TermsRoute: TermsRoute,
   VerifyRoute: VerifyRoute,
   ReceiptPublicIdRoute: ReceiptPublicIdRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,

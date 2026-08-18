@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-DEMXix07.js";import{O as t}from"./index-FOPpbRJq.js";var n=e(`log-out`,[[`path`,{d:`m16 17 5-5-5-5`,key:`1bji2h`}],[`path`,{d:`M21 12H9`,key:`dn1m92`}],[`path`,{d:`M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4`,key:`1uf3rs`}]]),r=t({type:`function`});export{n,r as t};

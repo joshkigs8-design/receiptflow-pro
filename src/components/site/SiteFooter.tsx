@@ -4,7 +4,7 @@ import { Building2 } from "lucide-react";
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-card/50">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <div className="flex items-center gap-2.5">
             <span className="gradient-primary flex size-9 items-center justify-center rounded-xl">
@@ -55,6 +55,22 @@ export function SiteFooter() {
             <li>
               <Link to="/download" className="hover:text-foreground">
                 Android app
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold">Legal</h3>
+          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <Link to="/privacy-policy" className="hover:text-foreground">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className="hover:text-foreground">
+                Terms of Service
               </Link>
             </li>
           </ul>
