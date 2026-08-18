@@ -157,7 +157,10 @@ function UnitsPage() {
                   <td className="p-3">{money(u.rent)}</td>
                   <td className="p-3">{u.tenants?.[0]?.full_name ?? "Vacant"}</td>
                   <td className="p-3">
-                    <Badge variant={u.status === "occupied" ? "default" : "secondary"} className="capitalize">
+                    <Badge
+                      variant={u.status === "occupied" ? "default" : "secondary"}
+                      className="capitalize"
+                    >
                       {u.status}
                     </Badge>
                   </td>

@@ -61,7 +61,12 @@ export function SiteNav() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle className="hidden sm:inline-flex" />
-            <Button asChild variant="ghost" size="sm" className="hidden rounded-full sm:inline-flex">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden rounded-full sm:inline-flex"
+            >
               <Link to="/auth">Login</Link>
             </Button>
             <Button asChild size="sm" className="rounded-full shadow-glow">
@@ -92,7 +97,10 @@ export function SiteNav() {
                 {l.label}
               </a>
             ))}
-            <Link to="/tenant" className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent">
+            <Link
+              to="/tenant"
+              className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
+            >
               Tenant Portal
             </Link>
             <Link to="/auth" className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent">

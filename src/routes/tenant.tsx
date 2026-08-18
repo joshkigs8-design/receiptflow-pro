@@ -44,7 +44,11 @@ function TenantPortal() {
   const submit = useServerFn(submitTenantRequest);
   const [creds, setCreds] = useState({ code: "", room: "", phone: "" });
   const [portal, setPortal] = useState<PortalData | null>(null);
-  const [request, setRequest] = useState({ category: "plumbing", priority: "normal", description: "" });
+  const [request, setRequest] = useState({
+    category: "plumbing",
+    priority: "normal",
+    description: "",
+  });
 
   const login = useMutation({
     mutationFn: () => verify({ data: creds }),
@@ -126,7 +130,11 @@ function TenantPortal() {
                   onChange={(e) => setCreds({ ...creds, phone: e.target.value })}
                 />
               </Field>
-              <Button type="submit" className="w-full rounded-full shadow-glow" disabled={login.isPending}>
+              <Button
+                type="submit"
+                className="w-full rounded-full shadow-glow"
+                disabled={login.isPending}
+              >
                 {login.isPending ? <Loader2 className="size-4 animate-spin" /> : "View my account"}
               </Button>
             </form>
@@ -149,7 +157,9 @@ function TenantPortal() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="surface-card p-5">
                 <p className="text-xs text-muted-foreground uppercase">Monthly rent</p>
-                <p className="mt-3 font-display text-2xl font-bold">{money(portal.tenant.rent_amount)}</p>
+                <p className="mt-3 font-display text-2xl font-bold">
+                  {money(portal.tenant.rent_amount)}
+                </p>
               </div>
               <div className="surface-card p-5">
                 <p className="text-xs text-muted-foreground uppercase">Total paid</p>
@@ -159,7 +169,9 @@ function TenantPortal() {
               </div>
               <div className="surface-card p-5">
                 <p className="text-xs text-muted-foreground uppercase">Outstanding</p>
-                <p className="mt-3 font-display text-2xl font-bold">{money(portal.totals.outstanding)}</p>
+                <p className="mt-3 font-display text-2xl font-bold">
+                  {money(portal.totals.outstanding)}
+                </p>
               </div>
             </div>
 
@@ -167,10 +179,15 @@ function TenantPortal() {
               <h2 className="font-semibold">My receipts</h2>
               <ul className="mt-4 space-y-3">
                 {portal.receipts.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 text-sm last:border-0">
+                  <li
+                    key={r.id}
+                    className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 text-sm last:border-0"
+                  >
                     <span>
                       <span className="block font-medium">{r.receipt_number}</span>
-                      <span className="text-xs text-muted-foreground">{shortDate(r.issued_at)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {shortDate(r.issued_at)}
+                      </span>
                     </span>
                     <span className="font-semibold text-primary">{money(r.amount)}</span>
                     <a href={receiptUrl(r.public_id)} target="_blank" rel="noreferrer">
@@ -269,7 +286,11 @@ function TenantPortal() {
                   />
                 </Field>
                 <div className="sm:col-span-2">
-                  <Button type="submit" className="rounded-full shadow-glow" disabled={raise.isPending}>
+                  <Button
+                    type="submit"
+                    className="rounded-full shadow-glow"
+                    disabled={raise.isPending}
+                  >
                     Send request
                   </Button>
                 </div>

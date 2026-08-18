@@ -27,6 +27,7 @@ import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTenantsRouteImport } from './routes/_authenticated/tenants'
 import { Route as AuthenticatedUnitsRouteImport } from './routes/_authenticated/units'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack/webhook'
 
@@ -120,6 +121,11 @@ const AuthenticatedUnitsRoute = AuthenticatedUnitsRouteImport.update({
   path: '/units',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ReceiptPublicIdRoute = ReceiptPublicIdRouteImport.update({
   id: '/receipt/$publicId',
   path: '/receipt/$publicId',
@@ -135,7 +141,7 @@ const ApiPublicPaystackWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
@@ -150,13 +156,14 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -179,7 +187,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/tenant': typeof TenantRoute
   '/verify': typeof VerifyRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tenants': typeof AuthenticatedTenantsRoute
   '/_authenticated/units': typeof AuthenticatedUnitsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tenants'
     | '/units'
+    | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tenants'
     | '/units'
+    | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
   id:
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/tenants'
     | '/_authenticated/units'
+    | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
   fileRoutesById: FileRoutesById
@@ -268,7 +280,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   DownloadRoute: typeof DownloadRoute
   TenantRoute: typeof TenantRoute
   VerifyRoute: typeof VerifyRoute
@@ -404,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnitsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/receipt/$publicId': {
       id: '/receipt/$publicId'
       path: '/receipt/$publicId'
@@ -452,11 +471,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   DownloadRoute: DownloadRoute,
   TenantRoute: TenantRoute,
   VerifyRoute: VerifyRoute,

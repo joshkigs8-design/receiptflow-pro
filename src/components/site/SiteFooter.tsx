@@ -13,26 +13,50 @@ export function SiteFooter() {
             <span className="font-display font-bold">Rent Receipt Pro</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            A Codevanta Ventures product. Premium property management and QR-verified digital
-            rent receipts.
+            A Codevanta Ventures product. Premium property management and QR-verified digital rent
+            receipts.
           </p>
         </div>
 
         <div>
           <h3 className="text-sm font-semibold">Product</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li><a href="/#features" className="hover:text-foreground">Features</a></li>
-            <li><a href="/#pricing" className="hover:text-foreground">Pricing</a></li>
+            <li>
+              <a href="/#features" className="hover:text-foreground">
+                Features
+              </a>
+            </li>
+            <li>
+              <a href="/#pricing" className="hover:text-foreground">
+                Pricing
+              </a>
+            </li>
           </ul>
         </div>
 
         <div>
           <h3 className="text-sm font-semibold">Access</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/auth" className="hover:text-foreground">Landlord login</Link></li>
-            <li><Link to="/tenant" className="hover:text-foreground">Tenant portal</Link></li>
-            <li><Link to="/verify" className="hover:text-foreground">Verify a receipt</Link></li>
-            <li><Link to="/download" className="hover:text-foreground">Android app</Link></li>
+            <li>
+              <Link to="/auth" className="hover:text-foreground">
+                Landlord login
+              </Link>
+            </li>
+            <li>
+              <Link to="/tenant" className="hover:text-foreground">
+                Tenant portal
+              </Link>
+            </li>
+            <li>
+              <Link to="/verify" className="hover:text-foreground">
+                Verify a receipt
+              </Link>
+            </li>
+            <li>
+              <Link to="/download" className="hover:text-foreground">
+                Android app
+              </Link>
+            </li>
           </ul>
         </div>
 

@@ -19,7 +19,10 @@ export const Route = createFileRoute("/_authenticated/requests")({
   head: () => ({
     meta: [
       { title: "Maintenance Requests — Rent Receipt Pro" },
-      { name: "description", content: "Track tenant maintenance requests from report to resolution." },
+      {
+        name: "description",
+        content: "Track tenant maintenance requests from report to resolution.",
+      },
       { property: "og:title", content: "Maintenance Requests — Rent Receipt Pro" },
       { property: "og:description", content: "Handle tenant maintenance issues quickly." },
     ],
@@ -49,7 +52,10 @@ function RequestsPage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading requests…</p>
       ) : (data ?? []).length === 0 ? (
-        <EmptyState title="No maintenance requests" hint="Tenants can raise issues from the tenant portal." />
+        <EmptyState
+          title="No maintenance requests"
+          hint="Tenants can raise issues from the tenant portal."
+        />
       ) : (
         <div className="space-y-4">
           {(data ?? []).map((r) => (

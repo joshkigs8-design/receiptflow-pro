@@ -36,7 +36,10 @@ export const Route = createFileRoute("/_authenticated/tenants")({
   head: () => ({
     meta: [
       { title: "Tenants — Rent Receipt Pro" },
-      { name: "description", content: "Tenant profiles, leases, rent amounts and contact details." },
+      {
+        name: "description",
+        content: "Tenant profiles, leases, rent amounts and contact details.",
+      },
       { property: "og:title", content: "Tenants — Rent Receipt Pro" },
       { property: "og:description", content: "Manage tenant profiles and leases." },
     ],
@@ -178,7 +181,10 @@ function TenantsPage() {
                   <h2 className="truncate font-semibold">{t.full_name}</h2>
                   <p className="text-xs text-muted-foreground">{t.phone}</p>
                 </div>
-                <Badge variant={t.status === "active" ? "default" : "secondary"} className="capitalize">
+                <Badge
+                  variant={t.status === "active" ? "default" : "secondary"}
+                  className="capitalize"
+                >
                   {t.status}
                 </Badge>
               </div>

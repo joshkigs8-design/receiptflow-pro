@@ -112,7 +112,10 @@ function PropertiesPage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading properties…</p>
       ) : (data ?? []).length === 0 ? (
-        <EmptyState title="No properties yet" hint="Add your first property to start tracking units and tenants." />
+        <EmptyState
+          title="No properties yet"
+          hint="Add your first property to start tracking units and tenants."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((p) => {

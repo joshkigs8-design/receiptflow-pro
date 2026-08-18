@@ -25,8 +25,7 @@ export function accessState(row: {
 }
 
 export function nextPeriodEnd(current: string | null, plan: PlanKey) {
-  const base =
-    current && new Date(current).getTime() > Date.now() ? new Date(current) : new Date();
+  const base = current && new Date(current).getTime() > Date.now() ? new Date(current) : new Date();
   const next = new Date(base);
   next.setMonth(next.getMonth() + PLANS[plan].months);
   return next.toISOString();

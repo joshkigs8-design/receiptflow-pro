@@ -103,13 +103,19 @@
   --sidebar-border: oklch(0.9 0.012 70);
   --sidebar-ring: oklch(0.685 0.212 45.5);
 
-  --gradient-primary: linear-gradient(135deg, var(--primary-deep), var(--primary) 45%, var(--primary-glow));
+  --gradient-primary: linear-gradient(
+    135deg,
+    var(--primary-deep),
+    var(--primary) 45%,
+    var(--primary-glow)
+  );
   --gradient-surface: linear-gradient(160deg, oklch(1 0 0 / 0.9), oklch(0.97 0.01 70 / 0.6));
   --glass-bg: oklch(1 0 0 / 0.6);
   --glass-border: oklch(1 0 0 / 0.5);
   --shadow-soft: 0 1px 2px oklch(0.2 0.02 50 / 0.06), 0 12px 32px -12px oklch(0.2 0.02 50 / 0.18);
   --shadow-float: 0 30px 70px -30px oklch(0.25 0.06 45 / 0.35);
-  --shadow-glow: 0 0 0 1px oklch(0.685 0.212 45.5 / 0.25), 0 20px 60px -20px oklch(0.685 0.212 45.5 / 0.45);
+  --shadow-glow:
+    0 0 0 1px oklch(0.685 0.212 45.5 / 0.25), 0 20px 60px -20px oklch(0.685 0.212 45.5 / 0.45);
 }
 
 .dark {

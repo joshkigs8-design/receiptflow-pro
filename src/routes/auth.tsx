@@ -4,7 +4,6 @@ import { z } from "zod";
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,8 @@ export const Route = createFileRoute("/auth")({
       { title: "Landlord Login — Rent Receipt Pro" },
       {
         name: "description",
-        content: "Sign in or create your Rent Receipt Pro landlord account to manage properties and receipts.",
+        content:
+          "Sign in or create your Rent Receipt Pro landlord account to manage properties and receipts.",
       },
       { property: "og:title", content: "Landlord Login — Rent Receipt Pro" },
       { property: "og:description", content: "Access your Rent Receipt Pro landlord dashboard." },
@@ -79,15 +79,22 @@ function AuthPage() {
   }
 
   async function google() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Google sign-in failed");
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast.error(`Google sign-in failed: ${error.message}`);
+        return;
+      }
+      // If no error, Supabase will redirect to the callback URL
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
     }
-    if (result.redirected) return;
-    navigate({ to: "/dashboard" });
   }
 
   return (
@@ -124,7 +131,13 @@ function AuthPage() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={120}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company">Company / brand name</Label>
@@ -162,7 +175,13 @@ function AuthPage() {
               />
             </div>
             <Button type="submit" className="w-full rounded-full shadow-glow" disabled={busy}>
-              {busy ? <Loader2 className="size-4 animate-spin" /> : signup ? "Create account" : "Sign in"}
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : signup ? (
+                "Create account"
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
         )}

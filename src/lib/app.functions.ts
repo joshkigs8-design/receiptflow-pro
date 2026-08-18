@@ -481,9 +481,9 @@ export const listRequests = createServerFn({ method: "GET" })
 export const updateRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid(), status: z.enum(["open", "in_progress", "resolved"]) }).parse(
-      data,
-    ),
+    z
+      .object({ id: z.string().uuid(), status: z.enum(["open", "in_progress", "resolved"]) })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
@@ -513,7 +513,9 @@ export const saveAnnouncement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("announcements")
-      .insert(clean({ ...data, property_id: data.property_id || null, landlord_id: context.userId }));
+      .insert(
+        clean({ ...data, property_id: data.property_id || null, landlord_id: context.userId }),
+      );
     if (error) throw error;
     return { ok: true };
   });

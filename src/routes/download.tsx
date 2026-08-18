@@ -57,12 +57,16 @@ function DownloadPage() {
         <div className="surface-card mt-10 space-y-4 p-6 text-sm">
           <h2 className="font-display text-lg font-bold">Installing the APK</h2>
           <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
-            <li>Tap <strong>Download APK</strong> and grab the newest release file.</li>
+            <li>
+              Tap <strong>Download APK</strong> and grab the newest release file.
+            </li>
             <li>
               When Android warns about unknown sources, allow installs from your browser in
               <strong> Settings → Apps → Special access</strong>.
             </li>
-            <li>Open the downloaded file and tap <strong>Install</strong>.</li>
+            <li>
+              Open the downloaded file and tap <strong>Install</strong>.
+            </li>
             <li>Launch Rent Receipt Pro and sign in — your data syncs instantly.</li>
           </ol>
           <p className="flex items-center gap-2 text-muted-foreground">

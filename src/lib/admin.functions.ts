@@ -61,9 +61,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const landlords = (users.data?.users ?? []).map((u) => {
       const sub = subByUser.get(u.id);
       const trialEnds = sub ? new Date(sub.trial_ends_at).getTime() : 0;
-      const periodEnds = sub?.current_period_end
-        ? new Date(sub.current_period_end).getTime()
-        : 0;
+      const periodEnds = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : 0;
       const paidActive = periodEnds > now;
       const trialActive = !paidActive && trialEnds > now;
       return {
@@ -139,7 +137,10 @@ export const createVoucher = createServerFn({ method: "POST" })
       note: data.note ?? null,
       created_by: context.userId,
     });
-    if (error) throw new Error(error.message.includes("duplicate") ? "That code already exists" : error.message);
+    if (error)
+      throw new Error(
+        error.message.includes("duplicate") ? "That code already exists" : error.message,
+      );
     return { ok: true };
   });
 

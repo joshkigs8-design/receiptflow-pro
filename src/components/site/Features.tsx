@@ -2,12 +2,36 @@ import { motion } from "motion/react";
 import { BarChart3, Building2, FileText, QrCode, Users, Wallet } from "lucide-react";
 
 const features = [
-  { icon: Building2, title: "Property Management", text: "Unlimited properties with photos, GPS, amenities and notes." },
-  { icon: Users, title: "Tenant Management", text: "Full tenant profiles, IDs, documents and lease dates." },
-  { icon: FileText, title: "Digital Receipts", text: "Branded PDF receipts generated the moment rent is paid." },
-  { icon: QrCode, title: "QR Verification", text: "Every receipt carries a QR code that proves it is genuine." },
-  { icon: Wallet, title: "Payment Tracking", text: "Cash, M-Pesa, bank, card and cheque with balances." },
-  { icon: BarChart3, title: "Reports & Analytics", text: "Income, occupancy, arrears and revenue exports." },
+  {
+    icon: Building2,
+    title: "Property Management",
+    text: "Unlimited properties with photos, GPS, amenities and notes.",
+  },
+  {
+    icon: Users,
+    title: "Tenant Management",
+    text: "Full tenant profiles, IDs, documents and lease dates.",
+  },
+  {
+    icon: FileText,
+    title: "Digital Receipts",
+    text: "Branded PDF receipts generated the moment rent is paid.",
+  },
+  {
+    icon: QrCode,
+    title: "QR Verification",
+    text: "Every receipt carries a QR code that proves it is genuine.",
+  },
+  {
+    icon: Wallet,
+    title: "Payment Tracking",
+    text: "Cash, M-Pesa, bank, card and cheque with balances.",
+  },
+  {
+    icon: BarChart3,
+    title: "Reports & Analytics",
+    text: "Income, occupancy, arrears and revenue exports.",
+  },
 ];
 
 export function Features() {

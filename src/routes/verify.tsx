@@ -11,7 +11,8 @@ export const Route = createFileRoute("/verify")({
       { title: "Verify a Receipt — Rent Receipt Pro" },
       {
         name: "description",
-        content: "Check that a rent receipt is genuine by entering its verification code or scanning its QR code.",
+        content:
+          "Check that a rent receipt is genuine by entering its verification code or scanning its QR code.",
       },
       { property: "og:title", content: "Verify a Receipt — Rent Receipt Pro" },
       { property: "og:description", content: "Confirm a rent receipt is authentic." },

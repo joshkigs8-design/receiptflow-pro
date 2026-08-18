@@ -39,7 +39,10 @@ export const Route = createFileRoute("/_authenticated/payments")({
   head: () => ({
     meta: [
       { title: "Payments — Rent Receipt Pro" },
-      { name: "description", content: "Record rent payments and instantly issue digital receipts." },
+      {
+        name: "description",
+        content: "Record rent payments and instantly issue digital receipts.",
+      },
       { property: "og:title", content: "Payments — Rent Receipt Pro" },
       { property: "og:description", content: "Record payments and generate receipts instantly." },
     ],
@@ -135,7 +138,10 @@ function PaymentsPage() {
       {payments.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading payments…</p>
       ) : (payments.data ?? []).length === 0 ? (
-        <EmptyState title="No payments yet" hint="Record a payment to generate the first receipt." />
+        <EmptyState
+          title="No payments yet"
+          hint="Record a payment to generate the first receipt."
+        />
       ) : (
         <div className="surface-card overflow-x-auto p-2">
           <table className="w-full text-sm">
@@ -162,7 +168,10 @@ function PaymentsPage() {
                   <td className="p-3 capitalize">{p.method}</td>
                   <td className="p-3">{p.receipts?.[0]?.receipt_number ?? "—"}</td>
                   <td className="p-3">
-                    <Badge variant={p.status === "paid" ? "default" : "secondary"} className="capitalize">
+                    <Badge
+                      variant={p.status === "paid" ? "default" : "secondary"}
+                      className="capitalize"
+                    >
                       {p.status}
                     </Badge>
                   </td>

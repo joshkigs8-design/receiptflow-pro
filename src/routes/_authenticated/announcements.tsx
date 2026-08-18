@@ -88,7 +88,10 @@ function AnnouncementsPage() {
       {list.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading announcements…</p>
       ) : (list.data ?? []).length === 0 ? (
-        <EmptyState title="No announcements yet" hint="Publish a notice and tenants will see it instantly." />
+        <EmptyState
+          title="No announcements yet"
+          hint="Publish a notice and tenants will see it instantly."
+        />
       ) : (
         <div className="space-y-4">
           {(list.data ?? []).map((a) => (

@@ -14,7 +14,10 @@ export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Settings — Rent Receipt Pro" },
-      { name: "description", content: "Branding, currency and business details used on your receipts." },
+      {
+        name: "description",
+        content: "Branding, currency and business details used on your receipts.",
+      },
       { property: "og:title", content: "Settings — Rent Receipt Pro" },
       { property: "og:description", content: "Customise your receipt branding." },
     ],

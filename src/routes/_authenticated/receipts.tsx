@@ -14,7 +14,10 @@ export const Route = createFileRoute("/_authenticated/receipts")({
   head: () => ({
     meta: [
       { title: "Receipts — Rent Receipt Pro" },
-      { name: "description", content: "Download, share and verify every digital rent receipt issued." },
+      {
+        name: "description",
+        content: "Download, share and verify every digital rent receipt issued.",
+      },
       { property: "og:title", content: "Receipts — Rent Receipt Pro" },
       { property: "og:description", content: "All your issued digital rent receipts." },
     ],
@@ -42,7 +45,9 @@ function ReceiptsPage() {
                 <QrCode className="size-4 text-primary" />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{shortDate(r.issued_at)}</p>
-              <p className="mt-4 text-sm">{r.tenants?.full_name ?? r.snapshot?.tenant_name ?? "—"}</p>
+              <p className="mt-4 text-sm">
+                {r.tenants?.full_name ?? r.snapshot?.tenant_name ?? "—"}
+              </p>
               <p className="mt-1 font-display text-2xl font-bold text-primary">
                 {money(r.amount, r.snapshot?.currency)}
               </p>

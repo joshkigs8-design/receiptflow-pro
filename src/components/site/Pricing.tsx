@@ -28,7 +28,9 @@ export function Pricing() {
           <span className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold">
             <Sparkles className="size-3.5 text-primary" /> 1 month free on signup
           </span>
-          <h2 className="mt-5 font-display text-3xl font-bold sm:text-4xl">Simple, honest pricing</h2>
+          <h2 className="mt-5 font-display text-3xl font-bold sm:text-4xl">
+            Simple, honest pricing
+          </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
             Try everything free for one month. Keep going from KSh 300 a month — cancel anytime.
           </p>

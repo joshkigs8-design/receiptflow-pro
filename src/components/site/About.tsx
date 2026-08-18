@@ -3,10 +3,26 @@ import { Building2, FileText, ShieldCheck, Smartphone } from "lucide-react";
 import { Counter } from "./Counter";
 
 const pillars = [
-  { icon: Building2, title: "Built for landlords", text: "Unlimited properties, units and tenants." },
-  { icon: FileText, title: "Instant receipts", text: "Every payment produces a branded PDF receipt." },
-  { icon: Smartphone, title: "Tenant self-service", text: "Tenants verify and download from any phone." },
-  { icon: ShieldCheck, title: "Fraud proof", text: "QR codes verify every receipt against our records." },
+  {
+    icon: Building2,
+    title: "Built for landlords",
+    text: "Unlimited properties, units and tenants.",
+  },
+  {
+    icon: FileText,
+    title: "Instant receipts",
+    text: "Every payment produces a branded PDF receipt.",
+  },
+  {
+    icon: Smartphone,
+    title: "Tenant self-service",
+    text: "Tenants verify and download from any phone.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Fraud proof",
+    text: "QR codes verify every receipt against our records.",
+  },
 ];
 
 export function About() {
@@ -24,7 +40,8 @@ export function About() {
             About Codevanta Ventures
           </p>
           <h2 className="mt-4 text-3xl font-bold sm:text-5xl">
-            Property management that finally feels <span className="gradient-text">effortless</span>.
+            Property management that finally feels <span className="gradient-text">effortless</span>
+            .
           </h2>
           <p className="mt-6 text-lg text-muted-foreground">
             Rent Receipt Pro simplifies property management for landlords while giving tenants

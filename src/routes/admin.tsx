@@ -80,7 +80,9 @@ function AdminFrame({ children, onSignOut }: { children: ReactNode; onSignOut?: 
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base font-bold">Owner Admin Portal</p>
-          <p className="truncate text-xs text-muted-foreground">Codevanta Ventures · Rent Receipt Pro</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Codevanta Ventures · Rent Receipt Pro
+          </p>
         </div>
         <ThemeToggle />
         {onSignOut ? (
@@ -395,7 +397,9 @@ function AdminDashboard() {
                       <td className="py-3">
                         <p className="font-medium">{l.full_name ?? l.email}</p>
                         <p className="text-xs text-muted-foreground">{l.email}</p>
-                        {l.phone ? <p className="text-xs text-muted-foreground">{l.phone}</p> : null}
+                        {l.phone ? (
+                          <p className="text-xs text-muted-foreground">{l.phone}</p>
+                        ) : null}
                       </td>
                       <td className="py-3">
                         <span
@@ -537,7 +541,9 @@ function AdminDashboard() {
                           >
                             {v.code} <Copy className="size-3.5" />
                           </button>
-                          {v.note ? <p className="text-xs text-muted-foreground">{v.note}</p> : null}
+                          {v.note ? (
+                            <p className="text-xs text-muted-foreground">{v.note}</p>
+                          ) : null}
                         </td>
                         <td className="py-3">{v.months}</td>
                         <td className="py-3">
@@ -552,7 +558,11 @@ function AdminDashboard() {
                                 : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {v.active ? (v.used_count < v.max_uses ? "Active" : "Used up") : "Paused"}
+                            {v.active
+                              ? v.used_count < v.max_uses
+                                ? "Active"
+                                : "Used up"
+                              : "Paused"}
                           </span>
                         </td>
                         <td className="py-3 text-right">
@@ -627,7 +637,9 @@ function AdminDashboard() {
                       <td className="py-3">{p.email}</td>
                       <td className="py-3 capitalize">{p.plan}</td>
                       <td className="py-3">{money(p.amount)}</td>
-                      <td className="py-3 font-mono text-xs text-muted-foreground">{p.reference}</td>
+                      <td className="py-3 font-mono text-xs text-muted-foreground">
+                        {p.reference}
+                      </td>
                       <td className="py-3 capitalize">{p.status}</td>
                     </tr>
                   ))}

@@ -7,12 +7,7 @@ import { toast } from "sonner";
 import { getPublicReceipt } from "@/lib/portal.functions";
 import { Button } from "@/components/ui/button";
 import { money, shortDate } from "@/lib/format";
-import {
-  downloadReceiptPdf,
-  qrDataUrl,
-  receiptUrl,
-  type ReceiptRecord,
-} from "@/lib/receipt-pdf";
+import { downloadReceiptPdf, qrDataUrl, receiptUrl, type ReceiptRecord } from "@/lib/receipt-pdf";
 
 export const Route = createFileRoute("/receipt/$publicId")({
   head: () => ({
@@ -20,7 +15,8 @@ export const Route = createFileRoute("/receipt/$publicId")({
       { title: "Rent Receipt Verification — Rent Receipt Pro" },
       {
         name: "description",
-        content: "View and download a verified digital rent receipt issued through Rent Receipt Pro.",
+        content:
+          "View and download a verified digital rent receipt issued through Rent Receipt Pro.",
       },
       { property: "og:title", content: "Rent Receipt Verification" },
       { property: "og:description", content: "This rent receipt is verified against our records." },
@@ -40,7 +36,9 @@ function ReceiptPage() {
   });
 
   useEffect(() => {
-    qrDataUrl(receiptUrl(publicId)).then(setQr).catch(() => setQr(""));
+    qrDataUrl(receiptUrl(publicId))
+      .then(setQr)
+      .catch(() => setQr(""));
   }, [publicId]);
 
   const receipt = data?.ok ? (data.receipt as unknown as ReceiptRecord) : null;
@@ -96,7 +94,10 @@ function ReceiptPage() {
                   ["Property", snap.property ?? "—"],
                   ["Unit / room", `${snap.unit ?? "—"}${snap.room ? ` · ${snap.room}` : ""}`],
                   ["Period", snap.period ?? "—"],
-                  ["Method", `${snap.method ?? "—"}${snap.reference ? ` · ${snap.reference}` : ""}`],
+                  [
+                    "Method",
+                    `${snap.method ?? "—"}${snap.reference ? ` · ${snap.reference}` : ""}`,
+                  ],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <dt className="text-xs text-muted-foreground uppercase">{k}</dt>
@@ -115,7 +116,13 @@ function ReceiptPage() {
                     Balance {money(receipt.balance, snap.currency)}
                   </p>
                 </div>
-                {qr ? <img src={qr} alt="Receipt verification QR code" className="size-28 rounded-xl bg-white p-2" /> : null}
+                {qr ? (
+                  <img
+                    src={qr}
+                    alt="Receipt verification QR code"
+                    className="size-28 rounded-xl bg-white p-2"
+                  />
+                ) : null}
               </div>
 
               <div className="mt-8 flex flex-wrap gap-2">

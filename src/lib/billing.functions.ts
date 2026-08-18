@@ -4,7 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANS, type PlanKey } from "./plans";
 import { accessState, nextPeriodEnd, paystackKey } from "./billing.server";
 
-
 export const getSubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -133,20 +132,18 @@ export const verifyCheckout = createServerFn({ method: "POST" })
         })
         .eq("user_id", context.userId);
 
-      await supabaseAdmin
-        .from("subscription_payments")
-        .upsert(
-          {
-            user_id: context.userId,
-            reference: data.reference,
-            plan: planKey,
-            amount: plan.amount,
-            currency: "KES",
-            status: "success",
-            paid_at: new Date().toISOString(),
-          },
-          { onConflict: "reference" },
-        );
+      await supabaseAdmin.from("subscription_payments").upsert(
+        {
+          user_id: context.userId,
+          reference: data.reference,
+          plan: planKey,
+          amount: plan.amount,
+          currency: "KES",
+          status: "success",
+          paid_at: new Date().toISOString(),
+        },
+        { onConflict: "reference" },
+      );
     }
 
     return { paid: true as const, plan: planKey };

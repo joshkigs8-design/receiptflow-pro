@@ -9,7 +9,13 @@ import heroPoster from "@/assets/hero-poster.jpg";
 const floatingCards = [
   { label: "Properties managed", value: 1240, suffix: "+", className: "left-[4%] top-[24%]" },
   { label: "Receipts generated", value: 98500, suffix: "+", className: "right-[5%] top-[18%]" },
-  { label: "Monthly income", value: 42, prefix: "KSh ", suffix: "M", className: "left-[8%] bottom-[16%]" },
+  {
+    label: "Monthly income",
+    value: 42,
+    prefix: "KSh ",
+    suffix: "M",
+    className: "left-[8%] bottom-[16%]",
+  },
   { label: "Happy tenants", value: 15600, suffix: "+", className: "right-[7%] bottom-[22%]" },
 ];
 
@@ -57,7 +63,9 @@ export function Hero() {
           initial={{ opacity: 0, y: 30, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.5 + i * 0.15, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          style={{ transform: `translate3d(${pointer.x * (10 + i * 5)}px, ${pointer.y * (8 + i * 4)}px, 0)` }}
+          style={{
+            transform: `translate3d(${pointer.x * (10 + i * 5)}px, ${pointer.y * (8 + i * 4)}px, 0)`,
+          }}
           className={`glass-strong absolute hidden w-44 rounded-3xl p-4 text-white lg:block ${card.className} ${
             i % 2 === 0 ? "animate-float" : "animate-float-slow"
           }`}

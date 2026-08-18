@@ -1,25 +1,14 @@
 "use client";
 
-import {
-  CheckCircleIcon,
-  CircleNotchIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import { CheckCircleIcon, CircleNotchIcon } from "@phosphor-icons/react/dist/ssr";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  useContext,
-} from "react";
+import { type ComponentPropsWithoutRef, createContext, type ReactNode, useContext } from "react";
 import { cn } from "@/helpers/classname-helper";
 
 export type ReceiptPrinterStage = "processing" | "printing" | "complete";
 export type ReceiptFeedMotion = "smooth" | "stepped";
 
-export type ReceiptPrinterRootProps = Omit<
-  ComponentPropsWithoutRef<"section">,
-  "children"
-> & {
+export type ReceiptPrinterRootProps = Omit<ComponentPropsWithoutRef<"section">, "children"> & {
   animate?: boolean;
   children: ReactNode;
   feedMotion?: ReceiptFeedMotion;
@@ -32,10 +21,7 @@ export type ReceiptPrinterScreenProps = ComponentPropsWithoutRef<"div">;
 export type ReceiptPrinterOutputProps = ComponentPropsWithoutRef<"div">;
 export type ReceiptPrinterPaperProps = ComponentPropsWithoutRef<"article">;
 
-export type ReceiptPrinterStatusProps = Omit<
-  ComponentPropsWithoutRef<"div">,
-  "children"
-> & {
+export type ReceiptPrinterStatusProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   children?: ReactNode;
 };
 
@@ -46,8 +32,7 @@ type ReceiptPrinterContextValue = {
   stage: ReceiptPrinterStage;
 };
 
-const ReceiptPrinterContext =
-  createContext<ReceiptPrinterContextValue | null>(null);
+const ReceiptPrinterContext = createContext<ReceiptPrinterContextValue | null>(null);
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 const easeInOut = [0.77, 0, 0.175, 1] as const;
@@ -55,20 +40,13 @@ const easeInOut = [0.77, 0, 0.175, 1] as const;
 const receiptToothCount = 40;
 const receiptToothDepth = 4;
 
-const receiptToothPoints = Array.from(
-  { length: receiptToothCount * 2 },
-  (_, index) => {
-    const x =
-      100 - ((index + 1) * 100) / (receiptToothCount * 2);
+const receiptToothPoints = Array.from({ length: receiptToothCount * 2 }, (_, index) => {
+  const x = 100 - ((index + 1) * 100) / (receiptToothCount * 2);
 
-    const y =
-      index % 2 === 0
-        ? "100%"
-        : `calc(100% - ${receiptToothDepth}px)`;
+  const y = index % 2 === 0 ? "100%" : `calc(100% - ${receiptToothDepth}px)`;
 
-    return `${x}% ${y}`;
-  },
-).join(", ");
+  return `${x}% ${y}`;
+}).join(", ");
 
 const receiptClipPath = `polygon(
   0 0,
@@ -101,32 +79,11 @@ const printingTransformKeyframes = [
 ];
 
 const printingKeyframeTimes = [
-  0,
-  0.075,
-  0.105,
-  0.18,
-  0.21,
-  0.285,
-  0.315,
-  0.39,
-  0.42,
-  0.495,
-  0.525,
-  0.6,
-  0.63,
-  0.705,
-  0.735,
-  0.81,
-  0.84,
-  0.915,
-  0.945,
-  1,
+  0, 0.075, 0.105, 0.18, 0.21, 0.285, 0.315, 0.39, 0.42, 0.495, 0.525, 0.6, 0.63, 0.705, 0.735,
+  0.81, 0.84, 0.915, 0.945, 1,
 ];
 
-const statusLabels: Record<
-  ReceiptPrinterStage,
-  ReactNode
-> = {
+const statusLabels: Record<ReceiptPrinterStage, ReactNode> = {
   processing: "Processing your payment",
   printing: "Generating your receipt",
   complete: "Payment complete",
@@ -136,9 +93,7 @@ function useReceiptPrinter(component: string) {
   const context = useContext(ReceiptPrinterContext);
 
   if (!context) {
-    throw new Error(
-      `${component} must be used inside ReceiptPrinter.Root.`,
-    );
+    throw new Error(`${component} must be used inside ReceiptPrinter.Root.`);
   }
 
   return context;
@@ -166,10 +121,7 @@ function ReceiptPrinterRoot({
     <ReceiptPrinterContext.Provider value={context}>
       <section
         aria-label={ariaLabel}
-        className={cn(
-          "relative isolate flex w-full max-w-sm flex-col items-center",
-          className,
-        )}
+        className={cn("relative isolate flex w-full max-w-sm flex-col items-center", className)}
         data-stage={stage}
         {...props}
       >
@@ -179,11 +131,7 @@ function ReceiptPrinterRoot({
   );
 }
 
-function ReceiptPrinterMachine({
-  children,
-  className,
-  ...props
-}: ReceiptPrinterMachineProps) {
+function ReceiptPrinterMachine({ children, className, ...props }: ReceiptPrinterMachineProps) {
   return (
     <div
       className={cn(
@@ -202,17 +150,10 @@ function ReceiptPrinterMachine({
   );
 }
 
-function ReceiptPrinterHeader({
-  children,
-  className,
-  ...props
-}: ReceiptPrinterHeaderProps) {
+function ReceiptPrinterHeader({ children, className, ...props }: ReceiptPrinterHeaderProps) {
   return (
     <div
-      className={cn(
-        "relative z-10 flex h-11 items-start justify-between",
-        className,
-      )}
+      className={cn("relative z-10 flex h-11 items-start justify-between", className)}
       {...props}
     >
       {children}
@@ -220,11 +161,7 @@ function ReceiptPrinterHeader({
   );
 }
 
-function ReceiptPrinterScreen({
-  children,
-  className,
-  ...props
-}: ReceiptPrinterScreenProps) {
+function ReceiptPrinterScreen({ children, className, ...props }: ReceiptPrinterScreenProps) {
   return (
     <div
       className={cn(
@@ -250,10 +187,7 @@ function StatusIndicator({
   const isComplete = stage === "complete";
 
   return (
-    <span
-      aria-hidden="true"
-      className="relative grid size-5 shrink-0 place-items-center"
-    >
+    <span aria-hidden="true" className="relative grid size-5 shrink-0 place-items-center">
       <AnimatePresence initial={false} mode="sync">
         {isComplete ? (
           <motion.span
@@ -300,10 +234,7 @@ function StatusIndicator({
             }}
           >
             <CircleNotchIcon
-              className={cn(
-                animate &&
-                  "animate-spin motion-reduce:animate-none",
-              )}
+              className={cn(animate && "animate-spin motion-reduce:animate-none")}
               size={18}
               weight="bold"
             />
@@ -314,40 +245,15 @@ function StatusIndicator({
   );
 }
 
-function ReceiptPrinterStatus({
-  children,
-  className,
-  ...props
-}: ReceiptPrinterStatusProps) {
-  const {
-    animate,
-    shouldMove,
-    stage,
-  } = useReceiptPrinter("ReceiptPrinter.Status");
+function ReceiptPrinterStatus({ children, className, ...props }: ReceiptPrinterStatusProps) {
+  const { animate, shouldMove, stage } = useReceiptPrinter("ReceiptPrinter.Status");
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 items-center gap-2",
-        className,
-      )}
-      {...props}
-    >
-      <StatusIndicator
-        animate={animate}
-        move={shouldMove}
-        stage={stage}
-      />
+    <div className={cn("flex min-w-0 items-center gap-2", className)} {...props}>
+      <StatusIndicator animate={animate} move={shouldMove} stage={stage} />
 
-      <div
-        aria-live="polite"
-        className="grid min-w-0 flex-1 items-center"
-        role="status"
-      >
-        <AnimatePresence
-          initial={false}
-          mode="sync"
-        >
+      <div aria-live="polite" className="grid min-w-0 flex-1 items-center" role="status">
+        <AnimatePresence initial={false} mode="sync">
           <motion.div
             animate={{
               opacity: 1,
@@ -356,15 +262,11 @@ function ReceiptPrinterStatus({
             className="col-start-1 row-start-1 truncate font-medium text-grayscale-8 text-xs leading-none dark:text-grayscale-11"
             exit={{
               opacity: animate ? 0 : 1,
-              transform: shouldMove
-                ? "translateY(-4px)"
-                : "translateY(0px)",
+              transform: shouldMove ? "translateY(-4px)" : "translateY(0px)",
             }}
             initial={{
               opacity: animate ? 0 : 1,
-              transform: shouldMove
-                ? "translateY(4px)"
-                : "translateY(0px)",
+              transform: shouldMove ? "translateY(4px)" : "translateY(0px)",
             }}
             key={stage}
             transition={{
@@ -380,12 +282,7 @@ function ReceiptPrinterStatus({
   );
 }
 
-function ReceiptPrinterPaper({
-  children,
-  className,
-  style,
-  ...props
-}: ReceiptPrinterPaperProps) {
+function ReceiptPrinterPaper({ children, className, style, ...props }: ReceiptPrinterPaperProps) {
   return (
     <article
       className={cn(
@@ -403,24 +300,12 @@ function ReceiptPrinterPaper({
   );
 }
 
-function ReceiptPrinterOutput({
-  children,
-  className,
-  ...props
-}: ReceiptPrinterOutputProps) {
-  const {
-    animate,
-    feedMotion,
-    shouldMove,
-    stage,
-  } = useReceiptPrinter("ReceiptPrinter.Output");
+function ReceiptPrinterOutput({ children, className, ...props }: ReceiptPrinterOutputProps) {
+  const { animate, feedMotion, shouldMove, stage } = useReceiptPrinter("ReceiptPrinter.Output");
 
   const isReceiptVisible = stage !== "processing";
 
-  const shouldUseSteppedFeed =
-    feedMotion === "stepped" &&
-    stage === "printing" &&
-    shouldMove;
+  const shouldUseSteppedFeed = feedMotion === "stepped" && stage === "printing" && shouldMove;
 
   return (
     <div
@@ -459,12 +344,8 @@ function ReceiptPrinterOutput({
           },
           transform: {
             duration: shouldMove ? 1.75 : 0,
-            ease: shouldUseSteppedFeed
-              ? "linear"
-              : easeInOut,
-            times: shouldUseSteppedFeed
-              ? printingKeyframeTimes
-              : undefined,
+            ease: shouldUseSteppedFeed ? "linear" : easeInOut,
+            times: shouldUseSteppedFeed ? printingKeyframeTimes : undefined,
           },
         }}
       >

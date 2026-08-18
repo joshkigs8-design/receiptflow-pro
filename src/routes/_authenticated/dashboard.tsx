@@ -1,15 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  Building2,
-  DoorOpen,
-  FileText,
-  TrendingUp,
-  Users,
-  Wallet,
-  Wrench,
-} from "lucide-react";
+import { Building2, DoorOpen, FileText, TrendingUp, Users, Wallet, Wrench } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -29,7 +21,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "Landlord Dashboard — Rent Receipt Pro" },
-      { name: "description", content: "Track income, occupancy, tenants and receipts in real time." },
+      {
+        name: "description",
+        content: "Track income, occupancy, tenants and receipts in real time.",
+      },
       { property: "og:title", content: "Landlord Dashboard — Rent Receipt Pro" },
       { property: "og:description", content: "Your live property performance overview." },
     ],
@@ -39,7 +34,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function DashboardPage() {
   const fetchDashboard = useServerFn(getDashboard);
-  const { data, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: () => fetchDashboard() });
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: () => fetchDashboard(),
+  });
 
   const t = data?.totals;
   const cards = [

@@ -73,7 +73,10 @@ export async function buildReceiptPdf(receipt: ReceiptRecord) {
     `${snap.property ?? "—"}  ·  Unit ${snap.unit ?? "—"}${snap.room ? ` · Room ${snap.room}` : ""}`,
   );
   row("Period", snap.period ?? "—");
-  row("Payment method", `${(snap.method ?? "cash").toUpperCase()}  ${snap.reference ? `· Ref ${snap.reference}` : ""}`);
+  row(
+    "Payment method",
+    `${(snap.method ?? "cash").toUpperCase()}  ${snap.reference ? `· Ref ${snap.reference}` : ""}`,
+  );
 
   doc.setDrawColor(230, 230, 230);
   doc.line(40, y - 12, w - 40, y - 12);

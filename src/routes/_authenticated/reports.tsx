@@ -23,7 +23,10 @@ export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
     meta: [
       { title: "Reports & Analytics — Rent Receipt Pro" },
-      { name: "description", content: "Income, occupancy and arrears analytics for your portfolio." },
+      {
+        name: "description",
+        content: "Income, occupancy and arrears analytics for your portfolio.",
+      },
       { property: "og:title", content: "Reports & Analytics — Rent Receipt Pro" },
       { property: "og:description", content: "Understand your rental income at a glance." },
     ],
@@ -67,9 +70,7 @@ function ReportsPage() {
 
   function exportCsv() {
     const header = "date,amount,method,status\n";
-    const body = payments
-      .map((p) => `${p.paid_at},${p.amount},${p.method},${p.status}`)
-      .join("\n");
+    const body = payments.map((p) => `${p.paid_at},${p.amount},${p.method},${p.status}`).join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -136,7 +137,13 @@ function ReportsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byMethod} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90}>
+                  <Pie
+                    data={byMethod}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={90}
+                  >
                     {byMethod.map((entry, i) => (
                       <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
                     ))}
