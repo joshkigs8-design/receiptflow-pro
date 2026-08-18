@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-B74pBk57.js";var t=e();function n(){return(0,t.jsx)(`div`,{children:`Hello "/_authenticated/billing"!`})}export{n as component};

@@ -6,21 +6,21 @@ import { Pricing } from "@/components/site/Pricing";
 import { CtaBand } from "@/components/site/CtaBand";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
-const title = "RentReceipt — Simple Rent & Property Management";
+const title = "RentReceiptPro — Rent Receipts & Property Management";
 const description =
-  "RentReceipt helps landlords and property managers in Kenya manage properties, tenants, rent payments and professional rent receipts from one platform.";
+  "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title },
       { name: "description", content: description },
-      { property: "og:title", content: "RentReceipt – Rent Management Software in Kenya" },
+      { property: "og:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://rentreceipt.co.ke/" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RentReceipt – Rent Management Software in Kenya" },
+      { name: "twitter:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
       { name: "twitter:description", content: description },
       { property: "og:image", content: "https://rentreceipt.co.ke/favicon.png" },
     ],

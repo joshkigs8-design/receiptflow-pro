@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
-const title = "Terms of Service — Rent Receipt Pro";
+const title = "Terms of Service — RentReceiptPro";
 const description =
-  "Review the terms and conditions for using Rent Receipt Pro property management and receipt generation platform.";
+  "Review the terms and conditions for using RentReceiptPro property management and receipt generation platform.";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({

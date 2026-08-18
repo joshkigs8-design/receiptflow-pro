@@ -93,7 +93,7 @@ export function Hero() {
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="mt-6 font-display text-4xl leading-[1.05] font-bold text-white sm:text-6xl lg:text-7xl"
         >
-          RentReceipt — Simple Rent & Property Management
+          RentReceiptPro
         </motion.h1>
 
         <motion.p
@@ -102,8 +102,16 @@ export function Hero() {
           transition={{ duration: 0.9, delay: 0.25 }}
           className="mx-auto mt-6 max-w-2xl text-base text-white/75 sm:text-lg"
         >
-          RentReceipt helps landlords and property managers in Kenya manage properties, tenants,
-          rent payments and professional rent receipts from one platform.
+          Professional Rent Receipts. Simplified Property Management.
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.35 }}
+          className="mx-auto mt-4 max-w-2xl text-base text-white/75 sm:text-lg"
+        >
+          RentReceiptPro helps landlords and property managers manage tenants, properties, rent payments, leases and professional rent receipts — all from one simple platform.
         </motion.p>
 
         <motion.div

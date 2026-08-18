@@ -4,7 +4,7 @@ import { BarChart3, Building2, FileText, QrCode, Users, Wallet } from "lucide-re
 const features = [
   {
     icon: Building2,
-    title: "Property Management",
+    title: "Property & Unit Management",
     text: "Unlimited properties with photos, GPS, amenities and notes.",
   },
   {
@@ -14,7 +14,7 @@ const features = [
   },
   {
     icon: FileText,
-    title: "Digital Receipts",
+    title: "Professional Rent Receipts",
     text: "Branded PDF receipts generated the moment rent is paid.",
   },
   {
@@ -24,13 +24,18 @@ const features = [
   },
   {
     icon: Wallet,
-    title: "Payment Tracking",
+    title: "Rent Payment Tracking",
     text: "Cash, M-Pesa, bank, card and cheque with balances.",
   },
   {
     icon: BarChart3,
-    title: "Reports & Analytics",
+    title: "Rental Business Dashboard",
     text: "Income, occupancy, arrears and revenue exports.",
+  },
+  {
+    icon: Building2,
+    title: "Lease Management",
+    text: "Manage lease agreements, terms, and renewal dates for all properties.",
   },
 ];
 

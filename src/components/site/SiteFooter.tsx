@@ -10,7 +10,7 @@ export function SiteFooter() {
             <span className="gradient-primary flex size-9 items-center justify-center rounded-xl">
               <Building2 className="size-5 text-primary-foreground" />
             </span>
-            <span className="font-display font-bold">Rent Receipt Pro</span>
+            <span className="font-display font-bold">RentReceiptPro</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
             A Codevanta Ventures product. Premium property management and QR-verified digital rent

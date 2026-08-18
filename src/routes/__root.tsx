@@ -80,27 +80,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RentReceipt — Rent Management Software in Kenya" },
+      { title: "RentReceiptPro — Rent Receipts & Property Management" },
       {
         name: "description",
         content:
-          "RentReceipt is a rent management and property management platform for landlords and property managers in Kenya.",
+          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
       },
       { name: "author", content: "Codevanta Ventures" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://rentreceipt.co.ke/" },
-      { property: "og:title", content: "RentReceipt – Rent Management Software in Kenya" },
+      { property: "og:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
       {
         property: "og:description",
         content:
-          "Manage properties, tenants, rent payments and professional rent receipts with RentReceipt.",
+          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
       },
       { property: "og:image", content: "https://rentreceipt.co.ke/favicon.png" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RentReceipt – Rent Management Software in Kenya" },
+      { name: "twitter:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
       {
         name: "twitter:description",
-        content: "Manage properties, tenants and rent receipts with RentReceipt.",
+        content:
+          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
       },
     ],
     links: [
@@ -136,7 +137,7 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "RentReceipt",
+              name: "RentReceiptPro",
               alternateName: "RentReceiptPro",
               url: "https://rentreceipt.co.ke/",
             }),

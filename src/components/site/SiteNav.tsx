@@ -37,7 +37,7 @@ export function SiteNav() {
               <Building2 className="size-5 text-primary-foreground" />
             </span>
             <span className="font-display text-base font-bold tracking-tight">
-              Rent Receipt <span className="gradient-text">Pro</span>
+              RentReceiptPro
             </span>
           </Link>
 

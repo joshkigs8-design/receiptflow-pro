@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
-const title = "Privacy Policy — Rent Receipt Pro";
+const title = "Privacy Policy — RentReceiptPro";
 const description =
-  "Learn how Rent Receipt Pro collects, uses, and protects your personal and business information.";
+  "Learn how RentReceiptPro collects, uses, and protects your personal and business information.";
 
 export const Route = createFileRoute("/privacy-policy")({
   head: () => ({

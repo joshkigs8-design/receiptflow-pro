@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   // so the native shell loads the hosted deployment defined in `server.url`.
   webDir: "mobile/www",
   server: {
-    url: "https://rentreceiptpro.lovable.app",
+    url: "https://rentreceipt.co.ke",
     cleartext: false,
     androidScheme: "https",
     allowNavigation: [

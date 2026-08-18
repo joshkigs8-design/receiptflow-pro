@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-poNAMJNy.js";var t=e();function n(){return(0,t.jsx)(`div`,{"data-tsd-source":`/src/routes/_authenticated/billing.tsx:8:10`,children:`Hello "/_authenticated/billing"!`})}export{n as component};
