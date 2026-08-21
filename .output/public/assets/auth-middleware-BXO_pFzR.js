@@ -1,0 +1,1 @@
+import{A as e}from"./index-DXNTyekP.js";var t=e({type:`function`});export{t};

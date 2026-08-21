@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, Menu, X } from "lucide-react";
+import { Building2, Menu, X, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/lib/theme";
 const links = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/#pricing" },
+  { label: "Affiliate", to: "/affiliate/auth" },
 ];
 
 export function SiteNav() {
@@ -43,13 +44,14 @@ export function SiteNav() {
 
           <div className="hidden items-center gap-1 md:flex">
             {links.map((l) => (
-              <a
-                key={l.href}
+              <Link
+                key={l.to ?? l.href}
+                to={l.to}
                 href={l.href}
                 className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 {l.label}
-              </a>
+              </Link>
             ))}
             <Link
               to="/tenant"
@@ -88,22 +90,24 @@ export function SiteNav() {
         {open ? (
           <div className="glass-strong mt-2 flex flex-col gap-1 rounded-3xl p-3 md:hidden">
             {links.map((l) => (
-              <a
-                key={l.href}
+              <Link
+                key={l.to ?? l.href}
+                to={l.to}
                 href={l.href}
                 onClick={() => setOpen(false)}
                 className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
               >
                 {l.label}
-              </a>
+              </Link>
             ))}
             <Link
               to="/tenant"
+              onClick={() => setOpen(false)}
               className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
             >
               Tenant Portal
             </Link>
-            <Link to="/auth" className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent">
+            <Link to="/auth" onClick={() => setOpen(false)} className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent">
               Login
             </Link>
           </div>
