@@ -55,12 +55,6 @@ function AffiliateAuthPage() {
     }
   }, [ref]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/affiliate", replace: true });
-    });
-  }, [navigate]);
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
