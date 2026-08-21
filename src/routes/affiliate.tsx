@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
@@ -32,11 +32,6 @@ const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https
 
 export const Route = createFileRoute("/affiliate")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/affiliate/auth" });
-    return { user: data.user };
-  },
   head: () => ({
     meta: [
       { title: "Affiliate Program — Rent Receipt Pro" },
@@ -50,9 +45,26 @@ export const Route = createFileRoute("/affiliate")({
 
 function AffiliatePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fetchDashboard = useServerFn(getAffiliateDashboard);
   const enroll = useServerFn(enrollAffiliate);
   const requestWithdraw = useServerFn(requestWithdrawal);
+
+  // Check auth on client side to avoid redirect loops in beforeLoad
+  const { data: session } = useQuery({
+    queryKey: ["affiliate-session"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) return null;
+      return data.session;
+    },
+    staleTime: 60_000,
+  });
+
+  // Redirect to auth if no session (client-side, no redirect loop)
+  if (session === null) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-8 animate-spin text-primary" /></div>;
+  }
 
   const { data: dashboardRaw, isLoading, refetch } = useQuery({
     queryKey: ["affiliate-dashboard"],
