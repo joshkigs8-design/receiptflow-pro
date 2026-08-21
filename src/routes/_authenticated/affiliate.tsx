@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type ReactNode } from "react";
@@ -88,6 +88,7 @@ export const Route = createFileRoute("/_authenticated/affiliate")({
 
 function AffiliatePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fetchDashboard = useServerFn(getAffiliateDashboard);
   const enroll = useServerFn(enrollAffiliate);
   const requestWithdraw = useServerFn(requestWithdrawal);
@@ -117,9 +118,11 @@ function AffiliatePage() {
 
   const enrollMutation = useMutation({
     mutationFn: () => enroll(),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["affiliate-dashboard"] });
+      await queryClient.refetchQueries({ queryKey: ["affiliate-dashboard"] });
       toast.success("Affiliate account created!");
+      navigate({ to: "/affiliate" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not create affiliate account"),
   });

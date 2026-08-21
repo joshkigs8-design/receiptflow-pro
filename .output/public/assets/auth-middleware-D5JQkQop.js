@@ -1,0 +1,1 @@
+import{k as e}from"./index-C6F_bwFy.js";var t=e({type:`function`});export{t};
