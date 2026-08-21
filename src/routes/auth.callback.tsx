@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { recordReferral } from "@/lib/affiliate.functions";
 
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -17,6 +18,9 @@ function AuthCallbackPage() {
   useEffect(() => {
     const processCallback = async () => {
       try {
+        // Check for stored referral code
+        const storedReferralCode = typeof window !== "undefined" ? localStorage.getItem("rrp_referral_code") : null;
+
         // Get the current session - Supabase automatically handles the OAuth callback
         // when the app loads with the #access_token and #refresh_token hash parameters
         const { data, error: sessionError } = await supabase.auth.getSession();
@@ -32,6 +36,15 @@ function AuthCallbackPage() {
 
         if (data.session) {
           // Session established successfully
+          // Record referral if we have a stored code and this is a new user (no existing referral)
+          if (storedReferralCode) {
+            try {
+              await recordReferral({ data: { referralCode: storedReferralCode } });
+            } catch (err) {
+              console.warn("Referral recording failed:", err);
+            }
+            localStorage.removeItem("rrp_referral_code");
+          }
           toast.success("Signed in successfully!");
           setTimeout(() => {
             navigate({ to: "/dashboard" });

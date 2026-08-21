@@ -19,6 +19,11 @@ import {
   Trash2,
   TrendingUp,
   Users,
+  Wallet,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EmptyState, Field } from "@/components/app/Field";
@@ -26,15 +31,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/lib/theme";
 import {
   createVoucher,
   deleteVoucher,
   getAdminOverview,
+  getAffiliateStats,
   getIsAdmin,
   grantAccess,
+  listAdminWithdrawals,
   listVouchers,
+  processWithdrawal,
+  rejectWithdrawal,
   setVoucherActive,
+  startProcessingWithdrawal,
 } from "@/lib/admin.functions";
 import { money, shortDate } from "@/lib/format";
 
@@ -281,6 +293,248 @@ function AdminRoute() {
   );
 }
 
+function AffiliatesTab() {
+  const qc = useQueryClient();
+  const fetchStats = useServerFn(getAffiliateStats);
+  const fetchWithdrawals = useServerFn(listAdminWithdrawals);
+  const processWd = useServerFn(processWithdrawal);
+  const rejectWd = useServerFn(rejectWithdrawal);
+  const startProcessing = useServerFn(startProcessingWithdrawal);
+
+  const { data: stats } = useQuery({ queryKey: ["affiliate-stats"], queryFn: () => fetchStats() });
+  const { data: withdrawals } = useQuery({ queryKey: ["admin-withdrawals"], queryFn: () => fetchWithdrawals() });
+
+  const processMutation = useMutation({
+    mutationFn: (w: { id: string; amount: number; mpesaRef: string; note?: string }) =>
+      processWd({ data: { withdrawalId: w.id, mpesaReference: w.mpesaRef, adminNote: w.note ?? null } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
+      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+      toast.success("Withdrawal marked as paid");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not process withdrawal"),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (w: { id: string; note?: string }) =>
+      rejectWd({ data: { withdrawalId: w.id, adminNote: w.note ?? null } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
+      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+      toast.success("Withdrawal rejected, balance returned to affiliate");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not reject withdrawal"),
+  });
+
+  const processingMutation = useMutation({
+    mutationFn: (id: string) => startProcessing({ data: { withdrawalId: id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
+      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+    },
+  });
+
+  const s = stats?.stats;
+  const statCards = [
+    { label: "Total Affiliates", value: s?.totalAffiliates ?? 0, icon: Users },
+    { label: "Total Referrals", value: s?.totalReferrals ?? 0, icon: Wallet },
+    { label: "Successful Referrals", value: s?.successfulReferrals ?? 0, icon: CheckCircle },
+    { label: "Total Commissions", value: s?.totalCommissions ?? 0, icon: Wallet },
+    { label: "Pending Withdrawals", value: s?.pendingWithdrawals ?? 0, icon: Clock, color: "text-amber-600" },
+    { label: "Paid Withdrawals", value: s?.paidWithdrawals ?? 0, icon: CheckCircle, color: "text-emerald-600" },
+    { label: "Total Amount Paid", value: money(s?.totalAmountPaid ?? 0), icon: Wallet, color: "text-emerald-600" },
+  ];
+
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case "paid":
+        return <Badge variant="default" className="gap-1"><CheckCircle className="size-3" /> Paid</Badge>;
+      case "processing":
+        return <Badge variant="secondary" className="gap-1"><Clock className="size-3" /> Processing</Badge>;
+      case "pending":
+        return <Badge variant="outline" className="gap-1"><Clock className="size-3" /> Pending</Badge>;
+      case "rejected":
+        return <Badge variant="destructive" className="gap-1"><XCircle className="size-3" /> Rejected</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  }
+
+  function getActionButtons(w: any) {
+    if (w.status === "pending") {
+      return (
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            variant="default"
+            className="rounded-full"
+            disabled={processMutation.isPending}
+            onClick={() => {
+              const mpesaRef = prompt("Enter M-Pesa transaction/reference number:");
+              if (!mpesaRef) return;
+              const note = prompt("Admin note (optional):") || "";
+              processMutation.mutate({ id: w.id, amount: w.amount, mpesaRef, note });
+            }}
+          >
+            Mark as Paid
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="rounded-full"
+            disabled={rejectMutation.isPending}
+            onClick={() => {
+              if (!confirm(`Reject withdrawal of ${money(w.amount)} for ${w.affiliate_email}? Balance will be returned.`)) return;
+              const note = prompt("Rejection reason (optional):") || "";
+              rejectMutation.mutate({ id: w.id, note });
+            }}
+          >
+            Reject
+          </Button>
+        </div>
+      );
+    }
+    if (w.status === "processing") {
+      return (
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            variant="default"
+            className="rounded-full"
+            disabled={processMutation.isPending}
+            onClick={() => {
+              const mpesaRef = prompt("Enter M-Pesa transaction/reference number:");
+              if (!mpesaRef) return;
+              const note = prompt("Admin note (optional):") || "";
+              processMutation.mutate({ id: w.id, amount: w.amount, mpesaRef, note });
+            }}
+          >
+            Mark as Paid
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="rounded-full"
+            disabled={rejectMutation.isPending}
+            onClick={() => {
+              if (!confirm(`Reject withdrawal of ${money(w.amount)} for ${w.affiliate_email}? Balance will be returned.`)) return;
+              const note = prompt("Rejection reason (optional):") || "";
+              rejectMutation.mutate({ id: w.id, note });
+            }}
+          >
+            Reject
+          </Button>
+        </div>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">Completed</span>;
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        {statCards.map((c) => (
+          <div key={c.label} className="surface-card p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</p>
+              <c.icon className={`size-4 ${c.color ?? "text-primary"}`} />
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Withdrawal Management Table */}
+      <div className="surface-card p-5">
+        <h3 className="flex items-center gap-2 font-display text-base font-bold">
+          <Wallet className="size-4 text-primary" /> Withdrawal Management
+        </h3>
+        {withdrawals?.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Affiliate</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>M-Pesa Number</TableHead>
+                  <TableHead>Requested Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Paid Date</TableHead>
+                  <TableHead>M-Pesa Ref</TableHead>
+                  <TableHead className="text-right">Admin Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {withdrawals.map((w) => (
+                  <TableRow key={w.id}>
+                    <TableCell>
+                      <p className="font-medium">{w.affiliate_email ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">Code: {w.affiliate_code ?? "—"}</p>
+                    </TableCell>
+                    <TableCell className="font-semibold">{money(w.amount)}</TableCell>
+                    <TableCell className="font-mono text-sm">{w.mpesa_phone ?? "—"}</TableCell>
+                    <TableCell>{shortDate(w.requested_at)}</TableCell>
+                    <TableCell>{getStatusBadge(w.status)}</TableCell>
+                    <TableCell>{w.processed_at ? shortDate(w.processed_at) : "—"}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{w.mpesa_reference ?? "—"}</TableCell>
+                    <TableCell className="text-right">{getActionButtons(w)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">No withdrawal requests yet.</p>
+        )}
+      </div>
+
+      {/* Affiliate List */}
+      <div className="surface-card p-5">
+        <h3 className="flex items-center gap-2 font-display text-base font-bold">
+          <Users className="size-4 text-primary" /> All Affiliates
+        </h3>
+        {stats?.affiliates?.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Affiliate</TableHead>
+                  <TableHead>Referral Code</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total Referrals</TableHead>
+                  <TableHead>Total Commissions</TableHead>
+                  <TableHead>Total Withdrawn</TableHead>
+                  <TableHead>Pending Withdrawals</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.affiliates.map((a: any) => (
+                  <TableRow key={a.user_id}>
+                    <TableCell>{a.user_id}</TableCell>
+                    <TableCell className="font-mono">{a.referral_code}</TableCell>
+                    <TableCell>
+                      <Badge variant={a.status === "active" ? "default" : "secondary"}>
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{a.total_referrals ?? 0}</TableCell>
+                    <TableCell>{money(a.totalCommissions ?? 0)}</TableCell>
+                    <TableCell>{money(a.totalWithdrawn ?? 0)}</TableCell>
+                    <TableCell>{money(a.pendingWithdrawals ?? 0)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">No affiliates enrolled yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard() {
   const qc = useQueryClient();
   const fetchOverview = useServerFn(getAdminOverview);
@@ -374,6 +628,7 @@ function AdminDashboard() {
           <TabsTrigger value="landlords">Landlords</TabsTrigger>
           <TabsTrigger value="vouchers">Voucher codes</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="landlords" className="mt-5">
@@ -649,6 +904,10 @@ function AdminDashboard() {
               <EmptyState title="No subscription payments yet" />
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="affiliates" className="mt-5">
+          <AffiliatesTab />
         </TabsContent>
       </Tabs>
     </div>

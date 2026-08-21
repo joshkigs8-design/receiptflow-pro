@@ -1,0 +1,1 @@
+import{k as e}from"./index-BNj6r6-G.js";var t=e({type:`function`});export{t};

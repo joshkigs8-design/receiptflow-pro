@@ -19,6 +19,7 @@ import {
   Users,
   Wrench,
   X,
+  Wallet,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ const nav = [
   { to: "/announcements", label: "Announcements", icon: Megaphone },
   { to: "/reports", label: "Reports", icon: PieChart },
   { to: "/billing", label: "Billing", icon: CreditCard },
+  { to: "/affiliate", label: "Affiliate Program", icon: Wallet },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

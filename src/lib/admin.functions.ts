@@ -203,3 +203,154 @@ export const redeemVoucher = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return res as { ok: boolean; message?: string; months?: number; ends_at?: string };
   });
+
+// Affiliate admin functions
+export const getAffiliateStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [affiliates, referrals, commissions, withdrawals] = await Promise.all([
+      supabaseAdmin.from("affiliates").select("*"),
+      supabaseAdmin.from("referrals").select("*"),
+      supabaseAdmin.from("commissions").select("*"),
+      supabaseAdmin.from("withdrawals").select("*"),
+    ]);
+
+    const affiliateMap = new Map((affiliates.data ?? []).map((a) => [a.user_id, a]));
+    const commissionByAffiliate = new Map<string, number>();
+    const withdrawalByAffiliate = new Map<string, { pending: number; paid: number; rejected: number }>();
+
+    for (const c of commissions.data ?? []) {
+      commissionByAffiliate.set(c.affiliate_id, (commissionByAffiliate.get(c.affiliate_id) ?? 0) + Number(c.amount ?? 0));
+    }
+
+    for (const w of withdrawals.data ?? []) {
+      const curr = withdrawalByAffiliate.get(w.affiliate_id) ?? { pending: 0, paid: 0, rejected: 0 };
+      if (w.status === "pending") curr.pending += Number(w.amount ?? 0);
+      else if (w.status === "paid") curr.paid += Number(w.amount ?? 0);
+      else if (w.status === "rejected") curr.rejected += Number(w.amount ?? 0);
+      withdrawalByAffiliate.set(w.affiliate_id, curr);
+    }
+
+    const successfulReferrals = new Set<string>();
+    for (const c of commissions.data ?? []) {
+      if (c.status !== "pending") successfulReferrals.add(c.referral_id);
+    }
+
+    return {
+      stats: {
+        totalAffiliates: affiliates.data?.length ?? 0,
+        totalReferrals: referrals.data?.length ?? 0,
+        successfulReferrals: successfulReferrals.size,
+        totalCommissions: commissions.data?.length ?? 0,
+        pendingWithdrawals: withdrawals.data?.filter((w) => w.status === "pending").length ?? 0,
+        paidWithdrawals: withdrawals.data?.filter((w) => w.status === "paid").length ?? 0,
+        totalAmountPaid: withdrawals.data?.filter((w) => w.status === "paid").reduce((s, w) => s + Number(w.amount ?? 0), 0) ?? 0,
+      },
+      affiliates: (affiliates.data ?? []).map((a) => ({
+        ...a,
+        totalCommissions: commissionByAffiliate.get(a.user_id) ?? 0,
+        totalWithdrawn: withdrawalByAffiliate.get(a.user_id)?.paid ?? 0,
+        pendingWithdrawals: withdrawalByAffiliate.get(a.user_id)?.pending ?? 0,
+      })),
+      withdrawals: (withdrawals.data ?? []).map((w) => ({
+        ...w,
+        affiliate: affiliateMap.get(w.affiliate_id) ?? null,
+      })).sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime()),
+    };
+  });
+
+export const listAdminWithdrawals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: withdrawals, error } = await supabaseAdmin
+      .from("withdrawals")
+      .select("*")
+      .order("requested_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    // Get affiliate emails and referral codes
+    const affiliateIds = [...new Set((withdrawals ?? []).map((w) => w.affiliate_id))];
+    const [userRes, affiliatesRes] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+      supabaseAdmin.from("affiliates").select("user_id, referral_code").in("user_id", affiliateIds),
+    ]);
+    const userMap = new Map((userRes.data?.users ?? []).map((u) => [u.id, u.email]));
+    const affiliateMap = new Map((affiliatesRes.data ?? []).map((a) => [a.user_id, a.referral_code]));
+
+    return (withdrawals ?? []).map((w) => ({
+      ...w,
+      affiliate_email: userMap.get(w.affiliate_id) ?? "—",
+      affiliate_code: affiliateMap.get(w.affiliate_id) ?? "—",
+    }));
+  });
+
+export const processWithdrawal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      withdrawalId: z.string().uuid(),
+      mpesaReference: z.string().min(1).max(100),
+      adminNote: z.string().max(500).optional().nullable(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: result, error } = await supabaseAdmin.rpc("process_withdrawal", {
+      _withdrawal_id: data.withdrawalId,
+      _mpesa_reference: data.mpesaReference,
+      _admin_id: context.userId,
+    });
+
+    if (error) throw new Error(error.message);
+    return result;
+  });
+
+export const rejectWithdrawal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      withdrawalId: z.string().uuid(),
+      adminNote: z.string().max(500).optional().nullable(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: result, error } = await supabaseAdmin.rpc("reject_withdrawal", {
+      _withdrawal_id: data.withdrawalId,
+      _admin_id: context.userId,
+    });
+
+    if (error) throw new Error(error.message);
+    return result;
+  });
+
+export const startProcessingWithdrawal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      withdrawalId: z.string().uuid(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: result, error } = await supabaseAdmin.rpc("start_processing_withdrawal", {
+      _withdrawal_id: data.withdrawalId,
+      _admin_id: context.userId,
+    });
+
+    if (error) throw new Error(error.message);
+    return result;
+  });

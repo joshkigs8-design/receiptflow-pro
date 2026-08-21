@@ -8,8 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/lib/theme";
+import { recordReferral } from "@/lib/affiliate.functions";
 
-const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
+const searchSchema = z.object({
+  mode: z.enum(["login", "signup"]).optional(),
+  ref: z.string().max(20).optional(),
+});
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -30,7 +34,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { mode } = Route.useSearch();
+  const { mode, ref } = Route.useSearch();
   const navigate = useNavigate();
   const [signup, setSignup] = useState(mode === "signup");
   const [email, setEmail] = useState("");
@@ -39,6 +43,26 @@ function AuthPage() {
   const [company, setCompany] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Persist referral code in localStorage to survive page refreshes
+  const [referralCode, setReferralCode] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rrp_referral_code");
+      if (stored) return stored;
+      if (ref) {
+        localStorage.setItem("rrp_referral_code", ref);
+        return ref;
+      }
+    }
+    return ref ?? null;
+  });
+
+  useEffect(() => {
+    if (ref) {
+      setReferralCode(ref);
+      localStorage.setItem("rrp_referral_code", ref);
+    }
+  }, [ref]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -56,7 +80,11 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: name, company_name: company || "Codevanta Ventures" },
+            data: {
+              full_name: name,
+              company_name: company || "Codevanta Ventures",
+              referral_code: referralCode,
+            },
           },
         });
         if (error) throw error;
@@ -65,6 +93,17 @@ function AuthPage() {
           toast.success("Check your email to confirm your account.");
           return;
         }
+        // Session created immediately (email confirmation disabled or already confirmed)
+        if (referralCode) {
+          try {
+            await recordReferral({ data: { referralCode } });
+          } catch (err) {
+            console.warn("Referral recording failed:", err);
+          }
+        }
+        // Clear referral code after successful use
+        localStorage.removeItem("rrp_referral_code");
+        setReferralCode(null);
         navigate({ to: "/dashboard" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

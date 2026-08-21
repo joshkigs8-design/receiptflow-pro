@@ -18,6 +18,7 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as AuthenticatedAffiliateRouteImport } from './routes/_authenticated/affiliate'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -76,6 +77,11 @@ const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAffiliateRoute = AuthenticatedAffiliateRouteImport.update({
+  id: '/affiliate',
+  path: '/affiliate',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAnnouncementsRoute =
   AuthenticatedAnnouncementsRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
+  '/affiliate': typeof AuthenticatedAffiliateRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
+  '/affiliate': typeof AuthenticatedAffiliateRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
+  '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/terms'
     | '/verify'
+    | '/affiliate'
     | '/announcements'
     | '/billing'
     | '/dashboard'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/terms'
     | '/verify'
+    | '/affiliate'
     | '/announcements'
     | '/billing'
     | '/dashboard'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/terms'
     | '/verify'
+    | '/_authenticated/affiliate'
     | '/_authenticated/announcements'
     | '/_authenticated/billing'
     | '/_authenticated/dashboard'
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/verify'
       preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/affiliate': {
+      id: '/_authenticated/affiliate'
+      path: '/affiliate'
+      fullPath: '/affiliate'
+      preLoaderRoute: typeof AuthenticatedAffiliateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/announcements': {
       id: '/_authenticated/announcements'
@@ -481,6 +500,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRoute
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -495,6 +515,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAffiliateRoute: AuthenticatedAffiliateRoute,
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,

@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-poNAMJNy.js";import{k as t}from"./index-CEBNRu-e.js";var n=e(),r=()=>(0,n.jsx)(t,{"data-tsd-source":`/src/routes/_authenticated/route.tsx:11:20`});export{r as component};

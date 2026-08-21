@@ -71,6 +71,26 @@ export const Route = createFileRoute("/api/public/paystack/webhook")({
           { onConflict: "reference" },
         );
 
+        // Get the subscription_payment UUID for commission creation
+        const { data: sp } = await supabaseAdmin
+          .from("subscription_payments")
+          .select("id")
+          .eq("reference", reference)
+          .maybeSingle();
+
+        // Create affiliate commission if user was referred
+        if (sp?.id) {
+          try {
+            await supabaseAdmin.rpc("create_commission", {
+              _subscription_payment_id: sp.id,
+            });
+          } catch (err) {
+            // Commission creation failed (no referral, self-referral, or duplicate)
+            // Log but don't fail the webhook
+            console.warn("Affiliate commission creation skipped:", err);
+          }
+        }
+
         return new Response("ok");
       },
     },

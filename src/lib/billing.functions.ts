@@ -144,6 +144,26 @@ export const verifyCheckout = createServerFn({ method: "POST" })
         },
         { onConflict: "reference" },
       );
+
+      // Get the subscription_payment UUID for commission creation
+      const { data: sp } = await supabaseAdmin
+        .from("subscription_payments")
+        .select("id")
+        .eq("reference", data.reference)
+        .maybeSingle();
+
+      // Create affiliate commission if user was referred
+      if (sp?.id) {
+        try {
+          await supabaseAdmin.rpc("create_commission", {
+            _subscription_payment_id: sp.id,
+          });
+        } catch (err) {
+          // Commission creation failed (no referral, self-referral, or duplicate)
+          // Log but don't fail the payment
+          console.warn("Affiliate commission creation skipped:", err);
+        }
+      }
     }
 
     return { paid: true as const, plan: planKey };
