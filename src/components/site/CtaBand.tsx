@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function CtaBand() {
@@ -24,6 +24,11 @@ export function CtaBand() {
           <Button asChild size="lg" variant="secondary" className="rounded-full">
             <Link to="/auth" search={{ mode: "signup" }}>
               Create free account <ArrowRight className="ml-1 size-4" />
+            </Link>
+          </Button>
+          <Button asChild size="lg" className="rounded-full bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold shadow-[0_0_20px_rgb(245_158_11_/_0.5)]">
+            <Link to="/affiliate/auth">
+              <Wallet className="mr-1 size-4" /> Join Affiliate Program
             </Link>
           </Button>
           <Button

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { ArrowRight, FileCheck2, PlayCircle, Users } from "lucide-react";
+import { ArrowRight, FileCheck2, PlayCircle, Users, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Counter } from "./Counter";
@@ -127,6 +127,11 @@ export function Hero() {
           </Button>
           <Button asChild size="lg" variant="secondary" className="rounded-full">
             <Link to="/auth">Login</Link>
+          </Button>
+          <Button asChild size="lg" className="rounded-full bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold shadow-[0_0_20px_rgb(245_158_11_/_0.5)]">
+            <Link to="/affiliate/auth">
+              <Wallet className="mr-1 size-4" /> Affiliate Program
+            </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="glass rounded-full text-white">
             <Link to="/tenant">
