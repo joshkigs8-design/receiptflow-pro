@@ -12,13 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AffiliateRouteImport } from './routes/affiliate'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyRouteImport } from './routes/verify'
-import { Route as AuthenticatedAffiliateRouteImport } from './routes/_authenticated/affiliate'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -30,6 +30,7 @@ import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTenantsRouteImport } from './routes/_authenticated/tenants'
 import { Route as AuthenticatedUnitsRouteImport } from './routes/_authenticated/units'
+import { Route as AffiliateAuthRouteImport } from './routes/affiliate.auth'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack/webhook'
@@ -46,6 +47,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AffiliateRoute = AffiliateRouteImport.update({
+  id: '/affiliate',
+  path: '/affiliate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -77,11 +83,6 @@ const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAffiliateRoute = AuthenticatedAffiliateRouteImport.update({
-  id: '/affiliate',
-  path: '/affiliate',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAnnouncementsRoute =
   AuthenticatedAnnouncementsRouteImport.update({
@@ -139,6 +140,11 @@ const AuthenticatedUnitsRoute = AuthenticatedUnitsRouteImport.update({
   path: '/units',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AffiliateAuthRoute = AffiliateAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => AffiliateRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -159,13 +165,13 @@ const ApiPublicPaystackWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/affiliate': typeof AffiliateRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
-  '/affiliate': typeof AuthenticatedAffiliateRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
@@ -184,13 +191,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/affiliate': typeof AffiliateRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
-  '/affiliate': typeof AuthenticatedAffiliateRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/tenants': typeof AuthenticatedTenantsRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
@@ -211,13 +219,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
+  '/affiliate': typeof AffiliateRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
-  '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tenants': typeof AuthenticatedTenantsRoute
   '/_authenticated/units': typeof AuthenticatedUnitsRoute
+  '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
@@ -238,13 +247,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/affiliate'
     | '/auth'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
     | '/terms'
     | '/verify'
-    | '/affiliate'
     | '/announcements'
     | '/billing'
     | '/dashboard'
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tenants'
     | '/units'
+    | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
@@ -263,13 +273,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/affiliate'
     | '/auth'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
     | '/terms'
     | '/verify'
-    | '/affiliate'
     | '/announcements'
     | '/billing'
     | '/dashboard'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tenants'
     | '/units'
+    | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
@@ -289,13 +300,13 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/admin'
+    | '/affiliate'
     | '/auth'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
     | '/terms'
     | '/verify'
-    | '/_authenticated/affiliate'
     | '/_authenticated/announcements'
     | '/_authenticated/billing'
     | '/_authenticated/dashboard'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/tenants'
     | '/_authenticated/units'
+    | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/api/public/paystack/webhook'
@@ -316,6 +328,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
+  AffiliateRoute: typeof AffiliateRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   DownloadRoute: typeof DownloadRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -347,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/affiliate': {
+      id: '/affiliate'
+      path: '/affiliate'
+      fullPath: '/affiliate'
+      preLoaderRoute: typeof AffiliateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -390,13 +410,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/verify'
       preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/affiliate': {
-      id: '/_authenticated/affiliate'
-      path: '/affiliate'
-      fullPath: '/affiliate'
-      preLoaderRoute: typeof AuthenticatedAffiliateRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/announcements': {
       id: '/_authenticated/announcements'
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnitsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/affiliate/auth': {
+      id: '/affiliate/auth'
+      path: '/auth'
+      fullPath: '/affiliate/auth'
+      preLoaderRoute: typeof AffiliateAuthRouteImport
+      parentRoute: typeof AffiliateRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -500,7 +520,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRoute
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -515,7 +534,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAffiliateRoute: AuthenticatedAffiliateRoute,
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -532,6 +550,18 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AffiliateRouteChildren {
+  AffiliateAuthRoute: typeof AffiliateAuthRoute
+}
+
+const AffiliateRouteChildren: AffiliateRouteChildren = {
+  AffiliateAuthRoute: AffiliateAuthRoute,
+}
+
+const AffiliateRouteWithChildren = AffiliateRoute._addFileChildren(
+  AffiliateRouteChildren,
+)
+
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
@@ -546,6 +576,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
+  AffiliateRoute: AffiliateRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   DownloadRoute: DownloadRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
