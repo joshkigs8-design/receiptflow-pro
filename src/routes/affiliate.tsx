@@ -51,7 +51,7 @@ function AffiliatePage() {
   const requestWithdraw = useServerFn(requestWithdrawal);
 
   // Check auth on client side to avoid redirect loops in beforeLoad
-  const { data: session } = useQuery({
+  const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ["affiliate-session"],
     queryFn: async () => {
       const { data, error } = await supabase.auth.getSession();
@@ -61,15 +61,11 @@ function AffiliatePage() {
     staleTime: 60_000,
   });
 
-  // Redirect to auth if no session (client-side, no redirect loop)
-  if (session === null) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="size-8 animate-spin text-primary" /></div>;
-  }
-
-  const { data: dashboardRaw, isLoading, refetch } = useQuery({
+  const { data: dashboardRaw, isLoading: dashboardLoading, refetch } = useQuery({
     queryKey: ["affiliate-dashboard"],
     queryFn: () => fetchDashboard(),
     staleTime: 30_000,
+    enabled: !!session, // Only fetch dashboard if session exists
   });
 
   const dashboard = dashboardRaw as DashboardData | undefined;
@@ -175,7 +171,35 @@ function AffiliatePage() {
     { label: "Total Withdrawn", value: money(totalWithdrawn), icon: ArrowUpRight, color: "text-muted-foreground" },
   ];
 
-  if (!affiliate && !enrollMutation.isPending) {
+  // Show loading while session is being checked
+  if (sessionLoading) {
+    return (
+      <AppShell title="Affiliate Program" description="Earn KSh 50 for every paying referral">
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-primary" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Show auth redirect prompt if no session
+  if (!session) {
+    return (
+      <AppShell title="Affiliate Program" description="Earn KSh 50 for every paying referral">
+        <div className="surface-card mx-auto max-w-2xl p-8 text-center">
+          <Wallet className="mx-auto size-12 text-primary" />
+          <h2 className="mt-4 font-display text-2xl font-bold">Please sign in</h2>
+          <p className="mt-2 text-sm text-muted-foreground">You need to be logged in to access the affiliate dashboard.</p>
+          <Button asChild className="mt-6 rounded-full shadow-glow">
+            <Link to="/affiliate/auth">Sign in or create account</Link>
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Show enrollment form if no affiliate yet
+  if (!affiliate) {
     return (
       <AppShell title="Affiliate Program" description="Earn KSh 50 for every paying referral">
         <div className="surface-card mx-auto max-w-2xl p-8 text-center">
@@ -196,7 +220,8 @@ function AffiliatePage() {
     );
   }
 
-  if (isLoading && !affiliate) {
+  // Show dashboard loading
+  if (dashboardLoading) {
     return (
       <AppShell title="Affiliate Program" description="Earn KSh 50 for every paying referral">
         <div className="flex justify-center py-24">
