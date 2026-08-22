@@ -114,3 +114,5 @@ node_modules
 dist/
 .nitro/
 .cache/
+android/.idea/
+.idea/

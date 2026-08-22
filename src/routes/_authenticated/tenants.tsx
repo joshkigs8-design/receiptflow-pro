@@ -6,7 +6,6 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
-  listPayments,
   listProperties,
   listTenants,
   listUnits,
@@ -86,7 +85,6 @@ function TenantsPage() {
   const fetchTenants = useServerFn(listTenants);
   const fetchProperties = useServerFn(listProperties);
   const fetchUnits = useServerFn(listUnits);
-  const fetchPayments = useServerFn(listPayments);
   const save = useServerFn(saveTenant);
   const remove = useServerFn(deleteTenant);
   const [term, setTerm] = useState("");
@@ -186,7 +184,6 @@ function TenantsPage() {
   }, [tenants.data, selectedPeriod, payments.data]);
 
   const filtered = useMemo(() => {
-    const rows = tenants.data ?? [];
     if (!term.trim() && filter === "all") return rows;
     const q = term.toLowerCase();
     return rows.filter(
@@ -203,7 +200,6 @@ function TenantsPage() {
           (t.properties?.name ?? "").toLowerCase().includes(q)),
     );
   }, [tenants.data, term, filter, rentStatuses]);
-
   const expectedTotal = useMemo(() => {
     return Object.values(rentStatuses).reduce(
       (s, { monthlyRent }) => s + monthlyRent,
