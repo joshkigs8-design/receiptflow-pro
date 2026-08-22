@@ -202,7 +202,7 @@ function TenantsPage() {
           t.phone.includes(q) ||
           (t.properties?.name ?? "").toLowerCase().includes(q)),
     );
-  }, [tenants.data, term, filter]);
+  }, [tenants.data, term, filter, rentStatuses]);
 
   const expectedTotal = useMemo(() => {
     return Object.values(rentStatuses).reduce(
