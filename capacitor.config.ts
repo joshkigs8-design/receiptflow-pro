@@ -11,6 +11,9 @@ const config: CapacitorConfig = {
     cleartext: false,
     androidScheme: "https",
     allowNavigation: [
+      "rentreceipt.co.ke",
+      "*.rentreceipt.co.ke",
+      "www.rentreceipt.co.ke",
       "rentreceiptpro.lovable.app",
       "*.lovable.app",
       "lmktuiltbixjxdairwkm.supabase.co",
@@ -18,7 +21,10 @@ const config: CapacitorConfig = {
       "checkout.paystack.com",
       "*.paystack.com",
       "accounts.google.com",
+      "*.google.com",
       "oauth.lovable.app",
+      "localhost",
+      "*.localhost",
     ],
   },
   android: {
