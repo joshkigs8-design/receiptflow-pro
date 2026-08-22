@@ -91,6 +91,7 @@ function PaymentsPage() {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["receipts"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tenants"] });
       try {
         const list = (await fetchReceipts()) as unknown as ReceiptRecord[];
         const fresh = list.find((r) => r.public_id === res.publicId);
@@ -110,6 +111,7 @@ function PaymentsPage() {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["receipts"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tenants"] });
     },
     onError: (e: Error) => toast.error(e.message || "Could not update payment"),
   });
@@ -121,6 +123,7 @@ function PaymentsPage() {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["receipts"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tenants"] });
     },
     onError: (e: Error) => toast.error(e.message || "Could not delete payment"),
   });

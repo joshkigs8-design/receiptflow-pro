@@ -27,8 +27,7 @@ export function CtaBand() {
             </Link>
           </Button>
           <Button asChild size="lg" className="rounded-full bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold shadow-[0_0_20px_rgb(245_158_11_/_0.5)]">
-            <Link to="/affiliate/auth">
-              <Wallet className="mr-1 size-4" /> Join Affiliate Program
+            <Link to="/affiliate-program">
             </Link>
           </Button>
           <Button

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { recordReferral } from "@/lib/affiliate.functions";
+import { recordReferral, enrollAffiliate } from "@/lib/affiliate.functions";
 
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -18,11 +18,9 @@ function AuthCallbackPage() {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // Check for stored referral code
-        const storedReferralCode = typeof window !== "undefined" ? localStorage.getItem("rrp_referral_code") : null;
+        const storedReferralCode =
+          typeof window !== "undefined" ? localStorage.getItem("rrp_referral_code") : null;
 
-        // Get the current session - Supabase automatically handles the OAuth callback
-        // when the app loads with the #access_token and #refresh_token hash parameters
         const { data, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -35,23 +33,40 @@ function AuthCallbackPage() {
         }
 
         if (data.session) {
-          // Session established successfully
-          // Record referral if we have a stored code and this is a new user (no existing referral)
+          // Check if this user signed up as an affiliate
+          const user = data.user;
+          const isAffiliate =
+            (typeof window !== "undefined" && (window as any).rrp_isAffiliate === true) ||
+            user?.user_metadata?.affiliate_signup === true;
+
+          // If affiliate, ensure enrolled
+          if (isAffiliate) {
+            try {
+              await enrollAffiliate();
+            } catch (e) {
+              console.warn("Auto-enrollment in callback notice:", e);
+            }
+          }
+
+          // Record referral attribution if a code was stored
           if (storedReferralCode) {
             try {
               await recordReferral({ data: { referralCode: storedReferralCode } });
             } catch (err) {
-              console.warn("Referral recording failed:", err);
+              console.warn("Referral recording failed in callback:", err);
             }
-            localStorage.removeItem("rrp_referral_code");
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("rrp_referral_code");
+            }
           }
+
           toast.success("Signed in successfully!");
+
           setTimeout(() => {
-            navigate({ to: "/dashboard" });
+            navigate({ to: isAffiliate ? "/affiliate" : "/dashboard" });
           }, 500);
         } else {
-          // No session found
-          setError("No session found. Please try again.");
+          setError("No active session found. Please sign in.");
           toast.error("Authentication failed");
           setTimeout(() => {
             navigate({ to: "/auth" });
@@ -73,14 +88,15 @@ function AuthCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,oklch(0.72_0.2_47_/_0.25),transparent_55%),radial-gradient(circle_at_80%_80%,oklch(0.52_0.18_38_/_0.25),transparent_60%)] animate-aurora" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16 bg-background">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,oklch(0.70_0.215_48_/_0.25),transparent_55%),radial-gradient(circle_at_80%_80%,oklch(0.79_0.17_65_/_0.20),transparent_60%)] animate-aurora" />
 
-      <div className="surface-card relative w-full max-w-md p-8 text-center">
+      <div className="surface-card relative w-full max-w-md p-8 text-center shadow-xl">
         {isProcessing ? (
           <>
             <Loader2 className="mx-auto size-8 animate-spin text-primary" />
-            <p className="mt-4 text-sm text-muted-foreground">Signing you in...</p>
+            <p className="mt-4 text-sm font-medium text-foreground">Confirming your account...</p>
+            <p className="mt-1 text-xs text-muted-foreground">Please wait a moment while we set up your portal.</p>
           </>
         ) : error ? (
           <>
@@ -91,7 +107,7 @@ function AuthCallbackPage() {
         ) : (
           <>
             <Loader2 className="mx-auto size-8 animate-spin text-primary" />
-            <p className="mt-4 text-sm text-muted-foreground">Redirecting...</p>
+            <p className="mt-4 text-sm text-muted-foreground">Redirecting to your portal...</p>
           </>
         )}
       </div>

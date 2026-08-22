@@ -8,6 +8,138 @@ export type Database = {
   };
   public: {
     Tables: {
+      affiliates: {
+        Row: {
+          created_at: string;
+          id: string;
+          pending_balance: number;
+          referral_code: string;
+          status: "active" | "paused" | "banned";
+          total_commissions_earned: number;
+          total_referrals: number;
+          total_withdrawn: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          pending_balance?: number;
+          referral_code: string;
+          status?: "active" | "paused" | "banned";
+          total_commissions_earned?: number;
+          total_referrals?: number;
+          total_withdrawn?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          pending_balance?: number;
+          referral_code?: string;
+          status?: "active" | "paused" | "banned";
+          total_commissions_earned?: number;
+          total_referrals?: number;
+          total_withdrawn?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      referrals: {
+        Row: {
+          affiliate_id: string;
+          created_at: string;
+          id: string;
+          referral_code_used: string;
+          referred_id: string;
+        };
+        Insert: {
+          affiliate_id: string;
+          created_at?: string;
+          id?: string;
+          referral_code_used: string;
+          referred_id: string;
+        };
+        Update: {
+          affiliate_id?: string;
+          created_at?: string;
+          id?: string;
+          referral_code_used?: string;
+          referred_id?: string;
+        };
+        Relationships: [];
+      };
+      commissions: {
+        Row: {
+          affiliate_id: string;
+          amount: number;
+          created_at: string;
+          id: string;
+          referral_id: string;
+          status: "pending" | "available" | "withdrawn";
+          subscription_payment_id: string;
+        };
+        Insert: {
+          affiliate_id: string;
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          referral_id: string;
+          status?: "pending" | "available" | "withdrawn";
+          subscription_payment_id: string;
+        };
+        Update: {
+          affiliate_id?: string;
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          referral_id?: string;
+          status?: "pending" | "available" | "withdrawn";
+          subscription_payment_id?: string;
+        };
+        Relationships: [];
+      };
+      withdrawals: {
+        Row: {
+          admin_note: string | null;
+          affiliate_id: string;
+          amount: number;
+          id: string;
+          mpesa_phone: string | null;
+          mpesa_reference: string | null;
+          processed_at: string | null;
+          processed_by: string | null;
+          requested_at: string;
+          status: "pending" | "processing" | "paid" | "rejected";
+        };
+        Insert: {
+          admin_note?: string | null;
+          affiliate_id: string;
+          amount: number;
+          id?: string;
+          mpesa_phone?: string | null;
+          mpesa_reference?: string | null;
+          processed_at?: string | null;
+          processed_by?: string | null;
+          requested_at?: string;
+          status?: "pending" | "processing" | "paid" | "rejected";
+        };
+        Update: {
+          admin_note?: string | null;
+          affiliate_id?: string;
+          amount?: number;
+          id?: string;
+          mpesa_phone?: string | null;
+          mpesa_reference?: string | null;
+          processed_at?: string | null;
+          processed_by?: string | null;
+          requested_at?: string;
+          status?: "pending" | "processing" | "paid" | "rejected";
+        };
+        Relationships: [];
+      };
       announcements: {
         Row: {
           body: string;
@@ -751,6 +883,50 @@ export type Database = {
         Returns: boolean;
       };
       redeem_voucher: { Args: { _code: string }; Returns: Json };
+      enroll_affiliate: {
+        Args: { _user_id: string };
+        Returns: Database["public"]["Tables"]["affiliates"]["Row"];
+      };
+      record_referral: {
+        Args: { _referred_id: string; _referral_code: string };
+        Returns: string | null;
+      };
+      create_commission: {
+        Args: { _subscription_payment_id: string };
+        Returns: Database["public"]["Tables"]["commissions"]["Row"];
+      };
+      request_withdrawal: {
+        Args: { _affiliate_id: string; _amount: number; _mpesa_phone: string };
+        Returns: Database["public"]["Tables"]["withdrawals"]["Row"];
+      };
+      process_withdrawal: {
+        Args: { _withdrawal_id: string; _mpesa_reference: string; _admin_id: string };
+        Returns: Database["public"]["Tables"]["withdrawals"]["Row"];
+      };
+      reject_withdrawal: {
+        Args: { _withdrawal_id: string; _admin_id: string };
+        Returns: Database["public"]["Tables"]["withdrawals"]["Row"];
+      };
+      start_processing_withdrawal: {
+        Args: { _withdrawal_id: string; _admin_id: string };
+        Returns: Database["public"]["Tables"]["withdrawals"]["Row"];
+      };
+      get_affiliate_dashboard: {
+        Args: { _user_id: string };
+        Returns: Json;
+      };
+      get_affiliate_available_balance: {
+        Args: { _affiliate_id: string };
+        Returns: number;
+      };
+      get_affiliate_total_earned: {
+        Args: { _affiliate_id: string };
+        Returns: number;
+      };
+      get_affiliate_total_withdrawn: {
+        Args: { _affiliate_id: string };
+        Returns: number;
+      };
     };
     Enums: {
       app_role: "admin" | "landlord" | "tenant";

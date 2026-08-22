@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/lib/theme";
 const links = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/#pricing" },
-  { label: "Affiliate", to: "/affiliate/auth" },
+  { label: "Affiliate", to: "/affiliate-program" },
 ];
 
 export function SiteNav() {

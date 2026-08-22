@@ -6,6 +6,7 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
+  listPayments,
   listProperties,
   listTenants,
   listUnits,
@@ -85,6 +86,7 @@ function TenantsPage() {
   const fetchTenants = useServerFn(listTenants);
   const fetchProperties = useServerFn(listProperties);
   const fetchUnits = useServerFn(listUnits);
+  const fetchPayments = useServerFn(listPayments);
   const save = useServerFn(saveTenant);
   const remove = useServerFn(deleteTenant);
   const [term, setTerm] = useState("");
@@ -145,11 +147,18 @@ function TenantsPage() {
       let paidThisPeriod = 0;
 
       allPayments.forEach((p) => {
-        const pPeriod = p.period_label ?? "";
         const pTenantId = p.tenant_id ?? "";
+        const pPeriod = (p.period_label || "").trim();
+        const paidAtMonth = (p.paid_at || "").slice(0, 7);
         const pAmount = Number(p.amount ?? 0);
 
-        if (pTenantId === t.id && pPeriod === period && pAmount > 0) {
+        const matchesPeriod =
+          pPeriod === period ||
+          pPeriod.startsWith(period) ||
+          (!pPeriod && paidAtMonth === period) ||
+          paidAtMonth === period;
+
+        if (pTenantId === t.id && matchesPeriod && pAmount > 0) {
           paidThisPeriod += pAmount;
         }
       });
@@ -174,7 +183,7 @@ function TenantsPage() {
     });
 
     return statuses;
-  }, [tenants.data, rentalPeriod, payments.data]);
+  }, [tenants.data, selectedPeriod, payments.data]);
 
   const filtered = useMemo(() => {
     const rows = tenants.data ?? [];

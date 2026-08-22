@@ -18,8 +18,7 @@ export const recordReferral = createServerFn({ method: "POST" })
 export const enrollAffiliate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.rpc("enroll_affiliate", {
+    const { data, error } = await context.supabase.rpc("enroll_affiliate", {
       _user_id: context.userId,
     });
     if (error) throw new Error(error.message);
@@ -30,7 +29,7 @@ export const getAffiliate = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
-      .from("affiliates" as any)
+      .from("affiliates")
       .select("*")
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -41,8 +40,7 @@ export const getAffiliate = createServerFn({ method: "GET" })
 export const getAffiliateDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.rpc("get_affiliate_dashboard", {
+    const { data, error } = await context.supabase.rpc("get_affiliate_dashboard", {
       _user_id: context.userId,
     });
     if (error) throw new Error(error.message);
@@ -59,8 +57,7 @@ export const requestWithdrawal = createServerFn({ method: "POST" })
     }).parse(d)
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("request_withdrawal", {
+    const { data: result, error } = await context.supabase.rpc("request_withdrawal", {
       _affiliate_id: context.userId,
       _amount: data.amount,
       _mpesa_phone: data.mpesaPhone,
@@ -73,7 +70,7 @@ export const getWithdrawals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
-      .from("withdrawals" as any)
+      .from("withdrawals")
       .select("*")
       .eq("affiliate_id", context.userId)
       .order("requested_at", { ascending: false });

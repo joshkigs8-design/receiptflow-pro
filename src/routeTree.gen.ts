@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AffiliateRouteImport } from './routes/affiliate'
+import { Route as AffiliateProgramRouteImport } from './routes/affiliate-program'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTenantsRouteImport } from './routes/_authenticated/tenants'
 import { Route as AuthenticatedUnitsRouteImport } from './routes/_authenticated/units'
+import { Route as AffiliateIndexRouteImport } from './routes/affiliate.index'
 import { Route as AffiliateAuthRouteImport } from './routes/affiliate.auth'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
@@ -52,6 +54,11 @@ const AdminRoute = AdminRouteImport.update({
 const AffiliateRoute = AffiliateRouteImport.update({
   id: '/affiliate',
   path: '/affiliate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AffiliateProgramRoute = AffiliateProgramRouteImport.update({
+  id: '/affiliate-program',
+  path: '/affiliate-program',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -140,6 +147,11 @@ const AuthenticatedUnitsRoute = AuthenticatedUnitsRouteImport.update({
   path: '/units',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AffiliateIndexRoute = AffiliateIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AffiliateRoute,
+} as any)
 const AffiliateAuthRoute = AffiliateAuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -166,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/affiliate': typeof AffiliateRouteWithChildren
+  '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -186,12 +199,13 @@ export interface FileRoutesByFullPath {
   '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/affiliate/': typeof AffiliateIndexRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/affiliate': typeof AffiliateRouteWithChildren
+  '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -212,6 +226,7 @@ export interface FileRoutesByTo {
   '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/affiliate': typeof AffiliateIndexRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesById {
@@ -220,6 +235,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/affiliate': typeof AffiliateRouteWithChildren
+  '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -240,6 +256,7 @@ export interface FileRoutesById {
   '/affiliate/auth': typeof AffiliateAuthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
+  '/affiliate/': typeof AffiliateIndexRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRouteTypes {
@@ -248,6 +265,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/affiliate'
+    | '/affiliate-program'
     | '/auth'
     | '/download'
     | '/privacy-policy'
@@ -268,12 +286,13 @@ export interface FileRouteTypes {
     | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
+    | '/affiliate/'
     | '/api/public/paystack/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
-    | '/affiliate'
+    | '/affiliate-program'
     | '/auth'
     | '/download'
     | '/privacy-policy'
@@ -294,6 +313,7 @@ export interface FileRouteTypes {
     | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
+    | '/affiliate'
     | '/api/public/paystack/webhook'
   id:
     | '__root__'
@@ -301,6 +321,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin'
     | '/affiliate'
+    | '/affiliate-program'
     | '/auth'
     | '/download'
     | '/privacy-policy'
@@ -321,6 +342,7 @@ export interface FileRouteTypes {
     | '/affiliate/auth'
     | '/auth/callback'
     | '/receipt/$publicId'
+    | '/affiliate/'
     | '/api/public/paystack/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -329,6 +351,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   AffiliateRoute: typeof AffiliateRouteWithChildren
+  AffiliateProgramRoute: typeof AffiliateProgramRoute
   AuthRoute: typeof AuthRouteWithChildren
   DownloadRoute: typeof DownloadRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -367,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/affiliate'
       fullPath: '/affiliate'
       preLoaderRoute: typeof AffiliateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/affiliate-program': {
+      id: '/affiliate-program'
+      path: '/affiliate-program'
+      fullPath: '/affiliate-program'
+      preLoaderRoute: typeof AffiliateProgramRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -488,6 +518,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUnitsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/affiliate/': {
+      id: '/affiliate/'
+      path: '/'
+      fullPath: '/affiliate/'
+      preLoaderRoute: typeof AffiliateIndexRouteImport
+      parentRoute: typeof AffiliateRoute
+    }
     '/affiliate/auth': {
       id: '/affiliate/auth'
       path: '/auth'
@@ -552,10 +589,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AffiliateRouteChildren {
   AffiliateAuthRoute: typeof AffiliateAuthRoute
+  AffiliateIndexRoute: typeof AffiliateIndexRoute
 }
 
 const AffiliateRouteChildren: AffiliateRouteChildren = {
   AffiliateAuthRoute: AffiliateAuthRoute,
+  AffiliateIndexRoute: AffiliateIndexRoute,
 }
 
 const AffiliateRouteWithChildren = AffiliateRoute._addFileChildren(
@@ -577,6 +616,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   AffiliateRoute: AffiliateRouteWithChildren,
+  AffiliateProgramRoute: AffiliateProgramRoute,
   AuthRoute: AuthRouteWithChildren,
   DownloadRoute: DownloadRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,

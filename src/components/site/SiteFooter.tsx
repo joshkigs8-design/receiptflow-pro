@@ -31,6 +31,11 @@ export function SiteFooter() {
                 Pricing
               </a>
             </li>
+            <li>
+              <Link to="/affiliate-program" className="hover:text-foreground">
+                Affiliate program
+              </Link>
+            </li>
           </ul>
         </div>
 
