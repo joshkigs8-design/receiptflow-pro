@@ -27,9 +27,27 @@ export const getSubscription = createServerFn({ method: "GET" })
       .from("subscription_payments")
       .select("id,reference,plan,amount,currency,status,paid_at,created_at")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(30);
 
-    return { subscription: data, ...accessState(data), history: history ?? [] };
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("company_name,full_name,phone")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const email = (context.claims as { email?: string })?.email ?? "";
+
+    return {
+      subscription: data,
+      ...accessState(data),
+      history: history ?? [],
+      profile: {
+        company_name: profile?.company_name || null,
+        full_name: profile?.full_name || null,
+        phone: profile?.phone || null,
+        email,
+      },
+    };
   });
 
 export const startCheckout = createServerFn({ method: "POST" })
