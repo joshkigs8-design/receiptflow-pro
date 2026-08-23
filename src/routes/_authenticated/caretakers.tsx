@@ -133,6 +133,9 @@ function CaretakersPage() {
       await refetchPending();
       await qc.invalidateQueries({ queryKey: ["tenants"] });
       await qc.invalidateQueries({ queryKey: ["units"] });
+      await qc.invalidateQueries({ queryKey: ["payments"] });
+      await qc.invalidateQueries({ queryKey: ["properties"] });
+      await qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Action failed"),
   });

@@ -853,22 +853,31 @@ export const resolveCaretakerRequest = createServerFn({ method: "POST" })
             .eq("landlord_id", context.userId);
         }
       } else if (request.request_type === "vacate_tenant" && request.tenant_id) {
-        // Mark Tenant status as vacated / inactive
-        await supabaseAdmin
-          .from("tenants")
-          .update({
-            status: "inactive",
-            lease_end: request.data.departure_date || new Date().toISOString().slice(0, 10),
-          })
-          .eq("id", request.tenant_id)
-          .eq("landlord_id", context.userId);
-
-        // Mark unit vacant
+        // Free unit
         if (request.unit_id) {
           await supabaseAdmin
             .from("units")
             .update({ status: "vacant" })
             .eq("id", request.unit_id)
+            .eq("landlord_id", context.userId);
+        }
+
+        // Delete the tenant record (or set status: vacated and unit_id: null if foreign key exists)
+        const { error: delErr } = await supabaseAdmin
+          .from("tenants")
+          .delete()
+          .eq("id", request.tenant_id)
+          .eq("landlord_id", context.userId);
+
+        if (delErr) {
+          await supabaseAdmin
+            .from("tenants")
+            .update({
+              status: "vacated",
+              unit_id: null,
+              lease_end: request.data.departure_date || new Date().toISOString().slice(0, 10),
+            })
+            .eq("id", request.tenant_id)
             .eq("landlord_id", context.userId);
         }
       }

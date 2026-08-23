@@ -227,6 +227,8 @@ export const listTenants = createServerFn({ method: "GET" })
       .from("tenants")
       .select("*, properties(name,code), units(unit_number,room_number)")
       .eq("landlord_id", context.userId)
+      .neq("status", "vacated")
+      .neq("status", "inactive")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
