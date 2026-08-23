@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { themeInitScript } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function NotFoundComponent() {
   return (
@@ -262,6 +263,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster position="top-right" richColors />
+      <SpeedInsights />
     </QueryClientProvider>
   );
 }

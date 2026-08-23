@@ -44,18 +44,6 @@ import {
 import { SubscriptionReceiptPrinter } from "@/components/receipt-printer";
 
 const searchSchema = z
-  .object({
-    reference: z
-      .union([z.string(), z.array(z.string())])
-      .transform((val) => (Array.isArray(val) ? val[0] : val))
-      .optional(),
-    trxref: z
-      .union([z.string(), z.array(z.string())])
-      .transform((val) => (Array.isArray(val) ? val[0] : val))
-      .optional(),
-  })
-  .passthrough();
-
 export const Route = createFileRoute("/_authenticated/billing")({
   validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
@@ -84,9 +72,6 @@ const perks = [
 function BillingPage() {
   const search = Route.useSearch();
   const rawRef = search.reference || search.trxref;
-  const reference = typeof rawRef === "string" ? rawRef.trim() : Array.isArray(rawRef) ? (rawRef[0] as string).trim() : undefined;
-  const navigate = useNavigate();
-  const qc = useQueryClient();
   const fetchSubscription = useServerFn(getSubscription);
   const checkout = useServerFn(startCheckout);
   const verify = useServerFn(verifyCheckout);
