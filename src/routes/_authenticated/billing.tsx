@@ -14,7 +14,6 @@ import {
   Eye,
   FileCheck2,
   FileText,
-  FlaskConical,
   Loader2,
   MessageCircle,
   Printer,
@@ -166,40 +165,6 @@ function BillingPage() {
             {data?.onTrial ? <Sparkles className="size-3.5" /> : <BadgeCheck className="size-3.5" />}
             {data?.active ? (data.onTrial ? "Trial active" : "Active") : "Inactive"}
           </span>
-        </div>
-
-        {/* Test Plan Banner (KSh 2 Shillings) */}
-        <div className="surface-card p-5 rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="size-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <FlaskConical className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-display font-bold text-sm">Live Checkout Test Mode (2 Shillings)</h4>
-                <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary border-primary/30">
-                  KSh 2 Only
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Test the full Paystack payment flow and watch the animated receipt printer generate your official subscription tax receipt for just 2 KES.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className="rounded-full shadow-glow font-bold text-xs px-5 shrink-0 w-full sm:w-auto h-9"
-            disabled={pending !== null}
-            onClick={() => pay("test")}
-          >
-            {pending === "test" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <>
-                <CreditCard className="size-3.5 mr-1.5" /> Pay KSh 2 Test
-              </>
-            )}
-          </Button>
         </div>
 
         {/* Main Production Plan Cards */}
