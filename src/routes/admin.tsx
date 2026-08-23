@@ -1,28 +1,49 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
+  AlertCircle,
+  ArrowUpDown,
   BadgeCheck,
   Building2,
+  Calendar,
   CalendarClock,
+  Check,
+  CheckCircle,
+  Clock,
   Copy,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Eye,
+  FileSpreadsheet,
+  Filter,
   Gift,
+  KeyRound,
+  Layers,
   Loader2,
+  Lock,
   LogOut,
+  MoreHorizontal,
+  Phone,
   Plus,
   Power,
+  Receipt,
+  RefreshCw,
+  Search,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Ticket,
   Trash2,
   TrendingUp,
+  UserCheck,
   Users,
   Wallet,
-  AlertCircle,
-  CheckCircle,
-  Clock,
+  X,
   XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +54,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeToggle } from "@/lib/theme";
 import {
   createVoucher,
@@ -40,19 +63,23 @@ import {
   getAdminOverview,
   getAffiliateStats,
   getIsAdmin,
+  getLandlordPortfolio,
   grantAccess,
   listAdminWithdrawals,
+  listPlatformPayments,
   listVouchers,
   processWithdrawal,
   rejectWithdrawal,
+  setAffiliateStatus,
   setVoucherActive,
   startProcessingWithdrawal,
+  updateLandlordSubscription,
 } from "@/lib/admin.functions";
 import { money, shortDate } from "@/lib/format";
 
 const title = "Owner Admin Portal — Rent Receipt Pro";
 const description =
-  "Private owner control centre for Rent Receipt Pro: landlord accounts, subscription revenue, voucher codes and manual access grants.";
+  "Private owner control centre for Rent Receipt Pro: landlord accounts, subscription revenue, voucher codes, platform payments, and affiliate payouts.";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -79,30 +106,92 @@ function randomCode() {
 
 const stateStyles: Record<string, string> = {
   paid: "gradient-primary text-primary-foreground shadow-glow",
-  trial: "bg-primary/15 text-primary",
-  expired: "bg-muted text-muted-foreground",
+  trial: "bg-amber-500/15 text-amber-500 border border-amber-500/30",
+  expired: "bg-destructive/15 text-destructive border border-destructive/30",
 };
 
-function AdminFrame({ children, onSignOut }: { children: ReactNode; onSignOut?: () => void }) {
+function exportToCsv(filename: string, rows: Record<string, any>[]) {
+  if (!rows.length) {
+    toast.error("No data to export");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) =>
+      headers
+        .map((header) => {
+          const val = row[header] ?? "";
+          const str = typeof val === "object" ? JSON.stringify(val) : String(val);
+          return `"${str.replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast.success(`Exported ${rows.length} rows to CSV`);
+}
+
+function AdminFrame({
+  children,
+  onSignOut,
+  onRefresh,
+  isRefreshing,
+}: {
+  children: ReactNode;
+  onSignOut?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+}) {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur-xl sm:px-6">
         <span className="gradient-primary flex size-9 items-center justify-center rounded-xl shadow-glow">
           <ShieldCheck className="size-5 text-primary-foreground" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-base font-bold">Owner Admin Portal</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate font-display text-base font-bold">Owner Admin Portal</p>
+            <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-wider text-primary border-primary/40 bg-primary/5">
+              Superadmin
+            </Badge>
+          </div>
           <p className="truncate text-xs text-muted-foreground">
-            Codevanta Ventures · Rent Receipt Pro
+            Codevanta Ventures · Rent Receipt Pro Enterprise Console
           </p>
         </div>
-        <ThemeToggle />
-        {onSignOut ? (
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={onSignOut}>
-            <LogOut className="size-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
-        ) : null}
+
+        <div className="flex items-center gap-2">
+          {onRefresh ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full h-8 text-xs gap-1.5"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          ) : null}
+
+          <ThemeToggle />
+
+          {onSignOut ? (
+            <Button variant="ghost" size="sm" className="rounded-full h-8 text-xs gap-1.5" onClick={onSignOut}>
+              <LogOut className="size-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          ) : null}
+        </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
     </div>
@@ -154,16 +243,17 @@ function AdminSignIn({ onSignedIn }: { onSignedIn: () => void }) {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,oklch(0.70_0.215_48_/_0.25),transparent_55%),radial-gradient(circle_at_80%_80%,oklch(0.79_0.17_65_/_0.20),transparent_60%)] animate-aurora" />
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
-      <div className="surface-card relative w-full max-w-md p-8">
-        <span className="gradient-primary flex size-11 items-center justify-center rounded-xl shadow-glow">
-          <ShieldCheck className="size-5 text-primary-foreground" />
+      <div className="surface-card relative w-full max-w-md p-8 shadow-2xl border border-border/80">
+        <span className="gradient-primary flex size-12 items-center justify-center rounded-2xl shadow-glow">
+          <ShieldCheck className="size-6 text-primary-foreground" />
         </span>
-        <h1 className="mt-5 font-display text-2xl font-bold">Owner admin sign-in</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Private entrance to the Codevanta Ventures admin portal.
+        <h1 className="mt-5 font-display text-2xl font-bold">Owner Admin Console</h1>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          Authorized owner access to Codevanta Ventures &amp; Rent Receipt Pro controls.
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
@@ -177,6 +267,7 @@ function AdminSignIn({ onSignedIn }: { onSignedIn: () => void }) {
               required
               maxLength={200}
               autoComplete="email"
+              placeholder="admin@codevanta.com"
             />
           </div>
           <div className="space-y-2">
@@ -192,17 +283,17 @@ function AdminSignIn({ onSignedIn }: { onSignedIn: () => void }) {
               autoComplete="current-password"
             />
           </div>
-          <Button type="submit" className="w-full rounded-full shadow-glow" disabled={busy}>
-            {busy ? <Loader2 className="size-4 animate-spin" /> : "Enter admin portal"}
+          <Button type="submit" className="w-full rounded-full shadow-glow font-semibold" disabled={busy}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : "Access Admin Console"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="w-full rounded-full"
+            className="w-full rounded-full text-xs"
             disabled={busy}
             onClick={createOwner}
           >
-            First time? Create the owner account
+            First time? Initialize Owner Account
           </Button>
         </form>
       </div>
@@ -224,7 +315,7 @@ function AdminRoute() {
     },
   });
 
-  const { data: role, isLoading: roleLoading } = useQuery({
+  const { data: role, isLoading: roleLoading, refetch, isFetching } = useQuery({
     queryKey: ["is-admin"],
     queryFn: () => checkAdmin(),
     enabled: signedIn === true,
@@ -272,266 +363,32 @@ function AdminRoute() {
   if (!role?.admin) {
     return (
       <AdminFrame onSignOut={signOut}>
-        <div className="surface-card mx-auto max-w-md p-10 text-center">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted">
-            <ShieldAlert className="size-6 text-muted-foreground" />
+        <div className="surface-card mx-auto max-w-md p-10 text-center shadow-xl">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
+            <ShieldAlert className="size-7" />
           </span>
-          <h2 className="mt-5 font-display text-xl font-bold">Owner access only</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This portal is limited to Codevanta Ventures administrators. Sign out and use the owner
-            account.
+          <h2 className="mt-5 font-display text-xl font-bold">Owner Access Required</h2>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            This portal is restricted to authorized Codevanta Ventures platform administrators.
           </p>
+          <Button variant="outline" className="mt-6 rounded-full" onClick={signOut}>
+            Sign out
+          </Button>
         </div>
       </AdminFrame>
     );
   }
 
   return (
-    <AdminFrame onSignOut={signOut}>
+    <AdminFrame
+      onSignOut={signOut}
+      onRefresh={() => {
+        void qc.invalidateQueries();
+      }}
+      isRefreshing={isFetching}
+    >
       <AdminDashboard />
     </AdminFrame>
-  );
-}
-
-function AffiliatesTab() {
-  const qc = useQueryClient();
-  const fetchStats = useServerFn(getAffiliateStats);
-  const fetchWithdrawals = useServerFn(listAdminWithdrawals);
-  const processWd = useServerFn(processWithdrawal);
-  const rejectWd = useServerFn(rejectWithdrawal);
-  const startProcessing = useServerFn(startProcessingWithdrawal);
-
-  const { data: stats } = useQuery({ queryKey: ["affiliate-stats"], queryFn: () => fetchStats() });
-  const { data: withdrawals } = useQuery({ queryKey: ["admin-withdrawals"], queryFn: () => fetchWithdrawals() });
-
-  const processMutation = useMutation({
-    mutationFn: (w: { id: string; amount: number; mpesaRef: string; note?: string }) =>
-      processWd({ data: { withdrawalId: w.id, mpesaReference: w.mpesaRef, adminNote: w.note ?? null } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
-      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
-      toast.success("Withdrawal marked as paid");
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not process withdrawal"),
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: (w: { id: string; note?: string }) =>
-      rejectWd({ data: { withdrawalId: w.id, adminNote: w.note ?? null } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
-      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
-      toast.success("Withdrawal rejected, balance returned to affiliate");
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not reject withdrawal"),
-  });
-
-  const processingMutation = useMutation({
-    mutationFn: (id: string) => startProcessing({ data: { withdrawalId: id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["affiliate-stats"] });
-      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
-    },
-  });
-
-  const s = stats?.stats;
-  const statCards = [
-    { label: "Total Affiliates", value: s?.totalAffiliates ?? 0, icon: Users },
-    { label: "Total Referrals", value: s?.totalReferrals ?? 0, icon: Wallet },
-    { label: "Successful Referrals", value: s?.successfulReferrals ?? 0, icon: CheckCircle },
-    { label: "Total Commissions", value: s?.totalCommissions ?? 0, icon: Wallet },
-    { label: "Pending Withdrawals", value: s?.pendingWithdrawals ?? 0, icon: Clock, color: "text-amber-600" },
-    { label: "Paid Withdrawals", value: s?.paidWithdrawals ?? 0, icon: CheckCircle, color: "text-emerald-600" },
-    { label: "Total Amount Paid", value: money(s?.totalAmountPaid ?? 0), icon: Wallet, color: "text-emerald-600" },
-  ];
-
-  function getStatusBadge(status: string) {
-    switch (status) {
-      case "paid":
-        return <Badge variant="default" className="gap-1"><CheckCircle className="size-3" /> Paid</Badge>;
-      case "processing":
-        return <Badge variant="secondary" className="gap-1"><Clock className="size-3" /> Processing</Badge>;
-      case "pending":
-        return <Badge variant="outline" className="gap-1"><Clock className="size-3" /> Pending</Badge>;
-      case "rejected":
-        return <Badge variant="destructive" className="gap-1"><XCircle className="size-3" /> Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }
-
-  function getActionButtons(w: any) {
-    if (w.status === "pending") {
-      return (
-        <div className="flex gap-1.5">
-          <Button
-            size="sm"
-            variant="default"
-            className="rounded-full"
-            disabled={processMutation.isPending}
-            onClick={() => {
-              const mpesaRef = prompt("Enter M-Pesa transaction/reference number:");
-              if (!mpesaRef) return;
-              const note = prompt("Admin note (optional):") || "";
-              processMutation.mutate({ id: w.id, amount: w.amount, mpesaRef, note });
-            }}
-          >
-            Mark as Paid
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="rounded-full"
-            disabled={rejectMutation.isPending}
-            onClick={() => {
-              if (!confirm(`Reject withdrawal of ${money(w.amount)} for ${w.affiliate_email}? Balance will be returned.`)) return;
-              const note = prompt("Rejection reason (optional):") || "";
-              rejectMutation.mutate({ id: w.id, note });
-            }}
-          >
-            Reject
-          </Button>
-        </div>
-      );
-    }
-    if (w.status === "processing") {
-      return (
-        <div className="flex gap-1.5">
-          <Button
-            size="sm"
-            variant="default"
-            className="rounded-full"
-            disabled={processMutation.isPending}
-            onClick={() => {
-              const mpesaRef = prompt("Enter M-Pesa transaction/reference number:");
-              if (!mpesaRef) return;
-              const note = prompt("Admin note (optional):") || "";
-              processMutation.mutate({ id: w.id, amount: w.amount, mpesaRef, note });
-            }}
-          >
-            Mark as Paid
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="rounded-full"
-            disabled={rejectMutation.isPending}
-            onClick={() => {
-              if (!confirm(`Reject withdrawal of ${money(w.amount)} for ${w.affiliate_email}? Balance will be returned.`)) return;
-              const note = prompt("Rejection reason (optional):") || "";
-              rejectMutation.mutate({ id: w.id, note });
-            }}
-          >
-            Reject
-          </Button>
-        </div>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">Completed</span>;
-  }
-
-  return (
-    <div className="space-y-8">
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        {statCards.map((c) => (
-          <div key={c.label} className="surface-card p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</p>
-              <c.icon className={`size-4 ${c.color ?? "text-primary"}`} />
-            </div>
-            <p className="mt-2 font-display text-2xl font-bold">{c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Withdrawal Management Table */}
-      <div className="surface-card p-5">
-        <h3 className="flex items-center gap-2 font-display text-base font-bold">
-          <Wallet className="size-4 text-primary" /> Withdrawal Management
-        </h3>
-        {withdrawals?.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Affiliate</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>M-Pesa Number</TableHead>
-                  <TableHead>Requested Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Paid Date</TableHead>
-                  <TableHead>M-Pesa Ref</TableHead>
-                  <TableHead className="text-right">Admin Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {withdrawals.map((w) => (
-                  <TableRow key={w.id}>
-                    <TableCell>
-                      <p className="font-medium">{w.affiliate_email ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground">Code: {w.affiliate_code ?? "—"}</p>
-                    </TableCell>
-                    <TableCell className="font-semibold">{money(w.amount)}</TableCell>
-                    <TableCell className="font-mono text-sm">{w.mpesa_phone ?? "—"}</TableCell>
-                    <TableCell>{shortDate(w.requested_at)}</TableCell>
-                    <TableCell>{getStatusBadge(w.status)}</TableCell>
-                    <TableCell>{w.processed_at ? shortDate(w.processed_at) : "—"}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{w.mpesa_reference ?? "—"}</TableCell>
-                    <TableCell className="text-right">{getActionButtons(w)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">No withdrawal requests yet.</p>
-        )}
-      </div>
-
-      {/* Affiliate List */}
-      <div className="surface-card p-5">
-        <h3 className="flex items-center gap-2 font-display text-base font-bold">
-          <Users className="size-4 text-primary" /> All Affiliates
-        </h3>
-        {stats?.affiliates?.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Affiliate</TableHead>
-                  <TableHead>Referral Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Referrals</TableHead>
-                  <TableHead>Total Commissions</TableHead>
-                  <TableHead>Total Withdrawn</TableHead>
-                  <TableHead>Pending Withdrawals</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.affiliates.map((a: any) => (
-                  <TableRow key={a.user_id}>
-                    <TableCell>{a.user_id}</TableCell>
-                    <TableCell className="font-mono">{a.referral_code}</TableCell>
-                    <TableCell>
-                      <Badge variant={a.status === "active" ? "default" : "secondary"}>
-                        {a.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{a.total_referrals ?? 0}</TableCell>
-                    <TableCell>{money(a.totalCommissions ?? 0)}</TableCell>
-                    <TableCell>{money(a.totalWithdrawn ?? 0)}</TableCell>
-                    <TableCell>{money(a.pendingWithdrawals ?? 0)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">No affiliates enrolled yet.</p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -543,19 +400,55 @@ function AdminDashboard() {
   const toggleVoucher = useServerFn(setVoucherActive);
   const removeVoucher = useServerFn(deleteVoucher);
   const extend = useServerFn(grantAccess);
+  const updateSub = useServerFn(updateLandlordSubscription);
+  const fetchLandlordPortfolio = useServerFn(getLandlordPortfolio);
+  const fetchPlatformPayments = useServerFn(listPlatformPayments);
 
+  // Queries
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ["admin-overview"],
+    queryFn: () => fetchOverview(),
+  });
+  const { data: vouchers } = useQuery({
+    queryKey: ["admin-vouchers"],
+    queryFn: () => fetchVouchers(),
+  });
+  const { data: platformPayments } = useQuery({
+    queryKey: ["platform-payments"],
+    queryFn: () => fetchPlatformPayments(),
+  });
+
+  // State: Global Filters & Search
+  const [activeTab, setActiveTab] = useState("overview");
+  const [landlordSearch, setLandlordSearch] = useState("");
+  const [landlordFilter, setLandlordFilter] = useState<"all" | "paid" | "trial" | "expired">("all");
+  const [subPaymentSearch, setSubPaymentSearch] = useState("");
+  const [subPlanFilter, setSubPlanFilter] = useState<string>("all");
+  const [platformPaymentSearch, setPlatformPaymentSearch] = useState("");
+
+  // Modals state
+  const [selectedLandlord, setSelectedLandlord] = useState<any | null>(null);
+  const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
+  const [editAccessModalOpen, setEditAccessModalOpen] = useState(false);
+  const [customPlan, setCustomPlan] = useState<"monthly" | "quarterly" | "semiannual" | "yearly">("monthly");
+  const [customEndsAt, setCustomEndsAt] = useState("");
+  const [customStatus, setCustomStatus] = useState<"active" | "trial" | "expired">("active");
+
+  // Voucher Generator Form
   const [code, setCode] = useState(randomCode);
   const [months, setMonths] = useState("1");
   const [maxUses, setMaxUses] = useState("1");
   const [expires, setExpires] = useState("");
   const [note, setNote] = useState("");
 
-  const { data } = useQuery({ queryKey: ["admin-overview"], queryFn: () => fetchOverview() });
-  const { data: vouchers } = useQuery({
-    queryKey: ["admin-vouchers"],
-    queryFn: () => fetchVouchers(),
+  // Portfolio Inspector query
+  const { data: landlordPortfolio, isLoading: portfolioLoading } = useQuery({
+    queryKey: ["landlord-portfolio", selectedLandlord?.id],
+    queryFn: () => fetchLandlordPortfolio({ data: { landlordId: selectedLandlord.id } }),
+    enabled: Boolean(selectedLandlord?.id) && portfolioModalOpen,
   });
 
+  // Mutations
   const create = useMutation({
     mutationFn: () =>
       addVoucher({
@@ -581,6 +474,7 @@ function AdminDashboard() {
     mutationFn: (v: { id: string; active: boolean }) => toggleVoucher({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-vouchers"] }),
   });
+
   const del = useMutation({
     mutationFn: (id: string) => removeVoucher({ data: { id } }),
     onSuccess: () => {
@@ -588,6 +482,7 @@ function AdminDashboard() {
       qc.invalidateQueries({ queryKey: ["admin-vouchers"] });
     },
   });
+
   const grant = useMutation({
     mutationFn: (v: { userId: string; months: number }) => extend({ data: v }),
     onSuccess: (res) => {
@@ -597,145 +492,641 @@ function AdminDashboard() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not extend access"),
   });
 
-  const stats = data?.stats;
+  const updateSubscriptionMut = useMutation({
+    mutationFn: () =>
+      updateSub({
+        data: {
+          userId: selectedLandlord.id,
+          plan: customPlan,
+          endsAt: customEndsAt || null,
+          status: customStatus,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Landlord subscription updated successfully");
+      setEditAccessModalOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
+  });
+
+  const stats = overview?.stats;
+
+  // Filtered Landlords
+  const filteredLandlords = useMemo(() => {
+    const list = overview?.landlords ?? [];
+    return list.filter((l) => {
+      const matchesFilter = landlordFilter === "all" || l.state === landlordFilter;
+      const q = landlordSearch.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        l.email.toLowerCase().includes(q) ||
+        (l.full_name && l.full_name.toLowerCase().includes(q)) ||
+        (l.company_name && l.company_name.toLowerCase().includes(q)) ||
+        (l.phone && l.phone.includes(q));
+      return matchesFilter && matchesSearch;
+    });
+  }, [overview?.landlords, landlordFilter, landlordSearch]);
+
+  // Filtered Sub Payments
+  const filteredSubPayments = useMemo(() => {
+    const list = overview?.payments ?? [];
+    return list.filter((p) => {
+      const matchesPlan = subPlanFilter === "all" || p.plan === subPlanFilter;
+      const q = subPaymentSearch.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        p.email.toLowerCase().includes(q) ||
+        p.reference.toLowerCase().includes(q) ||
+        (p.name && p.name.toLowerCase().includes(q));
+      return matchesPlan && matchesSearch;
+    });
+  }, [overview?.payments, subPlanFilter, subPaymentSearch]);
+
+  // Filtered Platform Payments
+  const filteredPlatformPayments = useMemo(() => {
+    const list = platformPayments ?? [];
+    const q = platformPaymentSearch.toLowerCase().trim();
+    if (!q) return list;
+    return list.filter(
+      (p) =>
+        p.tenant_name.toLowerCase().includes(q) ||
+        p.landlord_email.toLowerCase().includes(q) ||
+        (p.payment_method && p.payment_method.toLowerCase().includes(q)) ||
+        (p.reference_number && p.reference_number.toLowerCase().includes(q))
+    );
+  }, [platformPayments, platformPaymentSearch]);
+
   const cards = [
-    { label: "Landlords", value: stats?.landlords ?? 0, icon: Users },
-    { label: "Paying", value: stats?.paying ?? 0, icon: BadgeCheck },
-    { label: "On trial", value: stats?.onTrial ?? 0, icon: CalendarClock },
-    { label: "Expired", value: stats?.expired ?? 0, icon: ShieldAlert },
-    { label: "Subscription revenue", value: money(stats?.revenue ?? 0), icon: TrendingUp },
-    { label: "Properties", value: stats?.properties ?? 0, icon: Building2 },
-    { label: "Tenants", value: stats?.tenants ?? 0, icon: Users },
-    { label: "Rent tracked", value: money(stats?.rentTracked ?? 0), icon: TrendingUp },
+    { label: "Total Landlords", value: stats?.landlords ?? 0, icon: Users, color: "text-blue-500" },
+    { label: "Paying Subscribers", value: stats?.paying ?? 0, icon: BadgeCheck, color: "text-emerald-500" },
+    { label: "Active Trials", value: stats?.onTrial ?? 0, icon: CalendarClock, color: "text-amber-500" },
+    { label: "Expired Accounts", value: stats?.expired ?? 0, icon: ShieldAlert, color: "text-rose-500" },
+    { label: "Subscription Revenue", value: money(stats?.revenue ?? 0), icon: TrendingUp, color: "text-primary" },
+    { label: "Platform Rent Tracked", value: money(stats?.rentTracked ?? 0), icon: Wallet, color: "text-emerald-400" },
+    { label: "Managed Properties", value: stats?.properties ?? 0, icon: Building2, color: "text-indigo-400" },
+    { label: "Total Tenants", value: stats?.tenants ?? 0, icon: Users, color: "text-cyan-400" },
   ];
 
   return (
     <div className="space-y-8">
+      {/* Top Header Metrics Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="surface-card p-5">
+          <div key={c.label} className="surface-card p-5 transition-all hover:shadow-md border border-border/80 rounded-2xl">
             <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</p>
-              <c.icon className="size-4 text-primary" />
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">{c.label}</p>
+              <span className="p-2 rounded-xl bg-accent/60">
+                <c.icon className={`size-4 ${c.color}`} />
+              </span>
             </div>
-            <p className="mt-2 font-display text-2xl font-bold">{c.value}</p>
+            <p className="mt-2 font-display text-2xl font-bold tracking-tight">{c.value}</p>
           </div>
         ))}
       </div>
 
-      <Tabs defaultValue="landlords">
-        <TabsList>
-          <TabsTrigger value="landlords">Landlords</TabsTrigger>
-          <TabsTrigger value="vouchers">Voucher codes</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
-        </TabsList>
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="p-1.5 h-auto bg-muted/60 rounded-2xl gap-1">
+            <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <Sparkles className="size-4 mr-1.5 text-primary" /> Overview &amp; Analytics
+            </TabsTrigger>
+            <TabsTrigger value="landlords" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <Users className="size-4 mr-1.5" /> Landlords ({overview?.landlords.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <CreditCard className="size-4 mr-1.5" /> Subscriptions ({overview?.payments.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="platform-payments" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <Receipt className="size-4 mr-1.5" /> Platform Receipts ({platformPayments?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="affiliates" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <Wallet className="size-4 mr-1.5 text-amber-500" /> Affiliate Hub
+            </TabsTrigger>
+            <TabsTrigger value="vouchers" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
+              <Ticket className="size-4 mr-1.5" /> Vouchers ({vouchers?.length ?? 0})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="landlords" className="mt-5">
-          <div className="surface-card overflow-x-auto p-5">
-            {data?.landlords.length ? (
-              <table className="w-full min-w-[900px] text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-3">Account</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Plan</th>
-                    <th className="pb-3">Access until</th>
-                    <th className="pb-3">Portfolio</th>
-                    <th className="pb-3">Rent tracked</th>
-                    <th className="pb-3 text-right">Grant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.landlords.map((l) => (
-                    <tr key={l.id} className="border-t border-border">
-                      <td className="py-3">
-                        <p className="font-medium">{l.full_name ?? l.email}</p>
-                        <p className="text-xs text-muted-foreground">{l.email}</p>
-                        {l.phone ? (
-                          <p className="text-xs text-muted-foreground">{l.phone}</p>
-                        ) : null}
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${stateStyles[l.state]}`}
-                        >
-                          {l.state}
-                        </span>
-                      </td>
-                      <td className="py-3 capitalize">{l.plan}</td>
-                      <td className="py-3">{shortDate(l.endsAt)}</td>
-                      <td className="py-3 text-muted-foreground">
-                        {l.properties} props · {l.tenants} tenants
-                      </td>
-                      <td className="py-3">{money(l.rentCollected)}</td>
-                      <td className="py-3 text-right">
-                        <div className="inline-flex gap-1.5">
-                          {[1, 12].map((m) => (
-                            <Button
-                              key={m}
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full"
-                              disabled={grant.isPending}
-                              onClick={() => grant.mutate({ userId: l.id, months: m })}
-                            >
-                              +{m}m
-                            </Button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* TAB 1: OVERVIEW & ANALYTICS */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Subscription Plans Breakdown Card */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-base font-bold flex items-center gap-2">
+                  <CreditCard className="size-4 text-primary" /> Plan Distribution
+                </h3>
+                <Badge variant="outline" className="font-mono text-xs">Active Tiers</Badge>
+              </div>
+              <div className="space-y-3 pt-2">
+                {[
+                  { label: "Monthly (KSh 400)", count: stats?.planBreakdown?.monthly ?? 0, color: "bg-blue-500" },
+                  { label: "Quarterly (KSh 1,100)", count: stats?.planBreakdown?.quarterly ?? 0, color: "bg-amber-500" },
+                  { label: "Half Year (KSh 2,100)", count: stats?.planBreakdown?.semiannual ?? 0, color: "bg-indigo-500" },
+                  { label: "Yearly (KSh 4,000)", count: stats?.planBreakdown?.yearly ?? 0, color: "bg-emerald-500" },
+                ].map((tier) => (
+                  <div key={tier.label} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium">{tier.label}</span>
+                      <span className="font-bold">{tier.count} subscribers</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full ${tier.color}`}
+                        style={{
+                          width: `${stats?.paying ? Math.round((tier.count / stats.paying) * 100) : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform Stats Snapshot */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+              <h3 className="font-display text-base font-bold flex items-center gap-2">
+                <Layers className="size-4 text-primary" /> Platform Capacity
+              </h3>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Rental Units</p>
+                  <p className="mt-1 font-display text-2xl font-bold">{stats?.units ?? 0}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Receipts Issued</p>
+                  <p className="mt-1 font-display text-2xl font-bold">{stats?.rentReceiptsIssued ?? 0}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Affiliates</p>
+                  <p className="mt-1 font-display text-2xl font-bold">{stats?.affiliatesCount ?? 0}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Avg Rent / Landlord</p>
+                  <p className="mt-1 font-display text-lg font-bold">
+                    {stats?.landlords ? money(Math.round((stats.rentTracked ?? 0) / stats.landlords)) : "KSh 0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+              <h3 className="font-display text-base font-bold flex items-center gap-2">
+                <KeyRound className="size-4 text-primary" /> Quick Owner Actions
+              </h3>
+              <div className="space-y-2 pt-2">
+                <Button
+                  className="w-full justify-start rounded-2xl h-11"
+                  variant="outline"
+                  onClick={() => setActiveTab("vouchers")}
+                >
+                  <Ticket className="size-4 mr-2 text-primary" /> Create Promo Voucher
+                </Button>
+                <Button
+                  className="w-full justify-start rounded-2xl h-11"
+                  variant="outline"
+                  onClick={() => setActiveTab("affiliates")}
+                >
+                  <Wallet className="size-4 mr-2 text-amber-500" /> Review M-Pesa Payout Queue
+                </Button>
+                <Button
+                  className="w-full justify-start rounded-2xl h-11"
+                  variant="outline"
+                  onClick={() => exportToCsv("all_landlords", overview?.landlords ?? [])}
+                >
+                  <Download className="size-4 mr-2 text-emerald-500" /> Export Landlord Directory (CSV)
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Subscriptions Stream */}
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-base font-bold flex items-center gap-2">
+                <TrendingUp className="size-4 text-primary" /> Recent Revenue Stream
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setActiveTab("subscriptions")}>
+                View all payments →
+              </Button>
+            </div>
+            {overview?.payments.slice(0, 5).length ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Landlord</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {overview.payments.slice(0, 5).map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs">{shortDate(p.paid_at ?? p.created_at)}</TableCell>
+                        <TableCell className="font-medium text-xs">{p.email}</TableCell>
+                        <TableCell className="capitalize text-xs font-semibold">{p.plan}</TableCell>
+                        <TableCell className="font-bold text-xs">{money(p.amount)}</TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">{p.reference}</TableCell>
+                        <TableCell>
+                          <Badge variant={p.status === "success" ? "default" : "secondary"} className="text-[10px]">
+                            {p.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
-              <EmptyState title="No landlord accounts yet" />
+              <p className="text-sm text-muted-foreground py-4">No subscription payments recorded yet.</p>
             )}
           </div>
         </TabsContent>
 
-        <TabsContent value="vouchers" className="mt-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,340px)_1fr]">
-            <div className="surface-card p-6">
+        {/* TAB 2: LANDLORDS MANAGEMENT */}
+        <TabsContent value="landlords" className="space-y-5">
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <Users className="size-5 text-primary" /> Landlords Directory
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Showing {filteredLandlords.length} of {overview?.landlords.length ?? 0} registered accounts
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search name, email, phone..."
+                    value={landlordSearch}
+                    onChange={(e) => setLandlordSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                  {landlordSearch ? (
+                    <button
+                      onClick={() => setLandlordSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center bg-muted/60 p-1 rounded-full text-xs">
+                  {(["all", "paid", "trial", "expired"] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setLandlordFilter(st)}
+                      className={`px-3 py-1 rounded-full font-medium transition-all capitalize ${
+                        landlordFilter === st ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full h-9 gap-1.5 text-xs"
+                  onClick={() => exportToCsv("landlords_list", filteredLandlords)}
+                >
+                  <Download className="size-3.5" /> Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {filteredLandlords.length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[950px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Landlord Account</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Access Until</TableHead>
+                      <TableHead>Portfolio</TableHead>
+                      <TableHead>Rent Tracked</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLandlords.map((l) => (
+                      <TableRow key={l.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <p className="font-semibold text-sm">{l.full_name || l.company_name || "—"}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{l.email}</p>
+                          {l.phone ? <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="size-3" /> {l.phone}</p> : null}
+                          {l.isAffiliate ? (
+                            <Badge variant="secondary" className="text-[10px] mt-1 gap-1 text-amber-500 bg-amber-500/10 border-amber-500/20">
+                              <Wallet className="size-3" /> Affiliate
+                            </Badge>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ${stateStyles[l.state]}`}
+                          >
+                            {l.state}
+                          </span>
+                        </TableCell>
+                        <TableCell className="capitalize text-xs font-medium">{l.plan || "—"}</TableCell>
+                        <TableCell className="text-xs font-mono">{shortDate(l.endsAt)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          <span className="font-semibold text-foreground">{l.properties}</span> properties ·{" "}
+                          <span className="font-semibold text-foreground">{l.tenants}</span> tenants
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold">{money(l.rentCollected)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setPortfolioModalOpen(true);
+                              }}
+                            >
+                              <Eye className="size-3.5 text-primary" /> View
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setCustomPlan((l.plan as any) || "monthly");
+                                setCustomEndsAt(l.endsAt ? new Date(l.endsAt).toISOString().slice(0, 10) : "");
+                                setCustomStatus(l.state === "paid" ? "active" : l.state === "trial" ? "trial" : "expired");
+                                setEditAccessModalOpen(true);
+                              }}
+                            >
+                              <SlidersHorizontal className="size-3.5" /> Edit Access
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-full h-8 px-2 text-xs text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+                              disabled={grant.isPending}
+                              onClick={() => grant.mutate({ userId: l.id, months: 1 })}
+                            >
+                              +1m
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <EmptyState title="No landlords match your filter criteria" />
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB 3: SUBSCRIPTION PAYMENTS & LEDGER */}
+        <TabsContent value="subscriptions" className="space-y-5">
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <CreditCard className="size-5 text-primary" /> Subscription Ledger
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Showing {filteredSubPayments.length} subscription transactions · Total:{" "}
+                  <strong className="text-foreground">
+                    {money(filteredSubPayments.filter((p) => p.status === "success").reduce((s, p) => s + Number(p.amount ?? 0), 0))}
+                  </strong>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative w-full sm:w-60">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search ref, email..."
+                    value={subPaymentSearch}
+                    onChange={(e) => setSubPaymentSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                </div>
+
+                <Select value={subPlanFilter} onValueChange={setSubPlanFilter}>
+                  <SelectTrigger className="h-9 w-36 rounded-full text-xs">
+                    <SelectValue placeholder="All plans" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Plans</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="semiannual">Half Year</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full h-9 gap-1.5 text-xs"
+                  onClick={() => exportToCsv("subscription_payments", filteredSubPayments)}
+                >
+                  <Download className="size-3.5" /> Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {filteredSubPayments.length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[850px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Landlord</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Reference Number</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubPayments.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs font-mono">{shortDate(p.paid_at ?? p.created_at)}</TableCell>
+                        <TableCell>
+                          <p className="text-xs font-semibold">{p.name !== "—" ? p.name : p.email}</p>
+                          <p className="text-[11px] text-muted-foreground font-mono">{p.email}</p>
+                        </TableCell>
+                        <TableCell className="capitalize text-xs font-medium">
+                          <Badge variant="outline" className="text-[11px]">
+                            {p.plan}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-bold text-sm">{money(p.amount)}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground select-all">{p.reference}</TableCell>
+                        <TableCell>
+                          <Badge variant={p.status === "success" ? "default" : "secondary"} className="text-xs font-semibold">
+                            {p.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <EmptyState title="No subscription transactions match your filters" />
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB 4: PLATFORM RECEIPTS MONITOR */}
+        <TabsContent value="platform-payments" className="space-y-5">
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <Receipt className="size-5 text-primary" /> Live Rent Receipts Feed
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Audit log of tenant rent payments issued across properties nationwide
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search tenant, landlord, method..."
+                    value={platformPaymentSearch}
+                    onChange={(e) => setPlatformPaymentSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full h-9 gap-1.5 text-xs"
+                  onClick={() => exportToCsv("platform_rent_receipts", filteredPlatformPayments)}
+                >
+                  <Download className="size-3.5" /> Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {filteredPlatformPayments.length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Tenant</TableHead>
+                      <TableHead>Landlord</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Ref / M-Pesa Code</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlatformPayments.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs font-mono">{shortDate(p.paid_at || p.created_at)}</TableCell>
+                        <TableCell>
+                          <p className="font-semibold text-xs">{p.tenant_name}</p>
+                          {p.tenant_phone !== "—" ? (
+                            <p className="text-[11px] text-muted-foreground">{p.tenant_phone}</p>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">{p.landlord_email}</TableCell>
+                        <TableCell className="font-bold text-xs text-emerald-500">{money(p.amount)}</TableCell>
+                        <TableCell className="text-xs font-mono">{p.period_label || "—"}</TableCell>
+                        <TableCell className="text-xs capitalize font-medium">{p.payment_method || "M-Pesa"}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground select-all">
+                          {p.reference_number || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <EmptyState title="No rent payments recorded yet" />
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB 5: AFFILIATE HUB & PAYOUTS */}
+        <TabsContent value="affiliates" className="space-y-6">
+          <AffiliatesHub />
+        </TabsContent>
+
+        {/* TAB 6: VOUCHER CODES ENGINE */}
+        <TabsContent value="vouchers" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
+            {/* Voucher Generator Card */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
               <h3 className="flex items-center gap-2 font-display text-base font-bold">
-                <Gift className="size-4 text-primary" /> Create a voucher
+                <Gift className="size-4 text-primary" /> Create Promo Voucher
               </h3>
-              <div className="mt-5 space-y-4">
-                <Field label="Code" htmlFor="code">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Generate redeemable coupon codes that grant free months of platform subscription access.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <Field label="Voucher Code" htmlFor="code">
                   <div className="flex gap-2">
                     <Input
                       id="code"
                       value={code}
                       onChange={(e) => setCode(e.target.value.toUpperCase())}
-                      className="font-mono"
+                      className="font-mono uppercase font-bold tracking-wider"
                     />
-                    <Button variant="outline" onClick={() => setCode(randomCode())}>
-                      New
+                    <Button variant="outline" size="sm" className="rounded-xl px-3" onClick={() => setCode(randomCode())}>
+                      Generate
                     </Button>
                   </div>
                 </Field>
+
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Free months" htmlFor="months">
+                  <Field label="Free Months" htmlFor="months">
                     <Input
                       id="months"
                       type="number"
                       min={1}
+                      max={60}
                       value={months}
                       onChange={(e) => setMonths(e.target.value)}
                     />
                   </Field>
-                  <Field label="Max uses" htmlFor="uses">
+                  <Field label="Max Uses" htmlFor="uses">
                     <Input
                       id="uses"
                       type="number"
                       min={1}
+                      max={10000}
                       value={maxUses}
                       onChange={(e) => setMaxUses(e.target.value)}
                     />
                   </Field>
                 </div>
-                <Field label="Expires (optional)" htmlFor="expires">
+
+                <Field label="Expiration Date (Optional)" htmlFor="expires">
                   <Input
                     id="expires"
                     type="date"
@@ -743,173 +1134,691 @@ function AdminDashboard() {
                     onChange={(e) => setExpires(e.target.value)}
                   />
                 </Field>
-                <Field label="Note (optional)" htmlFor="note">
+
+                <Field label="Internal Note / Campaign" htmlFor="note">
                   <Input
                     id="note"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Promo for Nakuru landlords"
+                    placeholder="e.g. Kenya Landlords Forum Promo"
                   />
                 </Field>
+
                 <Button
-                  className="w-full rounded-full shadow-glow"
+                  className="w-full rounded-full shadow-glow font-semibold h-11"
                   disabled={create.isPending}
                   onClick={() => create.mutate()}
                 >
-                  {create.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="size-4" /> Create voucher
-                    </>
-                  )}
+                  {create.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4 mr-1.5" />}
+                  Create Voucher Code
                 </Button>
               </div>
             </div>
 
-            <div className="surface-card overflow-x-auto p-5">
-              <h3 className="flex items-center gap-2 font-display text-base font-bold">
-                <Ticket className="size-4 text-primary" /> Vouchers
-              </h3>
+            {/* Vouchers Table Card */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 font-display text-base font-bold">
+                  <Ticket className="size-4 text-primary" /> Active &amp; Historical Vouchers
+                </h3>
+                <Badge variant="outline" className="font-mono text-xs">{vouchers?.length ?? 0} Total</Badge>
+              </div>
+
               {vouchers?.length ? (
-                <table className="mt-4 w-full min-w-[620px] text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="pb-3">Code</th>
-                      <th className="pb-3">Months</th>
-                      <th className="pb-3">Used</th>
-                      <th className="pb-3">Expires</th>
-                      <th className="pb-3">Status</th>
-                      <th className="pb-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vouchers.map((v) => (
-                      <tr key={v.id} className="border-t border-border">
-                        <td className="py-3">
-                          <button
-                            className="inline-flex items-center gap-1.5 font-mono font-semibold hover:text-primary"
-                            onClick={() => {
-                              void navigator.clipboard.writeText(v.code);
-                              toast.success("Code copied");
-                            }}
-                          >
-                            {v.code} <Copy className="size-3.5" />
-                          </button>
-                          {v.note ? (
-                            <p className="text-xs text-muted-foreground">{v.note}</p>
-                          ) : null}
-                        </td>
-                        <td className="py-3">{v.months}</td>
-                        <td className="py-3">
-                          {v.used_count}/{v.max_uses}
-                        </td>
-                        <td className="py-3">{v.expires_at ? shortDate(v.expires_at) : "—"}</td>
-                        <td className="py-3">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              v.active && v.used_count < v.max_uses
-                                ? "bg-primary/15 text-primary"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {v.active
-                              ? v.used_count < v.max_uses
-                                ? "Active"
-                                : "Used up"
-                              : "Paused"}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right">
-                          <div className="inline-flex gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label="Toggle voucher"
-                              onClick={() => toggle.mutate({ id: v.id, active: !v.active })}
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[650px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code &amp; Note</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Redemptions</TableHead>
+                        <TableHead>Expiry</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {vouchers.map((v) => (
+                        <TableRow key={v.id}>
+                          <TableCell>
+                            <button
+                              className="inline-flex items-center gap-1.5 font-mono font-bold hover:text-primary transition-colors text-sm"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(v.code);
+                                toast.success(`Copied ${v.code}`);
+                              }}
                             >
-                              <Power className="size-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label="Delete voucher"
-                              onClick={() => del.mutate(v.id)}
+                              {v.code} <Copy className="size-3.5 text-muted-foreground" />
+                            </button>
+                            {v.note ? <p className="text-xs text-muted-foreground mt-0.5">{v.note}</p> : null}
+                          </TableCell>
+                          <TableCell className="text-xs font-semibold">{v.months} mo</TableCell>
+                          <TableCell className="text-xs font-mono">
+                            {v.used_count} / {v.max_uses}
+                          </TableCell>
+                          <TableCell className="text-xs">{v.expires_at ? shortDate(v.expires_at) : "Never"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={v.active && v.used_count < v.max_uses ? "default" : "secondary"}
+                              className="text-[10px]"
                             >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                              {v.active ? (v.used_count < v.max_uses ? "Active" : "Depleted") : "Paused"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-8 rounded-full"
+                                aria-label="Toggle active"
+                                onClick={() => toggle.mutate({ id: v.id, active: !v.active })}
+                              >
+                                <Power className={`size-3.5 ${v.active ? "text-emerald-500" : "text-muted-foreground"}`} />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                aria-label="Delete voucher"
+                                onClick={() => {
+                                  if (confirm(`Delete voucher ${v.code}?`)) del.mutate(v.id);
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  No vouchers yet — create one to give a landlord free months.
-                </p>
+                <EmptyState title="No promotional vouchers created yet" />
               )}
 
-              {data?.redemptions.length ? (
-                <div className="mt-8">
-                  <h4 className="text-xs font-semibold uppercase text-muted-foreground">
-                    Recent redemptions
+              {/* Recent Redemptions Log */}
+              {overview?.redemptions.length ? (
+                <div className="mt-8 pt-6 border-t border-border/80 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Recent Voucher Redemptions Audit Log
                   </h4>
-                  <ul className="mt-3 space-y-2 text-sm">
-                    {data.redemptions.map((r) => (
-                      <li key={r.id} className="flex justify-between border-t border-border pt-2">
-                        <span>{r.email}</span>
+                  <div className="space-y-2">
+                    {overview.redemptions.slice(0, 8).map((r) => (
+                      <div key={r.id} className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/40 text-xs">
+                        <span className="font-medium font-mono">{r.email}</span>
                         <span className="text-muted-foreground">
-                          {r.months} month{r.months === 1 ? "" : "s"} · {shortDate(r.created_at)}
+                          Granted <strong className="text-foreground">{r.months} months</strong> · {shortDate(r.created_at)}
                         </span>
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : null}
             </div>
           </div>
         </TabsContent>
-
-        <TabsContent value="payments" className="mt-5">
-          <div className="surface-card overflow-x-auto p-5">
-            {data?.payments.length ? (
-              <table className="w-full min-w-[700px] text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-3">Date</th>
-                    <th className="pb-3">Account</th>
-                    <th className="pb-3">Plan</th>
-                    <th className="pb-3">Amount</th>
-                    <th className="pb-3">Reference</th>
-                    <th className="pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.payments.map((p) => (
-                    <tr key={p.id} className="border-t border-border">
-                      <td className="py-3">{shortDate(p.paid_at ?? p.created_at)}</td>
-                      <td className="py-3">{p.email}</td>
-                      <td className="py-3 capitalize">{p.plan}</td>
-                      <td className="py-3">{money(p.amount)}</td>
-                      <td className="py-3 font-mono text-xs text-muted-foreground">
-                        {p.reference}
-                      </td>
-                      <td className="py-3 capitalize">{p.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState title="No subscription payments yet" />
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="affiliates" className="mt-5">
-          <AffiliatesTab />
-        </TabsContent>
       </Tabs>
+
+      {/* DIALOG 1: LANDLORD PORTFOLIO INSPECTOR */}
+      <Dialog open={portfolioModalOpen} onOpenChange={setPortfolioModalOpen}>
+        <DialogContent className="max-w-3xl rounded-3xl p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Building2 className="size-5 text-primary" /> Landlord Portfolio: {selectedLandlord?.full_name || selectedLandlord?.email}
+            </DialogTitle>
+            <DialogDescription>
+              Account Email: <strong className="text-foreground">{selectedLandlord?.email}</strong> · Company:{" "}
+              <strong className="text-foreground">{selectedLandlord?.company_name || "—"}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          {portfolioLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="size-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-6 mt-4">
+              {/* Portfolio Stats Banner */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-muted/50 text-center border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Properties</p>
+                  <p className="text-2xl font-bold mt-1">{landlordPortfolio?.properties.length ?? 0}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/50 text-center border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Units</p>
+                  <p className="text-2xl font-bold mt-1">{landlordPortfolio?.units.length ?? 0}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/50 text-center border border-border/60">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Active Tenants</p>
+                  <p className="text-2xl font-bold mt-1">{landlordPortfolio?.tenants.length ?? 0}</p>
+                </div>
+              </div>
+
+              {/* Properties List */}
+              <div className="space-y-2">
+                <h4 className="font-display font-bold text-sm">Managed Properties</h4>
+                {landlordPortfolio?.properties.length ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {landlordPortfolio.properties.map((p) => (
+                      <div key={p.id} className="p-3.5 rounded-2xl border border-border/70 bg-card/60">
+                        <p className="font-semibold text-sm">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{p.address || "No address specified"}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No properties registered yet.</p>
+                )}
+              </div>
+
+              {/* Tenants List */}
+              <div className="space-y-2">
+                <h4 className="font-display font-bold text-sm">Registered Tenants</h4>
+                {landlordPortfolio?.tenants.length ? (
+                  <div className="overflow-x-auto rounded-2xl border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tenant Name</TableHead>
+                          <TableHead>Phone / Email</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {landlordPortfolio.tenants.map((t) => (
+                          <TableRow key={t.id}>
+                            <TableCell className="font-medium text-xs">{t.full_name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground font-mono">{t.phone || t.email || "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant={t.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                                {t.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No tenants onboarded yet.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" className="rounded-full" onClick={() => setPortfolioModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG 2: EDIT ACCESS & PLAN ASSIGNMENT */}
+      <Dialog open={editAccessModalOpen} onOpenChange={setEditAccessModalOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 sm:p-8">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <SlidersHorizontal className="size-5 text-primary" /> Update Subscription Access
+            </DialogTitle>
+            <DialogDescription>
+              Assign plan tier or manually extend account access for <strong className="text-foreground">{selectedLandlord?.email}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label>Assigned Plan Tier</Label>
+              <Select value={customPlan} onValueChange={(val: any) => setCustomPlan(val)}>
+                <SelectTrigger className="h-10 rounded-2xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly (KSh 400)</SelectItem>
+                  <SelectItem value="quarterly">Quarterly (KSh 1,100)</SelectItem>
+                  <SelectItem value="semiannual">Half Year (KSh 2,100)</SelectItem>
+                  <SelectItem value="yearly">Yearly (KSh 4,000)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Access Status</Label>
+              <Select value={customStatus} onValueChange={(val: any) => setCustomStatus(val)}>
+                <SelectTrigger className="h-10 rounded-2xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active (Full access)</SelectItem>
+                  <SelectItem value="trial">Free Trial</SelectItem>
+                  <SelectItem value="expired">Expired (Locked)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Access Valid Until (Date)</Label>
+              <Input
+                type="date"
+                value={customEndsAt}
+                onChange={(e) => setCustomEndsAt(e.target.value)}
+                className="h-10 rounded-2xl"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Set a custom expiration date or leave unchanged.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" className="rounded-full" onClick={() => setEditAccessModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full shadow-glow"
+              disabled={updateSubscriptionMut.isPending}
+              onClick={() => updateSubscriptionMut.mutate()}
+            >
+              {updateSubscriptionMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AffiliatesHub() {
+  const qc = useQueryClient();
+  const fetchStats = useServerFn(getAffiliateStats);
+  const fetchWithdrawals = useServerFn(listAdminWithdrawals);
+  const processWd = useServerFn(processWithdrawal);
+  const rejectWd = useServerFn(rejectWithdrawal);
+  const startProcessingWd = useServerFn(startProcessingWithdrawal);
+  const updateStatus = useServerFn(setAffiliateStatus);
+
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["admin-affiliates"],
+    queryFn: () => fetchStats(),
+  });
+  const { data: withdrawals, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ["admin-withdrawals"],
+    queryFn: () => fetchWithdrawals(),
+  });
+
+  // State: Modals & Search
+  const [affiliateSearch, setAffiliateSearch] = useState("");
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [mpesaRefInput, setMpesaRefInput] = useState("");
+  const [adminNoteInput, setAdminNoteInput] = useState("");
+
+  const processMutation = useMutation({
+    mutationFn: () =>
+      processWd({
+        data: {
+          withdrawalId: selectedWithdrawal.id,
+          mpesaReference: mpesaRefInput,
+          adminNote: adminNoteInput || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Withdrawal marked as paid!");
+      setPayModalOpen(false);
+      setMpesaRefInput("");
+      setAdminNoteInput("");
+      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+      qc.invalidateQueries({ queryKey: ["admin-affiliates"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to process withdrawal"),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () =>
+      rejectWd({
+        data: {
+          withdrawalId: selectedWithdrawal.id,
+          adminNote: adminNoteInput || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Withdrawal rejected. Balance returned to affiliate.");
+      setRejectModalOpen(false);
+      setAdminNoteInput("");
+      qc.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+      qc.invalidateQueries({ queryKey: ["admin-affiliates"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to reject withdrawal"),
+  });
+
+  const toggleStatusMut = useMutation({
+    mutationFn: (v: { affiliateId: string; status: "active" | "paused" | "banned" }) =>
+      updateStatus({ data: v }),
+    onSuccess: () => {
+      toast.success("Affiliate status updated");
+      qc.invalidateQueries({ queryKey: ["admin-affiliates"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
+  });
+
+  const filteredAffiliates = useMemo(() => {
+    const list = stats?.affiliates ?? [];
+    const q = affiliateSearch.toLowerCase().trim();
+    if (!q) return list;
+    return list.filter(
+      (a: any) =>
+        a.email.toLowerCase().includes(q) ||
+        a.referral_code.toLowerCase().includes(q)
+    );
+  }, [stats?.affiliates, affiliateSearch]);
+
+  const statCards = [
+    { label: "Total Affiliates", value: stats?.stats?.totalAffiliates ?? 0, icon: Users, color: "text-blue-500" },
+    { label: "Total Referrals", value: stats?.stats?.totalReferrals ?? 0, icon: TrendingUp, color: "text-indigo-500" },
+    { label: "Paying Referrals", value: stats?.stats?.successfulReferrals ?? 0, icon: BadgeCheck, color: "text-emerald-500" },
+    { label: "Pending Payouts", value: stats?.stats?.pendingWithdrawals ?? 0, icon: Clock, color: "text-amber-500" },
+    { label: "Paid Out to Date", value: money(stats?.stats?.totalAmountPaid ?? 0), icon: Wallet, color: "text-primary" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Top Affiliate Metrics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {statCards.map((c) => (
+          <div key={c.label} className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">{c.label}</p>
+              <c.icon className={`size-4 ${c.color}`} />
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Withdrawal Queue Card */}
+      <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="font-display text-lg font-bold flex items-center gap-2">
+              <Wallet className="size-5 text-primary" /> M-Pesa Payout Queue
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Review affiliate withdrawal requests and record M-Pesa transaction reference codes.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full h-9 gap-1.5 text-xs self-start sm:self-auto"
+            onClick={() => exportToCsv("affiliate_withdrawals", withdrawals ?? [])}
+          >
+            <Download className="size-3.5" /> Export Payouts CSV
+          </Button>
+        </div>
+
+        {withdrawals?.length ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Affiliate Partner</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>M-Pesa Phone</TableHead>
+                  <TableHead>Requested Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>M-Pesa Ref</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {withdrawals.map((w) => (
+                  <TableRow key={w.id}>
+                    <TableCell>
+                      <p className="font-semibold text-xs">{w.affiliate_email}</p>
+                      <p className="text-[11px] font-mono text-muted-foreground">Code: {w.affiliate_code}</p>
+                    </TableCell>
+                    <TableCell className="font-bold text-sm text-emerald-500">{money(w.amount)}</TableCell>
+                    <TableCell className="font-mono text-xs font-semibold">{w.mpesa_phone}</TableCell>
+                    <TableCell className="text-xs">{shortDate(w.requested_at)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={w.status === "paid" ? "default" : w.status === "pending" ? "secondary" : "destructive"}
+                        className="text-[10px] capitalize"
+                      >
+                        {w.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground select-all">
+                      {w.mpesa_reference || "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {w.status === "pending" || w.status === "processing" ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            className="rounded-full h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                            onClick={() => {
+                              setSelectedWithdrawal(w);
+                              setPayModalOpen(true);
+                            }}
+                          >
+                            <Check className="size-3 mr-1" /> Mark Paid
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="rounded-full h-8 px-3 text-xs"
+                            onClick={() => {
+                              setSelectedWithdrawal(w);
+                              setRejectModalOpen(true);
+                            }}
+                          >
+                            <X className="size-3 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Settled</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <EmptyState title="No withdrawal requests in queue" />
+        )}
+      </div>
+
+      {/* All Affiliates Directory Card */}
+      <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="font-display text-lg font-bold flex items-center gap-2">
+              <Users className="size-5 text-primary" /> Affiliate Partner Directory
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {filteredAffiliates.length} enrolled partners tracking referrals and commissions
+            </p>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Search partner email, code..."
+              value={affiliateSearch}
+              onChange={(e) => setAffiliateSearch(e.target.value)}
+              className="pl-9 h-9 rounded-full text-xs"
+            />
+          </div>
+        </div>
+
+        {filteredAffiliates.length ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[850px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Partner Account</TableHead>
+                  <TableHead>Referral Code</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Referrals Count</TableHead>
+                  <TableHead>Total Earned</TableHead>
+                  <TableHead>Total Paid</TableHead>
+                  <TableHead className="text-right">Manage</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAffiliates.map((a: any) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium text-xs font-mono">{a.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono font-bold text-xs text-primary border-primary/30">
+                        {a.referral_code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={a.status === "active" ? "default" : a.status === "paused" ? "secondary" : "destructive"}
+                        className="text-[10px] capitalize"
+                      >
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold text-xs">{a.total_referrals ?? 0}</TableCell>
+                    <TableCell className="font-bold text-xs text-emerald-500">{money(a.totalCommissions ?? 0)}</TableCell>
+                    <TableCell className="font-semibold text-xs">{money(a.totalWithdrawn ?? 0)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex items-center gap-1">
+                        {a.status === "active" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full h-8 text-xs text-amber-500 hover:bg-amber-500/10"
+                            onClick={() => toggleStatusMut.mutate({ affiliateId: a.id, status: "paused" })}
+                          >
+                            Pause
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full h-8 text-xs text-emerald-500 hover:bg-emerald-500/10"
+                            onClick={() => toggleStatusMut.mutate({ affiliateId: a.id, status: "active" })}
+                          >
+                            Activate
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <EmptyState title="No affiliate partners registered yet" />
+        )}
+      </div>
+
+      {/* DIALOG: PROCESS M-PESA PAYOUT */}
+      <Dialog open={payModalOpen} onOpenChange={setPayModalOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 sm:p-8">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <CheckCircle className="size-5 text-emerald-500" /> Settle M-Pesa Withdrawal
+            </DialogTitle>
+            <DialogDescription>
+              Paying <strong className="text-foreground">{money(selectedWithdrawal?.amount ?? 0)}</strong> to{" "}
+              <strong className="text-foreground">{selectedWithdrawal?.mpesa_phone}</strong> ({selectedWithdrawal?.affiliate_email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label htmlFor="mpesaRef">M-Pesa Transaction Code / Ref *</Label>
+              <Input
+                id="mpesaRef"
+                placeholder="e.g. QK8472910J"
+                value={mpesaRefInput}
+                onChange={(e) => setMpesaRefInput(e.target.value.toUpperCase())}
+                className="font-mono uppercase font-bold tracking-wider"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Enter the confirmation code received from Safaricom M-Pesa.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="adminNote">Internal Note (Optional)</Label>
+              <Input
+                id="adminNote"
+                placeholder="e.g. Sent via B2C M-Pesa Portal"
+                value={adminNoteInput}
+                onChange={(e) => setAdminNoteInput(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" className="rounded-full" onClick={() => setPayModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-glow font-semibold"
+              disabled={!mpesaRefInput.trim() || processMutation.isPending}
+              onClick={() => processMutation.mutate()}
+            >
+              {processMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Confirm Settlement"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG: REJECT WITHDRAWAL */}
+      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 sm:p-8">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2 text-destructive">
+              <AlertCircle className="size-5" /> Reject Withdrawal Request
+            </DialogTitle>
+            <DialogDescription>
+              Rejecting this request will immediately return the{" "}
+              <strong className="text-foreground">{money(selectedWithdrawal?.amount ?? 0)}</strong> to the affiliate's balance.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label htmlFor="rejectNote">Reason for Rejection (Optional)</Label>
+              <Input
+                id="rejectNote"
+                placeholder="e.g. Incorrect M-Pesa phone number provided"
+                value={adminNoteInput}
+                onChange={(e) => setAdminNoteInput(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" className="rounded-full" onClick={() => setRejectModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-full font-semibold"
+              disabled={rejectMutation.isPending}
+              onClick={() => rejectMutation.mutate()}
+            >
+              {rejectMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Reject & Refund"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
