@@ -14,6 +14,7 @@ import {
   Eye,
   FileCheck2,
   FileText,
+  FlaskConical,
   Loader2,
   MessageCircle,
   Printer,
@@ -40,6 +41,7 @@ import {
   buildSubscriptionReceiptPdf,
   type SubscriptionPaymentRecord,
 } from "@/lib/subscription-receipt-pdf";
+import { SubscriptionReceiptPrinter } from "@/components/receipt-printer";
 
 const searchSchema = z.object({ reference: z.string().optional() });
 
@@ -84,13 +86,19 @@ function BillingPage() {
 
   const verifyMutation = useMutation({
     mutationFn: (ref: string) => verify({ data: { reference: ref } }),
-    onSuccess: async (res) => {
+    onSuccess: async (res, ref) => {
       if (res.paid) {
-        toast.success("Payment confirmed — your subscription is active.");
+        toast.success("Payment confirmed — your subscription is active!");
+        const updated = await fetchSubscription();
+        await qc.invalidateQueries({ queryKey: ["subscription"] });
+        // Automatically open animated receipt printer for the newly confirmed payment
+        const found = updated.history?.find((h) => h.reference === ref) || updated.history?.[0];
+        if (found) {
+          setSelectedPayment(found as SubscriptionPaymentRecord);
+        }
       } else {
         toast.error("Payment was not completed.");
       }
-      await qc.invalidateQueries({ queryKey: ["subscription"] });
       navigate({ to: "/billing", search: {}, replace: true });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Verification failed"),
@@ -128,14 +136,6 @@ function BillingPage() {
     }
   }
 
-  function handleShareWhatsApp(payment: SubscriptionPaymentRecord) {
-    const planName = PLANS[(payment.plan as PlanKey) ?? "monthly"]?.label ?? payment.plan;
-    const msg = encodeURIComponent(
-      `Official RentReceiptPro Subscription Payment Confirmation:\nReceipt Ref: ${payment.reference}\nPlan: ${planName}\nAmount: ${money(payment.amount)}\nStatus: PAID & ACTIVE\nIssued by Codevanta Ventures (RentReceiptPro)`,
-    );
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
-
   const statusLabel = !data
     ? "Loading…"
     : data.onTrial
@@ -161,7 +161,7 @@ function BillingPage() {
             ) : null}
           </div>
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold ${
               data?.active ? "gradient-primary text-primary-foreground shadow-glow" : "bg-muted"
             }`}
           >
@@ -170,9 +170,43 @@ function BillingPage() {
           </span>
         </div>
 
-        {/* Plan Cards */}
+        {/* Test Plan Banner (KSh 2 Shillings) */}
+        <div className="surface-card p-5 rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <FlaskConical className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-display font-bold text-sm">Live Checkout Test Mode (2 Shillings)</h4>
+                <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary border-primary/30">
+                  KSh 2 Only
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Test the full Paystack payment flow and watch the animated receipt printer generate your official subscription tax receipt for just 2 KES.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="rounded-full shadow-glow font-bold text-xs px-5 shrink-0 w-full sm:w-auto h-9"
+            disabled={pending !== null}
+            onClick={() => pay("test")}
+          >
+            {pending === "test" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <>
+                <CreditCard className="size-3.5 mr-1.5" /> Pay KSh 2 Test
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Main Production Plan Cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {(Object.keys(PLANS) as PlanKey[]).map((key) => {
+          {(["monthly", "quarterly", "semiannual", "yearly"] as PlanKey[]).map((key) => {
             const plan = PLANS[key];
             const best = key === "yearly";
             return (
@@ -237,7 +271,7 @@ function BillingPage() {
                 <FileCheck2 className="size-4 text-primary" /> Platform Payment History &amp; Receipts
               </h3>
               <p className="text-xs text-muted-foreground">
-                Download official tax receipts and proof of payment for your accounting &amp; business deductions.
+                Click any payment to open the animated receipt printer and download official tax receipts for your business deductions.
               </p>
             </div>
             <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto">
@@ -255,7 +289,7 @@ function BillingPage() {
                     <th className="pb-3">Amount</th>
                     <th className="pb-3">Reference</th>
                     <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Official Receipt</th>
+                    <th className="pb-3 text-right">Receipt Terminal</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -291,7 +325,7 @@ function BillingPage() {
                             className="rounded-full h-8 px-2.5 text-xs gap-1"
                             onClick={() => setSelectedPayment(row as SubscriptionPaymentRecord)}
                           >
-                            <Eye className="size-3 text-primary" /> View
+                            <Eye className="size-3 text-primary" /> Print / View
                           </Button>
                           <Button
                             size="sm"
@@ -304,7 +338,7 @@ function BillingPage() {
                             ) : (
                               <Download className="size-3" />
                             )}
-                            PDF Receipt
+                            PDF
                           </Button>
                         </div>
                       </td>
@@ -315,139 +349,33 @@ function BillingPage() {
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground italic py-4 text-center">
-              No subscription payments recorded yet.
+              No subscription payments recorded yet. Test a payment using the 2 Shillings Test button above.
             </p>
           )}
         </div>
       </div>
 
-      {/* Interactive Platform Receipt Preview Dialog */}
+      {/* Animated Physical Receipt Printer Dialog */}
       <Dialog open={selectedPayment !== null} onOpenChange={(open) => !open && setSelectedPayment(null)}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                <CheckCircle2 className="size-3.5" /> OFFICIAL TAX RECEIPT
-              </span>
-              <span className="font-mono text-xs text-muted-foreground font-bold">
-                {selectedPayment ? `RRP-SUB-${selectedPayment.reference.slice(-8).toUpperCase()}` : ""}
-              </span>
-            </div>
-            <DialogTitle className="font-display text-xl font-bold pt-2">
-              Subscription Payment Receipt
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto rounded-3xl p-5 sm:p-6 bg-background border-border">
+          <DialogHeader className="text-center pb-1">
+            <DialogTitle className="font-display text-lg font-bold">
+              Subscription Receipt Terminal
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Issued by Codevanta Ventures for RentReceiptPro Software Services.
+              Official Tax Receipt &amp; Proof of Payment issued by Codevanta Ventures
             </DialogDescription>
           </DialogHeader>
 
           {selectedPayment ? (
-            <div className="space-y-4 pt-2">
-              {/* Midnight Header Box */}
-              <div className="p-5 rounded-2xl bg-[#0B1220] text-white border-b-2 border-[#FF7A00]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-lg">RentReceiptPro</h4>
-                    <p className="text-xs text-slate-300">Cloud Property Management Platform</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-display text-2xl font-bold text-[#FFB020]">
-                      {money(selectedPayment.amount)}
-                    </p>
-                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">PAID &amp; ACTIVE</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Billed-To Details */}
-              <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground block">Billed To (Subscriber)</span>
-                  <p className="font-bold text-foreground mt-0.5">
-                    {data?.profile?.company_name || data?.profile?.full_name || "Valued Landlord"}
-                  </p>
-                  {data?.profile?.email ? <p className="text-muted-foreground">{data.profile.email}</p> : null}
-                  {data?.profile?.phone ? <p className="text-muted-foreground">{data.profile.phone}</p> : null}
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground block">Transaction Reference</span>
-                  <p className="font-mono font-bold text-foreground mt-0.5">{selectedPayment.reference}</p>
-                  <p className="text-muted-foreground">
-                    Date: {shortDate(selectedPayment.paid_at ?? selectedPayment.created_at)}
-                  </p>
-                  <p className="text-muted-foreground">Gateway: Paystack Checkout</p>
-                </div>
-              </div>
-
-              {/* Service Details */}
-              <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs space-y-2">
-                <div className="flex justify-between font-bold border-b border-border/60 pb-1.5">
-                  <span>Service Item</span>
-                  <span>Amount</span>
-                </div>
-                <div className="flex justify-between items-start text-muted-foreground">
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      RentReceiptPro {PLANS[(selectedPayment.plan as PlanKey) ?? "monthly"]?.label ?? selectedPayment.plan} Plan
-                    </p>
-                    <p className="text-[11px]">Unlimited properties, units, tenants, QR receipts &amp; portals.</p>
-                  </div>
-                  <span className="font-bold text-foreground">{money(selectedPayment.amount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1">
-                  <span>VAT / Taxes (0%):</span>
-                  <span>KSh 0.00</span>
-                </div>
-                <div className="flex justify-between items-center font-bold text-sm text-primary pt-1 border-t border-border/60">
-                  <span>Total Amount Paid:</span>
-                  <span>{money(selectedPayment.amount)}</span>
-                </div>
-              </div>
-
-              {/* Security & Verification Notice */}
-              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600">
-                <ShieldCheck className="size-5 shrink-0" />
-                <p>
-                  This official digital receipt is recorded on the RentReceiptPro central ledger and is valid for corporate business accounting and expense filing.
-                </p>
-              </div>
+            <div className="py-2">
+              <SubscriptionReceiptPrinter
+                payment={selectedPayment}
+                landlord={data?.profile}
+                autoAnimate={true}
+              />
             </div>
           ) : null}
-
-          <DialogFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3">
-            <Button
-              className="rounded-full shadow-glow font-bold text-xs gap-1.5 w-full"
-              disabled={!selectedPayment || downloadingId === selectedPayment.id}
-              onClick={() => selectedPayment && handleDownloadPdf(selectedPayment)}
-            >
-              {selectedPayment && downloadingId === selectedPayment.id ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Download className="size-3.5" />
-              )}
-              Download PDF
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 font-semibold text-xs gap-1.5 w-full"
-              disabled={!selectedPayment}
-              onClick={() => selectedPayment && handleShareWhatsApp(selectedPayment)}
-            >
-              <MessageCircle className="size-3.5" /> Share
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full text-xs gap-1.5 w-full"
-              onClick={() => {
-                if (selectedPayment) {
-                  void navigator.clipboard.writeText(selectedPayment.reference);
-                  toast.success("Payment reference copied to clipboard");
-                }
-              }}
-            >
-              <Copy className="size-3.5" /> Copy Ref
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>

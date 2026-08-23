@@ -1,4 +1,12 @@
 export const PLANS = {
+  test: {
+    label: "Test Plan",
+    amount: 2,
+    months: 1,
+    periodLabel: "test (1 month)",
+    blurb: "Test Paystack live checkout (KSh 2)",
+    badge: "KSh 2 Test",
+  },
   monthly: {
     label: "Monthly",
     amount: 400,

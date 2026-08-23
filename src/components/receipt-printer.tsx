@@ -1,14 +1,45 @@
 "use client";
 
-import { CheckCircleIcon, CircleNotchIcon } from "@phosphor-icons/react/dist/ssr";
+import {
+  CheckCircle,
+  Loader2,
+  Building2,
+  Copy,
+  Download,
+  FileCheck2,
+  MessageCircle,
+  Printer,
+  QrCode,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type ComponentPropsWithoutRef, createContext, type ReactNode, useContext } from "react";
-import { cn } from "@/helpers/classname-helper";
+import {
+  type ComponentPropsWithoutRef,
+  createContext,
+  type ReactNode,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
+import { cn } from "@/lib/utils";
+import { money, shortDate } from "@/lib/format";
+import { PLANS, type PlanKey } from "@/lib/plans";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  buildSubscriptionReceiptPdf,
+  type SubscriptionPaymentRecord,
+  type LandlordProfileInfo,
+} from "@/lib/subscription-receipt-pdf";
 
 export type ReceiptPrinterStage = "processing" | "printing" | "complete";
 export type ReceiptFeedMotion = "smooth" | "stepped";
 
-export type ReceiptPrinterRootProps = Omit<ComponentPropsWithoutRef<"section">, "children"> & {
+export type ReceiptPrinterRootProps = Omit<
+  ComponentPropsWithoutRef<"section">,
+  "children"
+> & {
   animate?: boolean;
   children: ReactNode;
   feedMotion?: ReceiptFeedMotion;
@@ -21,7 +52,10 @@ export type ReceiptPrinterScreenProps = ComponentPropsWithoutRef<"div">;
 export type ReceiptPrinterOutputProps = ComponentPropsWithoutRef<"div">;
 export type ReceiptPrinterPaperProps = ComponentPropsWithoutRef<"article">;
 
-export type ReceiptPrinterStatusProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+export type ReceiptPrinterStatusProps = Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> & {
   children?: ReactNode;
 };
 
@@ -39,21 +73,15 @@ const easeInOut = [0.77, 0, 0.175, 1] as const;
 
 const receiptToothCount = 40;
 const receiptToothDepth = 4;
-
-const receiptToothPoints = Array.from({ length: receiptToothCount * 2 }, (_, index) => {
-  const x = 100 - ((index + 1) * 100) / (receiptToothCount * 2);
-
-  const y = index % 2 === 0 ? "100%" : `calc(100% - ${receiptToothDepth}px)`;
-
-  return `${x}% ${y}`;
-}).join(", ");
-
-const receiptClipPath = `polygon(
-  0 0,
-  100% 0,
-  100% calc(100% - ${receiptToothDepth}px),
-  ${receiptToothPoints}
-)`;
+const receiptToothPoints = Array.from(
+  { length: receiptToothCount * 2 },
+  (_, index) => {
+    const x = 100 - ((index + 1) * 100) / (receiptToothCount * 2);
+    const y = index % 2 === 0 ? "100%" : `calc(100% - ${receiptToothDepth}px)`;
+    return `${x}% ${y}`;
+  },
+).join(", ");
+const receiptClipPath = `polygon(0 0, 100% 0, 100% calc(100% - ${receiptToothDepth}px), ${receiptToothPoints})`;
 
 const printingTransformKeyframes = [
   "translateY(calc(-100% + 2px))",
@@ -79,28 +107,29 @@ const printingTransformKeyframes = [
 ];
 
 const printingKeyframeTimes = [
-  0, 0.075, 0.105, 0.18, 0.21, 0.285, 0.315, 0.39, 0.42, 0.495, 0.525, 0.6, 0.63, 0.705, 0.735,
-  0.81, 0.84, 0.915, 0.945, 1,
+  0, 0.075, 0.105, 0.18, 0.21, 0.285, 0.315, 0.39, 0.42, 0.495, 0.525, 0.6,
+  0.63, 0.705, 0.735, 0.81, 0.84, 0.915, 0.945, 1,
 ];
 
 const statusLabels: Record<ReceiptPrinterStage, ReactNode> = {
-  processing: "Processing your payment",
-  printing: "Generating your receipt",
-  complete: "Payment complete",
+  processing: "Processing payment confirmation",
+  printing: "Printing digital tax receipt",
+  complete: "Receipt verified & ready",
 };
+
+const machineClassName =
+  "relative isolate w-full overflow-hidden rounded-[1.5rem] border border-slate-700 bg-gradient-to-b from-[#0F172A] to-[#0B1220] p-3 pb-8 shadow-2xl before:pointer-events-none before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:opacity-30 before:mix-blend-multiply before:content-['']";
 
 function useReceiptPrinter(component: string) {
   const context = useContext(ReceiptPrinterContext);
-
   if (!context) {
     throw new Error(`${component} must be used inside ReceiptPrinter.Root.`);
   }
-
   return context;
 }
 
-function ReceiptPrinterRoot({
-  "aria-label": ariaLabel = "Payment receipt printer",
+export function ReceiptPrinterRoot({
+  "aria-label": ariaLabel = "Receipt printer",
   animate = true,
   children,
   className,
@@ -109,7 +138,6 @@ function ReceiptPrinterRoot({
   ...props
 }: ReceiptPrinterRootProps) {
   const shouldReduceMotion = useReducedMotion();
-
   const context = {
     animate,
     feedMotion,
@@ -121,7 +149,10 @@ function ReceiptPrinterRoot({
     <ReceiptPrinterContext.Provider value={context}>
       <section
         aria-label={ariaLabel}
-        className={cn("relative isolate flex w-full max-w-sm flex-col items-center", className)}
+        className={cn(
+          "relative isolate flex w-full max-w-md flex-col items-center mx-auto",
+          className,
+        )}
         data-stage={stage}
         {...props}
       >
@@ -131,29 +162,33 @@ function ReceiptPrinterRoot({
   );
 }
 
-function ReceiptPrinterMachine({ children, className, ...props }: ReceiptPrinterMachineProps) {
+export function ReceiptPrinterMachine({
+  children,
+  className,
+  ...props
+}: ReceiptPrinterMachineProps) {
   return (
-    <div
-      className={cn(
-        "relative isolate w-full overflow-hidden rounded-[var(--printer-radius)] border border-grayscale-12 bg-[color-mix(in_oklab,var(--color-grayscale-11)_30%,var(--color-grayscale-12))] p-[var(--printer-inset)] pb-8 shadow-[0_20px_36px_-20px_color-mix(in_oklab,var(--color-grayscale-12)_55%,transparent),0_6px_14px_-8px_color-mix(in_oklab,var(--color-grayscale-12)_24%,transparent),inset_0_1px_0_color-mix(in_oklab,var(--color-grayscale-1)_14%,transparent),inset_0_-1px_0_color-mix(in_oklab,var(--color-grayscale-12)_55%,transparent)] [--printer-inner-radius:calc(var(--printer-radius)_-_var(--printer-inset))] [--printer-inset:0.75rem] [--printer-radius:1.5rem] before:pointer-events-none before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:bg-[url('/textures/plastic-noise.svg')] before:bg-[length:180px_180px] before:bg-repeat before:opacity-30 before:mix-blend-multiply before:content-[''] dark:border-grayscale-3 dark:bg-grayscale-4",
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn(machineClassName, className)} {...props}>
       {children}
-
       <div
         aria-hidden="true"
-        className="absolute inset-x-6 bottom-[var(--printer-inset)] z-40 h-2 rounded-[0.25rem] border border-grayscale-12 bg-grayscale-12 shadow-inner shadow-grayscale-12 dark:border-grayscale-1 dark:bg-grayscale-1 dark:shadow-grayscale-1"
+        className="absolute inset-x-6 bottom-3 z-40 h-2 rounded-[0.25rem] border border-slate-800 bg-slate-950 shadow-inner"
       />
     </div>
   );
 }
 
-function ReceiptPrinterHeader({ children, className, ...props }: ReceiptPrinterHeaderProps) {
+export function ReceiptPrinterHeader({
+  children,
+  className,
+  ...props
+}: ReceiptPrinterHeaderProps) {
   return (
     <div
-      className={cn("relative z-10 flex h-11 items-start justify-between", className)}
+      className={cn(
+        "relative z-10 flex h-10 items-center justify-between px-1 mb-2",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -161,11 +196,15 @@ function ReceiptPrinterHeader({ children, className, ...props }: ReceiptPrinterH
   );
 }
 
-function ReceiptPrinterScreen({ children, className, ...props }: ReceiptPrinterScreenProps) {
+export function ReceiptPrinterScreen({
+  children,
+  className,
+  ...props
+}: ReceiptPrinterScreenProps) {
   return (
     <div
       className={cn(
-        "relative z-10 isolate overflow-hidden rounded-[var(--printer-inner-radius)] border border-grayscale-12 bg-grayscale-12 p-4 text-grayscale-1 shadow-inner shadow-grayscale-12/80 after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_24px_4px_color-mix(in_oklab,var(--color-grayscale-12)_52%,transparent)] after:content-[''] dark:border-grayscale-1 dark:bg-grayscale-2 dark:text-grayscale-12 dark:shadow-grayscale-1/80",
+        "relative z-10 isolate overflow-hidden rounded-xl border border-slate-800 bg-slate-950/90 p-4 text-slate-100 shadow-inner font-sans",
         className,
       )}
       {...props}
@@ -177,7 +216,6 @@ function ReceiptPrinterScreen({ children, className, ...props }: ReceiptPrinterS
 
 function StatusIndicator({
   animate,
-  move,
   stage,
 }: {
   animate: boolean;
@@ -187,56 +225,33 @@ function StatusIndicator({
   const isComplete = stage === "complete";
 
   return (
-    <span aria-hidden="true" className="relative grid size-5 shrink-0 place-items-center">
+    <span
+      aria-hidden="true"
+      className="relative grid size-5 shrink-0 place-items-center"
+    >
       <AnimatePresence initial={false} mode="sync">
         {isComplete ? (
           <motion.span
-            animate={{
-              opacity: 1,
-              transform: "scale(1)",
-            }}
-            className="col-start-1 row-start-1 grid place-items-center text-green-9"
-            exit={{
-              opacity: animate ? 0 : 1,
-              transform: move ? "scale(0.96)" : "scale(1)",
-            }}
-            initial={{
-              opacity: animate ? 0 : 1,
-              transform: move ? "scale(0.94)" : "scale(1)",
-            }}
+            animate={{ opacity: 1, transform: "scale(1)" }}
+            className="col-start-1 row-start-1 grid place-items-center text-emerald-400"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, transform: "scale(0.9)" }}
             key="complete"
-            transition={{
-              duration: animate ? 0.16 : 0,
-              ease: easeOut,
-            }}
+            transition={{ duration: 0.16, ease: easeOut }}
           >
-            <CheckCircleIcon size={18} weight="fill" />
+            <CheckCircle size={18} className="fill-emerald-500/20 text-emerald-400" />
           </motion.span>
         ) : (
           <motion.span
-            animate={{
-              opacity: 1,
-              transform: "scale(1)",
-            }}
-            className="col-start-1 row-start-1 grid place-items-center text-grayscale-8 dark:text-grayscale-11"
-            exit={{
-              opacity: animate ? 0 : 1,
-              transform: move ? "scale(0.96)" : "scale(1)",
-            }}
-            initial={{
-              opacity: animate ? 0 : 1,
-              transform: move ? "scale(0.94)" : "scale(1)",
-            }}
+            animate={{ opacity: 1, transform: "scale(1)" }}
+            className="col-start-1 row-start-1 grid place-items-center text-amber-400"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, transform: "scale(0.9)" }}
             key="working"
-            transition={{
-              duration: animate ? 0.16 : 0,
-              ease: easeOut,
-            }}
+            transition={{ duration: 0.16, ease: easeOut }}
           >
-            <CircleNotchIcon
-              className={cn(animate && "animate-spin motion-reduce:animate-none")}
-              size={18}
-              weight="bold"
+            <Loader2
+              className={cn("size-4 animate-spin")}
             />
           </motion.span>
         )}
@@ -245,34 +260,34 @@ function StatusIndicator({
   );
 }
 
-function ReceiptPrinterStatus({ children, className, ...props }: ReceiptPrinterStatusProps) {
-  const { animate, shouldMove, stage } = useReceiptPrinter("ReceiptPrinter.Status");
+export function ReceiptPrinterStatus({
+  children,
+  className,
+  ...props
+}: ReceiptPrinterStatusProps) {
+  const { animate, shouldMove, stage } = useReceiptPrinter(
+    "ReceiptPrinter.Status",
+  );
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-2", className)} {...props}>
+    <div
+      className={cn("flex min-w-0 items-center gap-2", className)}
+      {...props}
+    >
       <StatusIndicator animate={animate} move={shouldMove} stage={stage} />
-
-      <div aria-live="polite" className="grid min-w-0 flex-1 items-center" role="status">
+      <div
+        aria-live="polite"
+        className="grid min-w-0 flex-1 items-center"
+        role="status"
+      >
         <AnimatePresence initial={false} mode="sync">
           <motion.div
-            animate={{
-              opacity: 1,
-              transform: "translateY(0px)",
-            }}
-            className="col-start-1 row-start-1 truncate font-medium text-grayscale-8 text-xs leading-none dark:text-grayscale-11"
-            exit={{
-              opacity: animate ? 0 : 1,
-              transform: shouldMove ? "translateY(-4px)" : "translateY(0px)",
-            }}
-            initial={{
-              opacity: animate ? 0 : 1,
-              transform: shouldMove ? "translateY(4px)" : "translateY(0px)",
-            }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            className="col-start-1 row-start-1 truncate font-medium text-slate-300 text-xs leading-none"
+            exit={{ opacity: 0, transform: "translateY(-4px)" }}
+            initial={{ opacity: 0, transform: "translateY(4px)" }}
             key={stage}
-            transition={{
-              duration: animate ? 0.18 : 0,
-              ease: easeOut,
-            }}
+            transition={{ duration: 0.18, ease: easeOut }}
           >
             {children ?? statusLabels[stage]}
           </motion.div>
@@ -282,17 +297,19 @@ function ReceiptPrinterStatus({ children, className, ...props }: ReceiptPrinterS
   );
 }
 
-function ReceiptPrinterPaper({ children, className, style, ...props }: ReceiptPrinterPaperProps) {
+export function ReceiptPrinterPaper({
+  children,
+  className,
+  style,
+  ...props
+}: ReceiptPrinterPaperProps) {
   return (
     <article
       className={cn(
-        "relative z-10 min-h-80 bg-grayscale-1 bg-[url('/textures/receipt-paper.svg')] bg-cover px-6 pt-7 pb-8 font-mono text-grayscale-12 bg-blend-soft-light dark:bg-grayscale-12 dark:text-grayscale-1",
+        "relative z-10 min-h-80 bg-[#FAFAFA] text-[#0F172A] p-6 pb-10 font-mono text-xs shadow-2xl border-x border-slate-200",
         className,
       )}
-      style={{
-        clipPath: receiptClipPath,
-        ...style,
-      }}
+      style={{ clipPath: receiptClipPath, ...style }}
       {...props}
     >
       {children}
@@ -300,17 +317,22 @@ function ReceiptPrinterPaper({ children, className, style, ...props }: ReceiptPr
   );
 }
 
-function ReceiptPrinterOutput({ children, className, ...props }: ReceiptPrinterOutputProps) {
-  const { animate, feedMotion, shouldMove, stage } = useReceiptPrinter("ReceiptPrinter.Output");
-
+export function ReceiptPrinterOutput({
+  children,
+  className,
+  ...props
+}: ReceiptPrinterOutputProps) {
+  const { animate, feedMotion, shouldMove, stage } = useReceiptPrinter(
+    "ReceiptPrinter.Output",
+  );
   const isReceiptVisible = stage !== "processing";
-
-  const shouldUseSteppedFeed = feedMotion === "stepped" && stage === "printing" && shouldMove;
+  const shouldUseSteppedFeed =
+    feedMotion === "stepped" && stage === "printing" && shouldMove;
 
   return (
     <div
       className={cn(
-        "relative z-50 -mt-4 h-[32rem] w-[calc(80%+3rem)] max-w-full overflow-hidden px-6",
+        "relative z-30 -mt-4 w-[calc(90%+1rem)] max-w-full overflow-hidden px-2",
         className,
       )}
       {...props}
@@ -318,7 +340,7 @@ function ReceiptPrinterOutput({ children, className, ...props }: ReceiptPrinterO
       {isReceiptVisible ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-6 -top-1 z-20 h-2 bg-grayscale-12/75 blur-[6px] dark:bg-grayscale-1/75"
+          className="pointer-events-none absolute inset-x-4 -top-1 z-20 h-2 bg-slate-900/60 blur-[4px]"
         />
       ) : null}
 
@@ -335,13 +357,10 @@ function ReceiptPrinterOutput({ children, className, ...props }: ReceiptPrinterO
                 : "translateY(calc(-100% + 2px))",
         }}
         aria-hidden={stage !== "complete"}
-        className="relative isolate before:pointer-events-none before:absolute before:inset-x-3 before:top-3 before:bottom-4 before:z-0 before:rounded-sm before:shadow-[0_8px_24px_color-mix(in_oklab,var(--color-grayscale-12)_24%,transparent)] before:content-['']"
+        className="relative isolate shadow-xl"
         initial={false}
         transition={{
-          opacity: {
-            duration: animate ? 0.16 : 0,
-            ease: easeOut,
-          },
+          opacity: { duration: animate ? 0.16 : 0, ease: easeOut },
           transform: {
             duration: shouldMove ? 1.75 : 0,
             ease: shouldUseSteppedFeed ? "linear" : easeInOut,
@@ -364,3 +383,195 @@ export const ReceiptPrinter = {
   Screen: ReceiptPrinterScreen,
   Status: ReceiptPrinterStatus,
 };
+
+/**
+ * High-performance animated Subscription Receipt Printer Component
+ */
+export function SubscriptionReceiptPrinter({
+  payment,
+  landlord,
+  autoAnimate = true,
+  onDownload,
+}: {
+  payment: SubscriptionPaymentRecord;
+  landlord?: LandlordProfileInfo;
+  autoAnimate?: boolean;
+  onDownload?: () => void;
+}) {
+  const [stage, setStage] = useState<ReceiptPrinterStage>(
+    autoAnimate ? "printing" : "complete",
+  );
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    if (autoAnimate) {
+      const timer = setTimeout(() => {
+        setStage("complete");
+      }, 1900);
+      return () => clearTimeout(timer);
+    }
+  }, [autoAnimate]);
+
+  const planKey = (payment.plan in PLANS ? payment.plan : "monthly") as PlanKey;
+  const planDetails = PLANS[planKey] ?? { label: payment.plan.toUpperCase(), periodLabel: "month" };
+  const receiptNo = `RRP-SUB-${payment.reference.replace(/[^a-zA-Z0-9]/g, "").slice(-8).toUpperCase()}`;
+  const dateFormatted = shortDate(payment.paid_at ?? payment.created_at);
+
+  async function handleDownload() {
+    try {
+      setDownloading(true);
+      const doc = await buildSubscriptionReceiptPdf(payment, landlord);
+      doc.save(`RentReceiptPro_Subscription_Receipt_${payment.reference}.pdf`);
+      toast.success("Subscription PDF receipt downloaded");
+      onDownload?.();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  function handleShareWhatsApp() {
+    const msg = encodeURIComponent(
+      `Official RentReceiptPro Subscription Receipt:\nReceipt #: ${receiptNo}\nPlan: ${planDetails.label}\nAmount: ${money(payment.amount)}\nRef: ${payment.reference}\nStatus: PAID & SETTLED\nIssued by Codevanta Ventures`,
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  return (
+    <div className="w-full space-y-4">
+      <ReceiptPrinter.Root stage={stage}>
+        {/* Physical Machine Housing */}
+        <ReceiptPrinter.Machine>
+          <ReceiptPrinter.Header>
+            <div className="flex items-center gap-2">
+              <span className="gradient-primary flex size-6 items-center justify-center rounded-lg shadow-sm">
+                <Building2 className="size-3.5 text-white" />
+              </span>
+              <span className="font-display text-xs font-bold text-white tracking-wide">
+                RentReceiptPro Terminal
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
+              {receiptNo}
+            </span>
+          </ReceiptPrinter.Header>
+
+          {/* LCD Status Screen */}
+          <ReceiptPrinter.Screen>
+            <div className="space-y-2.5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold text-white">
+                    {planDetails.label} Subscription
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Paystack · Ref: {payment.reference.slice(-10)}
+                  </p>
+                </div>
+                <strong className="font-mono text-sm text-[#FFB020] font-bold">
+                  {money(payment.amount)}
+                </strong>
+              </div>
+              <div className="pt-1 border-t border-slate-800">
+                <ReceiptPrinter.Status />
+              </div>
+            </div>
+          </ReceiptPrinter.Screen>
+        </ReceiptPrinter.Machine>
+
+        {/* Paper Feeding Output with Jagged Tear-off Edge */}
+        <ReceiptPrinter.Output>
+          <ReceiptPrinter.Paper>
+            <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
+              <h3 className="font-bold text-sm tracking-wider text-slate-900">
+                RENTRECEIPTPRO
+              </h3>
+              <p className="text-[10px] text-slate-500">
+                Codevanta Ventures · Tax Receipt
+              </p>
+              <p className="text-[10px] text-slate-500 font-mono">
+                {receiptNo} · {dateFormatted}
+              </p>
+            </div>
+
+            <div className="py-3 space-y-1.5 text-[11px] border-b border-dashed border-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Subscriber:</span>
+                <span className="font-bold text-slate-800 truncate max-w-[170px]">
+                  {landlord?.company_name || landlord?.full_name || "Landlord"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Service:</span>
+                <span className="text-slate-800">{planDetails.label} Plan</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Gateway:</span>
+                <span className="text-slate-800">Paystack Checkout</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Ref:</span>
+                <span className="font-mono text-[10px] text-slate-700">{payment.reference}</span>
+              </div>
+            </div>
+
+            <div className="py-3 space-y-1 text-xs">
+              <div className="flex justify-between font-semibold">
+                <span>Subtotal</span>
+                <span>{money(payment.amount)}</span>
+              </div>
+              <div className="flex justify-between text-slate-500 text-[11px]">
+                <span>VAT / Tax (0%)</span>
+                <span>KSh 0.00</span>
+              </div>
+              <div className="flex justify-between font-bold text-sm text-slate-900 pt-1.5 border-t border-slate-300">
+                <span>TOTAL PAID</span>
+                <span className="text-[#FF7A00]">{money(payment.amount)}</span>
+              </div>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-dashed border-slate-300 text-center space-y-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+                <CheckCircle className="size-3" /> OFFICIAL DIGITAL STAMP
+              </span>
+              <p className="text-[9px] text-slate-400">
+                Retain this receipt for business accounting &amp; tax filing.
+              </p>
+            </div>
+          </ReceiptPrinter.Paper>
+        </ReceiptPrinter.Output>
+      </ReceiptPrinter.Root>
+
+      {/* Action Buttons Under Printer */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+        <Button
+          className="rounded-full shadow-glow font-bold text-xs gap-1.5 w-full h-10"
+          disabled={downloading}
+          onClick={handleDownload}
+        >
+          {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+          Download PDF
+        </Button>
+        <Button
+          variant="outline"
+          className="rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-semibold text-xs gap-1.5 w-full h-10"
+          onClick={handleShareWhatsApp}
+        >
+          <MessageCircle className="size-3.5" /> WhatsApp
+        </Button>
+        <Button
+          variant="outline"
+          className="rounded-full text-xs gap-1.5 w-full h-10"
+          onClick={() => {
+            void navigator.clipboard.writeText(payment.reference);
+            toast.success("Payment reference copied to clipboard");
+          }}
+        >
+          <Copy className="size-3.5" /> Copy Ref
+        </Button>
+      </div>
+    </div>
+  );
+}

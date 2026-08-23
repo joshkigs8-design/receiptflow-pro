@@ -53,7 +53,7 @@ export const getSubscription = createServerFn({ method: "GET" })
 export const startCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) =>
-    z.object({ plan: z.enum(["monthly", "quarterly", "semiannual", "yearly"]), origin: z.string().url() }).parse(d),
+    z.object({ plan: z.enum(["test", "monthly", "quarterly", "semiannual", "yearly"]), origin: z.string().url() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const plan = PLANS[data.plan];
