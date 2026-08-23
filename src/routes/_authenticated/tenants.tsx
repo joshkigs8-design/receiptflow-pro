@@ -6,7 +6,6 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
-  listPayments,
   listProperties,
   listTenants,
   listUnits,
@@ -86,7 +85,6 @@ function TenantsPage() {
   const fetchTenants = useServerFn(listTenants);
   const fetchProperties = useServerFn(listProperties);
   const fetchUnits = useServerFn(listUnits);
-  const fetchPayments = useServerFn(listPayments);
   const save = useServerFn(saveTenant);
   const remove = useServerFn(deleteTenant);
   const [term, setTerm] = useState("");

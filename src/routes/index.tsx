@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site/SiteNav";
 import { Hero } from "@/components/site/Hero";
+import { LiveReceiptDemo } from "@/components/site/LiveReceiptDemo";
+import { HowItWorks } from "@/components/site/HowItWorks";
 import { Features } from "@/components/site/Features";
+import { DashboardPreview } from "@/components/site/DashboardPreview";
+import { RoiCalculator } from "@/components/site/RoiCalculator";
+import { Testimonials } from "@/components/site/Testimonials";
 import { Pricing } from "@/components/site/Pricing";
+import { FaqSection } from "@/components/site/FaqSection";
 import { CtaBand } from "@/components/site/CtaBand";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
@@ -41,8 +47,14 @@ function Index() {
       <SiteNav />
       <main>
         <Hero />
+        <LiveReceiptDemo />
+        <HowItWorks />
         <Features />
+        <DashboardPreview />
+        <RoiCalculator />
+        <Testimonials />
         <Pricing />
+        <FaqSection />
         <CtaBand />
       </main>
       <SiteFooter />
