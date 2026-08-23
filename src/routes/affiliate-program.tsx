@@ -342,16 +342,15 @@ function AffiliateProgramPage() {
               Create your free affiliate account now and share your referral link with landlords across Kenya.
             </p>
             <div className="relative mt-8 flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" variant="secondary" className="rounded-full font-semibold shadow-md">
+              <Button asChild size="lg" className="rounded-full bg-white text-[#0B1220] hover:bg-slate-100 font-bold shadow-xl border border-white/40 transition-all hover:scale-105">
                 <Link to="/affiliate/auth" search={{ mode: "signup" }}>
-                  Join the Affiliate Program <ArrowRight className="ml-1.5 size-4" />
+                  Join the Affiliate Program <ArrowRight className="ml-1.5 size-4 text-[#FF7A00]" />
                 </Link>
               </Button>
               <Button
                 asChild
                 size="lg"
-                variant="outline"
-                className="glass rounded-full text-primary-foreground border-white/20 hover:bg-white/10"
+                className="rounded-full bg-[#0B1220] text-white hover:bg-[#111C2E] font-semibold border border-white/20 shadow-lg"
               >
                 <Link to="/affiliate/auth" search={{ mode: "login" }}>Affiliate Login</Link>
               </Button>
