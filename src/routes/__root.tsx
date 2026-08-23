@@ -156,7 +156,7 @@ function RootShell({ children }: { children: ReactNode }) {
         "name": "RentReceiptPro",
         "alternateName": "Rent Receipt Pro Kenya",
         "description": "Digital rent receipts and rental property management software for landlords and tenants in Kenya.",
-        "inLanguage": "en-KE"
+        "inLanguage": "en-KE",
       },
       {
         "@type": "Organization",
@@ -164,13 +164,12 @@ function RootShell({ children }: { children: ReactNode }) {
         "name": "RentReceiptPro",
         "url": "https://rentreceipt.co.ke/",
         "logo": "https://rentreceipt.co.ke/favicon.png",
-        "sameAs": [],
         "contactPoint": {
           "@type": "ContactPoint",
           "contactType": "Customer Support",
           "email": "info@rentreceipt.co.ke",
-          "areaServed": "KE"
-        }
+          "areaServed": "KE",
+        },
       },
       {
         "@type": "SoftwareApplication",
@@ -181,9 +180,9 @@ function RootShell({ children }: { children: ReactNode }) {
         "offers": {
           "@type": "Offer",
           "price": "400.00",
-          "priceCurrency": "KES"
+          "priceCurrency": "KES",
         },
-        "description": "Digital rent receipt generation with QR code verification, M-Pesa tracking, and tenant maintenance portal."
+        "description": "Digital rent receipt generation with QR code verification, M-Pesa tracking, and tenant maintenance portal.",
       },
       {
         "@type": "FAQPage",
@@ -194,28 +193,28 @@ function RootShell({ children }: { children: ReactNode }) {
             "name": "How do digital rent receipts work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Landlords record rent payments and RentReceiptPro automatically generates a cryptographically stamped PDF receipt with a QR code that tenants can verify or download anytime."
-            }
+              "text": "Landlords record rent payments and RentReceiptPro automatically generates a cryptographically stamped PDF receipt with a QR code that tenants can verify or download anytime.",
+            },
           },
           {
             "@type": "Question",
             "name": "Can tenants verify their rent receipts?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, every receipt comes with a public verification link and QR code stored on the RentReceiptPro registry."
-            }
+              "text": "Yes, every receipt comes with a public verification link and QR code stored on the RentReceiptPro registry.",
+            },
           },
           {
             "@type": "Question",
             "name": "How much does RentReceiptPro cost in Kenya?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Plans start with a 14-day free trial, followed by KSh 400 monthly, KSh 1,100 quarterly, KSh 2,100 semi-annually, or KSh 4,000 yearly."
-            }
-          }
-        ]
-      }
-    ]
+              "text": "Plans start with a 14-day free trial, followed by KSh 400 monthly, KSh 1,100 quarterly, KSh 2,100 semi-annually, or KSh 4,000 yearly.",
+            },
+          },
+        ],
+      },
+    ],
   };
 
   return (
@@ -261,7 +260,6 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
