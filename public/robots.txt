@@ -1,4 +1,24 @@
 User-agent: *
 Allow: /
+Allow: /affiliate-program
+Allow: /tenant
+Allow: /verify
+Allow: /auth
+Allow: /download
+Allow: /terms
+Allow: /privacy-policy
+Disallow: /_authenticated/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /tenants
+Disallow: /properties
+Disallow: /units
+Disallow: /payments
+Disallow: /receipts
+Disallow: /announcements
+Disallow: /reports
+Disallow: /settings
+Disallow: /billing
+Disallow: /affiliate
 
 Sitemap: https://rentreceipt.co.ke/sitemap.xml

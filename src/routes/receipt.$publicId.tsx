@@ -231,37 +231,37 @@ function ReceiptPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-2">
                 <Button
-                  className="rounded-full shadow-glow font-bold h-11 px-6 text-xs gap-1.5"
+                  className="rounded-full shadow-glow font-bold h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap"
                   disabled={downloading}
                   onClick={handleDownload}
                 >
-                  <Download className="size-4" /> Download Official PDF
+                  <Download className="size-4 shrink-0" /> Download PDF
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 font-semibold"
+                  className="rounded-full h-11 px-4 text-xs gap-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 font-semibold justify-center w-full whitespace-nowrap"
                   onClick={shareWhatsApp}
                 >
-                  <MessageCircle className="size-4" /> Share WhatsApp
+                  <MessageCircle className="size-4 shrink-0" /> WhatsApp
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5"
+                  className="rounded-full h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap"
                   onClick={() => {
                     navigator.clipboard.writeText(receiptUrl(publicId));
                     toast.success("Verification link copied to clipboard");
                   }}
                 >
-                  <Copy className="size-4" /> Copy Link
+                  <Copy className="size-4 shrink-0" /> Copy Link
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5"
+                  variant="outline"
+                  className="rounded-full h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap"
                   onClick={() => window.print()}
                 >
-                  <Printer className="size-4" /> Print
+                  <Printer className="size-4 shrink-0" /> Print
                 </Button>
               </div>
 

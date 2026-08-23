@@ -338,14 +338,14 @@ function DashboardPage() {
 
         {/* Recent Payments Feed */}
         <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
                 <Receipt className="size-4 text-primary" /> Recent Payment Transactions
               </h2>
               <p className="text-xs text-muted-foreground">Tenant rent payments recorded in your properties</p>
             </div>
-            <Button asChild variant="outline" size="sm" className="rounded-full text-xs h-8">
+            <Button asChild variant="outline" size="sm" className="rounded-full text-xs h-8 whitespace-nowrap shrink-0 self-start sm:self-auto">
               <Link to="/payments">View full payment ledger</Link>
             </Button>
           </div>

@@ -79,30 +79,47 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RentReceiptPro — Rent Receipts & Property Management" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
+      { title: "RentReceiptPro — Automated Digital Rent Receipts & Property Management Kenya" },
       {
         name: "description",
         content:
-          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
+          "Kenya's leading digital rent receipt and property management software. Issue instant verified PDF rent receipts with QR codes, track M-Pesa payments, manage tenant leases, and monitor rental property portfolios in minutes.",
+      },
+      {
+        name: "keywords",
+        content:
+          "rent receipt kenya, digital rent receipts, tenant receipt mpesa, landlord property management nairobi, online rent receipt generator, rent payment tracker kenya, rental invoicing software, verified rent receipt pdf",
       },
       { name: "author", content: "Codevanta Ventures" },
+      { name: "theme-color", content: "#0B1220" },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+      { name: "geo.region", content: "KE" },
+      { name: "geo.placename", content: "Nairobi, Kenya" },
+      { name: "application-name", content: "RentReceiptPro" },
+      { property: "og:site_name", content: "RentReceiptPro" },
+      { property: "og:locale", content: "en_KE" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://rentreceipt.co.ke/" },
-      { property: "og:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
+      { property: "og:title", content: "RentReceiptPro — Automated Digital Rent Receipts & Property Management" },
       {
         property: "og:description",
         content:
-          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
+          "Issue instant verified digital rent receipts with QR verification, track M-Pesa payments, manage leases, and streamline property operations in Kenya.",
       },
       { property: "og:image", content: "https://rentreceipt.co.ke/favicon.png" },
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
+      { property: "og:image:alt", content: "RentReceiptPro Logo" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
+      { name: "twitter:site", content: "@RentReceiptPro" },
+      { name: "twitter:title", content: "RentReceiptPro — Digital Rent Receipts Kenya" },
       {
         name: "twitter:description",
         content:
-          "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.",
+          "Generate official QR-verifiable rent receipts, track tenant payments, and manage properties online.",
       },
+      { name: "twitter:image", content: "https://rentreceipt.co.ke/favicon.png" },
     ],
     links: [
       { rel: "canonical", href: "https://rentreceipt.co.ke/" },
@@ -129,21 +146,85 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://rentreceipt.co.ke/#website",
+        "url": "https://rentreceipt.co.ke/",
+        "name": "RentReceiptPro",
+        "alternateName": "Rent Receipt Pro Kenya",
+        "description": "Digital rent receipts and rental property management software for landlords and tenants in Kenya.",
+        "inLanguage": "en-KE"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://rentreceipt.co.ke/#organization",
+        "name": "RentReceiptPro",
+        "url": "https://rentreceipt.co.ke/",
+        "logo": "https://rentreceipt.co.ke/favicon.png",
+        "sameAs": [],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "Customer Support",
+          "email": "info@rentreceipt.co.ke",
+          "areaServed": "KE"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://rentreceipt.co.ke/#software",
+        "name": "RentReceiptPro",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "All (Web, Android, iOS)",
+        "offers": {
+          "@type": "Offer",
+          "price": "400.00",
+          "priceCurrency": "KES"
+        },
+        "description": "Digital rent receipt generation with QR code verification, M-Pesa tracking, and tenant maintenance portal."
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://rentreceipt.co.ke/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do digital rent receipts work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Landlords record rent payments and RentReceiptPro automatically generates a cryptographically stamped PDF receipt with a QR code that tenants can verify or download anytime."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can tenants verify their rent receipts?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, every receipt comes with a public verification link and QR code stored on the RentReceiptPro registry."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does RentReceiptPro cost in Kenya?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Plans start with a 14-day free trial, followed by KSh 400 monthly, KSh 1,100 quarterly, KSh 2,100 semi-annually, or KSh 4,000 yearly."
+            }
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "RentReceiptPro",
-              alternateName: "RentReceiptPro",
-              url: "https://rentreceipt.co.ke/",
-            }),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <HeadContent />
       </head>

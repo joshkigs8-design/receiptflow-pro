@@ -356,37 +356,35 @@ function ReceiptsPage() {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between gap-2">
+                  <div className="mt-5 pt-4 border-t border-border/60 grid grid-cols-3 gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="rounded-full h-8 px-3 text-xs gap-1.5"
+                      className="rounded-full h-8 px-2 text-[11px] font-medium gap-1 justify-center whitespace-nowrap w-full"
                       onClick={() => handleOpenPreview(r)}
                     >
-                      <Eye className="size-3.5 text-primary" /> View
+                      <Eye className="size-3 text-primary shrink-0" /> View
                     </Button>
 
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-full h-8 px-2.5 text-xs text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 gap-1"
-                        onClick={() => shareWhatsApp(r)}
-                        title="Share on WhatsApp"
-                      >
-                        <MessageCircle className="size-3.5" /> WhatsApp
-                      </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full h-8 px-2 text-[11px] font-medium text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 gap-1 justify-center whitespace-nowrap w-full"
+                      onClick={() => shareWhatsApp(r)}
+                      title="Share on WhatsApp"
+                    >
+                      <MessageCircle className="size-3 shrink-0" /> Share
+                    </Button>
 
-                      <Button
-                        size="sm"
-                        className="rounded-full h-8 px-3 text-xs gap-1.5 shadow-glow"
-                        disabled={isBusy}
-                        onClick={() => handleDownload(r)}
-                      >
-                        {isBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-                        PDF
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      className="rounded-full h-8 px-2 text-[11px] font-medium gap-1 shadow-glow justify-center whitespace-nowrap w-full"
+                      disabled={isBusy}
+                      onClick={() => handleDownload(r)}
+                    >
+                      {isBusy ? <Loader2 className="size-3 animate-spin shrink-0" /> : <Download className="size-3 shrink-0" />}
+                      PDF
+                    </Button>
                   </div>
                 </article>
               );

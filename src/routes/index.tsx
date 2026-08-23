@@ -6,23 +6,29 @@ import { Pricing } from "@/components/site/Pricing";
 import { CtaBand } from "@/components/site/CtaBand";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
-const title = "RentReceiptPro — Rent Receipts & Property Management";
+const title = "RentReceiptPro — #1 Digital Rent Receipts & Rental Property Management Kenya";
 const description =
-  "RentReceiptPro is a rental property management platform that helps landlords and property managers manage properties, tenants, rent payments, leases and professional rent receipts.";
+  "Generate verified PDF rent receipts with QR codes, track M-Pesa payments, manage tenant leases, and monitor rental property portfolios in Kenya.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title },
       { name: "description", content: description },
-      { property: "og:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
+      {
+        name: "keywords",
+        content:
+          "digital rent receipts, rent receipt kenya, mpesa rent receipt, rental property management nairobi, landlord software kenya, generate rent receipt pdf",
+      },
+      { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://rentreceipt.co.ke/" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RentReceiptPro – Rent Receipts & Property Management" },
-      { name: "twitter:description", content: description },
       { property: "og:image", content: "https://rentreceipt.co.ke/favicon.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+      { name: "twitter:image", content: "https://rentreceipt.co.ke/favicon.png" },
     ],
     links: [{ rel: "canonical", href: "https://rentreceipt.co.ke/" }],
   }),
