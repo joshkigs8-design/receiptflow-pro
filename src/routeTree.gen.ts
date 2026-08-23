@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AffiliateRouteImport } from './routes/affiliate'
 import { Route as AffiliateProgramRouteImport } from './routes/affiliate-program'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CaretakerRouteImport } from './routes/caretaker'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TenantRouteImport } from './routes/tenant'
@@ -22,6 +23,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedCaretakersRouteImport } from './routes/_authenticated/caretakers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedPropertiesRouteImport } from './routes/_authenticated/properties'
@@ -66,6 +68,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaretakerRoute = CaretakerRouteImport.update({
+  id: '/caretaker',
+  path: '/caretaker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DownloadRoute = DownloadRouteImport.update({
   id: '/download',
   path: '/download',
@@ -100,6 +107,11 @@ const AuthenticatedAnnouncementsRoute =
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCaretakersRoute = AuthenticatedCaretakersRouteImport.update({
+  id: '/caretakers',
+  path: '/caretakers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -180,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/caretaker': typeof CaretakerRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -187,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/caretakers': typeof AuthenticatedCaretakersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
@@ -207,6 +221,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/caretaker': typeof CaretakerRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -214,6 +229,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/caretakers': typeof AuthenticatedCaretakersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
@@ -237,6 +253,7 @@ export interface FileRoutesById {
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/caretaker': typeof CaretakerRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -244,6 +261,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/caretakers': typeof AuthenticatedCaretakersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/properties': typeof AuthenticatedPropertiesRoute
@@ -267,6 +285,7 @@ export interface FileRouteTypes {
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
+    | '/caretaker'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -274,6 +293,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/announcements'
     | '/billing'
+    | '/caretakers'
     | '/dashboard'
     | '/payments'
     | '/properties'
@@ -294,6 +314,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/affiliate-program'
     | '/auth'
+    | '/caretaker'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -301,6 +322,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/announcements'
     | '/billing'
+    | '/caretakers'
     | '/dashboard'
     | '/payments'
     | '/properties'
@@ -323,6 +345,7 @@ export interface FileRouteTypes {
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
+    | '/caretaker'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -330,6 +353,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/_authenticated/announcements'
     | '/_authenticated/billing'
+    | '/_authenticated/caretakers'
     | '/_authenticated/dashboard'
     | '/_authenticated/payments'
     | '/_authenticated/properties'
@@ -353,6 +377,7 @@ export interface RootRouteChildren {
   AffiliateRoute: typeof AffiliateRouteWithChildren
   AffiliateProgramRoute: typeof AffiliateProgramRoute
   AuthRoute: typeof AuthRouteWithChildren
+  CaretakerRoute: typeof CaretakerRoute
   DownloadRoute: typeof DownloadRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TenantRoute: typeof TenantRoute
@@ -406,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/caretaker': {
+      id: '/caretaker'
+      path: '/caretaker'
+      fullPath: '/caretaker'
+      preLoaderRoute: typeof CaretakerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/download': {
       id: '/download'
       path: '/download'
@@ -453,6 +485,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/caretakers': {
+      id: '/_authenticated/caretakers'
+      path: '/caretakers'
+      fullPath: '/caretakers'
+      preLoaderRoute: typeof AuthenticatedCaretakersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -559,6 +598,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedCaretakersRoute: typeof AuthenticatedCaretakersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedPropertiesRoute: typeof AuthenticatedPropertiesRoute
@@ -573,6 +613,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedCaretakersRoute: AuthenticatedCaretakersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedPropertiesRoute: AuthenticatedPropertiesRoute,
@@ -618,6 +659,7 @@ const rootRouteChildren: RootRouteChildren = {
   AffiliateRoute: AffiliateRouteWithChildren,
   AffiliateProgramRoute: AffiliateProgramRoute,
   AuthRoute: AuthRouteWithChildren,
+  CaretakerRoute: CaretakerRoute,
   DownloadRoute: DownloadRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TenantRoute: TenantRoute,
