@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/billing")({
       {
         name: "description",
         content:
-          "Manage your Rent Receipt Pro subscription — KSh 300 per month or KSh 3,000 per year, with 2 months free on signup.",
+          "Manage your Rent Receipt Pro subscription — KSh 400 per month or KSh 4,000 per year, with 2 months free on signup.",
       },
       { property: "og:title", content: "Billing & Subscription — Rent Receipt Pro" },
       { property: "og:description", content: "Activate or renew your Rent Receipt Pro plan." },

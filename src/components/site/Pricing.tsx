@@ -32,7 +32,7 @@ export function Pricing() {
             Simple, honest pricing
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Try everything free for one month. Keep going from KSh 300 a month — cancel anytime.
+            Try everything free for one month. Keep going from KSh 400 a month — cancel anytime.
           </p>
         </motion.div>
 
