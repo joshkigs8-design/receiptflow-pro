@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Phone,
   Plus,
+  Receipt,
   RefreshCw,
   Search,
   Shield,
@@ -675,7 +676,7 @@ function MobileAdminPage() {
                           className="p-3.5 rounded-2xl bg-muted/40 border border-border/50 flex items-center justify-between gap-3 text-xs"
                         >
                           <div>
-                            <p className="font-bold text-foreground">{p.landlordName}</p>
+                            <p className="font-bold text-foreground">{p.name || p.email}</p>
                             <p className="text-[11px] text-muted-foreground font-mono">
                               Ref: {p.reference} · {shortDate(p.created_at)}
                             </p>
@@ -851,7 +852,7 @@ function MobileAdminPage() {
                           </Badge>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          Used: {v.times_used} / {v.max_uses} max {v.note ? `· "${v.note}"` : ""}
+                          Used: {v.used_count} / {v.max_uses} max {v.note ? `· "${v.note}"` : ""}
                         </p>
                       </div>
 
@@ -903,7 +904,7 @@ function MobileAdminPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-foreground">{w.affiliate_name}</span>
+                            <span className="font-bold text-xs text-foreground">{w.affiliate_email}</span>
                             <Badge
                               variant={w.status === "paid" ? "default" : w.status === "rejected" ? "destructive" : "secondary"}
                               className={`text-[10px] uppercase font-bold ${
@@ -914,7 +915,7 @@ function MobileAdminPage() {
                             </Badge>
                           </div>
                           <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                            M-Pesa: {w.mpesa_number} ({w.mpesa_name}) · Requested {shortDate(w.created_at)}
+                            M-Pesa: {w.mpesa_phone || "—"} ({w.affiliate_email}) · Requested {shortDate(w.requested_at)}
                           </p>
                         </div>
                         <span className="font-display font-bold text-emerald-600 text-sm sm:text-base">
@@ -1207,3 +1208,4 @@ function MobileAdminPage() {
     </div>
   );
 }
+

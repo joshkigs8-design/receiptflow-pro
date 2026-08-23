@@ -39,7 +39,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         supabaseAdmin.from("profiles").select("id,full_name,company_name,phone,created_at"),
         supabaseAdmin.from("subscriptions").select("*"),
-        supabaseAdmin.from("payments").select("id,landlord_id,amount,paid_at,payment_method,created_at"),
+        supabaseAdmin.from("payments").select("id,landlord_id,amount,paid_at,method,created_at"),
         supabaseAdmin
           .from("subscription_payments")
           .select("id,user_id,reference,plan,amount,currency,status,paid_at,created_at")
@@ -173,7 +173,11 @@ export const updateLandlordSubscription = createServerFn({ method: "POST" })
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const updatePayload: Record<string, any> = {};
+    const updatePayload: {
+      plan?: string;
+      status?: string;
+      current_period_end?: string | null;
+    } = {};
     if (data.plan) updatePayload.plan = data.plan;
     if (data.status) updatePayload.status = data.status;
     if (data.endsAt !== undefined) {

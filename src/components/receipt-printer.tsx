@@ -361,11 +361,9 @@ export function ReceiptPrinterOutput({
         initial={false}
         transition={{
           opacity: { duration: animate ? 0.16 : 0, ease: easeOut },
-          transform: {
-            duration: shouldMove ? 1.75 : 0,
-            ease: shouldUseSteppedFeed ? "linear" : easeInOut,
-            times: shouldUseSteppedFeed ? printingKeyframeTimes : undefined,
-          },
+          transform: shouldUseSteppedFeed
+            ? { duration: shouldMove ? 1.75 : 0, ease: "linear", times: printingKeyframeTimes }
+            : { duration: shouldMove ? 1.75 : 0, ease: easeInOut },
         }}
       >
         {children}
@@ -404,12 +402,11 @@ export function SubscriptionReceiptPrinter({
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    if (autoAnimate) {
-      const timer = setTimeout(() => {
-        setStage("complete");
-      }, 1900);
-      return () => clearTimeout(timer);
-    }
+    if (!autoAnimate) return;
+    const timer = setTimeout(() => {
+      setStage("complete");
+    }, 1900);
+    return () => clearTimeout(timer);
   }, [autoAnimate]);
 
   const planKey = (payment.plan in PLANS ? payment.plan : "monthly") as PlanKey;

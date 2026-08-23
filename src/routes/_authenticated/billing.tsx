@@ -81,8 +81,11 @@ const perks = [
 ];
 
 function BillingPage() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const search = Route.useSearch();
   const rawRef = search.reference || search.trxref;
+  const reference = typeof rawRef === "string" ? rawRef : undefined;
   const fetchSubscription = useServerFn(getSubscription);
   const checkout = useServerFn(startCheckout);
   const verify = useServerFn(verifyCheckout);
@@ -346,7 +349,7 @@ function BillingPage() {
             <div className="py-2">
               <SubscriptionReceiptPrinter
                 payment={selectedPayment}
-                landlord={data?.profile}
+                {...(data?.profile ? { landlord: data.profile } : {})}
                 autoAnimate={true}
               />
             </div>

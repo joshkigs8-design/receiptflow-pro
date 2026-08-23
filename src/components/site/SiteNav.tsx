@@ -43,16 +43,25 @@ export function SiteNav() {
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
-            {links.map((l) => (
-              <Link
-                key={l.to ?? l.href}
-                to={l.to}
-                href={l.href}
-                className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
+            {links.map((l) =>
+              l.to ? (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  {l.label}
+                </a>
+              ),
+            )}
             <Link
               to="/tenant"
               className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -89,17 +98,27 @@ export function SiteNav() {
 
         {open ? (
           <div className="glass-strong mt-2 flex flex-col gap-1 rounded-3xl p-3 md:hidden">
-            {links.map((l) => (
-              <Link
-                key={l.to ?? l.href}
-                to={l.to}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
-              >
-                {l.label}
-              </Link>
-            ))}
+            {links.map((l) =>
+              l.to ? (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
+                >
+                  {l.label}
+                </a>
+              ),
+            )}
             <Link
               to="/tenant"
               onClick={() => setOpen(false)}

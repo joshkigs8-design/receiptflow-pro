@@ -1023,7 +1023,7 @@ function CaretakerPortalPage() {
                             onClick={() =>
                               handleShareReceiptWhatsApp(
                                 r.public_id,
-                                (r.snapshot as Record<string, string>)?.tenant_phone || "",
+                                (r.snapshot as Record<string, string>)?.[`tenant_phone`] || "",
                                 r.tenants?.full_name || "Tenant",
                                 Number(r.amount),
                                 r.receipt_number,

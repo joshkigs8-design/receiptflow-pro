@@ -30,6 +30,10 @@ export const Route = createFileRoute("/api/public/paystack/webhook")({
 
         const userId = event.data.metadata?.user_id;
         const reference = event.data.reference;
+        if (!userId || !reference) {
+          return new Response("Missing userId or reference", { status: 200 });
+        }
+
         const rawPlan = event.data.metadata?.plan;
         const planKey: PlanKey = (rawPlan && rawPlan in PLANS) ? (rawPlan as PlanKey) : "monthly";
 
@@ -53,7 +57,7 @@ export const Route = createFileRoute("/api/public/paystack/webhook")({
             plan: planKey,
             status: "active",
             current_period_end: nextPeriodEnd(sub?.current_period_end ?? null, planKey),
-            last_reference: reference,
+            last_reference: reference ?? null,
             last_amount: PLANS[planKey].amount,
           })
           .eq("user_id", userId);

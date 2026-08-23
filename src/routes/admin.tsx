@@ -111,7 +111,7 @@ const stateStyles: Record<string, string> = {
 };
 
 function exportToCsv(filename: string, rows: Record<string, any>[]) {
-  if (!rows.length) {
+  if (!rows || !rows.length || !rows[0]) {
     toast.error("No data to export");
     return;
   }
@@ -552,8 +552,8 @@ function AdminDashboard() {
       (p) =>
         p.tenant_name.toLowerCase().includes(q) ||
         p.landlord_email.toLowerCase().includes(q) ||
-        (p.payment_method && p.payment_method.toLowerCase().includes(q)) ||
-        (p.reference_number && p.reference_number.toLowerCase().includes(q))
+        (p.method && p.method.toLowerCase().includes(q)) ||
+        (p.reference && p.reference.toLowerCase().includes(q))
     );
   }, [platformPayments, platformPaymentSearch]);
 
@@ -1056,9 +1056,9 @@ function AdminDashboard() {
                         <TableCell className="text-xs font-mono text-muted-foreground">{p.landlord_email}</TableCell>
                         <TableCell className="font-bold text-xs text-emerald-500">{money(p.amount)}</TableCell>
                         <TableCell className="text-xs font-mono">{p.period_label || "—"}</TableCell>
-                        <TableCell className="text-xs capitalize font-medium">{p.payment_method || "M-Pesa"}</TableCell>
+                        <TableCell className="text-xs capitalize font-medium">{p.method || "M-Pesa"}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground select-all">
-                          {p.reference_number || "—"}
+                          {p.reference || "—"}
                         </TableCell>
                       </TableRow>
                     ))}

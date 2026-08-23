@@ -130,7 +130,7 @@ function TenantPortal() {
       }
       toast.success("Maintenance request submitted successfully");
       setRequest({ category: "plumbing", priority: "normal", description: "" });
-      login.mutate();
+      login.mutate(creds);
     },
     onError: () => toast.error("Failed to submit request"),
   });
@@ -468,9 +468,9 @@ function TenantPortal() {
                         <TableRow key={p.id}>
                           <TableCell className="text-xs font-mono">{shortDate(p.paid_at)}</TableCell>
                           <TableCell className="text-xs font-semibold">{p.period_label || "—"}</TableCell>
-                          <TableCell className="text-xs capitalize font-medium">{p.method || p.payment_method || "M-Pesa"}</TableCell>
+                          <TableCell className="text-xs capitalize font-medium">{p.method || "M-Pesa"}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground select-all">
-                            {p.reference || p.reference_number || "—"}
+                            {p.reference || "—"}
                           </TableCell>
                           <TableCell className="text-right font-display text-sm font-bold text-emerald-500">
                             {money(p.amount)}

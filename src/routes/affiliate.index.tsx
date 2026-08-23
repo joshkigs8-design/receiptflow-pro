@@ -154,7 +154,7 @@ function AffiliateDashboardPage() {
     queryKey: ["affiliate-dashboard"],
     queryFn: async () => {
       const res = await fetchDashboardFn();
-      return res as DashboardPayload;
+      return res as unknown as DashboardPayload;
     },
     enabled: !!session,
     staleTime: 30_000,

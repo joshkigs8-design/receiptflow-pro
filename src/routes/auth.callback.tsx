@@ -34,10 +34,10 @@ function AuthCallbackPage() {
 
         if (data.session) {
           // Check if this user signed up as an affiliate
-          const user = data.user;
+          const user = data.session.user;
           const isAffiliate =
             (typeof window !== "undefined" && (window as any).rrp_isAffiliate === true) ||
-            user?.user_metadata?.affiliate_signup === true;
+            user?.user_metadata?.["affiliate_signup"] === true;
 
           // If affiliate, ensure enrolled
           if (isAffiliate) {

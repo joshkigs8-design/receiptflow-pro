@@ -146,7 +146,7 @@ function TenantsPage() {
       const monthlyRent = Number(t.rent_amount ?? 0);
       let paidThisPeriod = 0;
 
-      allPayments.forEach((p) => {
+      allPayments.forEach((p: any) => {
         const pTenantId = p.tenant_id ?? "";
         const pPeriod = (p.period_label || "").trim().toLowerCase();
         const paidAtMonth = (p.paid_at || "").slice(0, 7);

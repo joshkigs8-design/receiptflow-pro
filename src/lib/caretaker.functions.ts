@@ -85,8 +85,8 @@ export const listCaretakers = createServerFn({ method: "GET" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = (profile as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
-      const caretakersList = (meta?.caretakers as CaretakerRecord[]) || [];
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const caretakersList = (meta["caretakers"] as CaretakerRecord[]) || [];
       return caretakersList;
     }
   });
@@ -145,8 +145,8 @@ export const saveCaretaker = createServerFn({ method: "POST" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = ((profile as Record<string, unknown>)?.metadata as Record<string, unknown>) || {};
-      let caretakersList = ((meta.caretakers as CaretakerRecord[]) || []).slice();
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      let caretakersList = ((meta["caretakers"] as CaretakerRecord[]) || []).slice();
 
       if (data.id) {
         caretakersList = caretakersList.map((c) =>
@@ -210,8 +210,8 @@ export const deleteCaretaker = createServerFn({ method: "POST" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = ((profile as Record<string, unknown>)?.metadata as Record<string, unknown>) || {};
-      const caretakersList = ((meta.caretakers as CaretakerRecord[]) || []).filter((c) => c.id !== data.id);
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const caretakersList = ((meta["caretakers"] as CaretakerRecord[]) || []).filter((c) => c.id !== data.id);
 
       await supabaseAdmin
         .from("profiles")
@@ -264,8 +264,8 @@ export const caretakerLogin = createServerFn({ method: "POST" })
         .not("metadata" as never, "is", null);
 
       for (const p of profiles || []) {
-        const meta = (p as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
-        const list = (meta?.caretakers as CaretakerRecord[]) || [];
+        const meta = (p as unknown as Record<string, any>)?.["metadata"] as Record<string, any> | undefined;
+        const list = (meta?.["caretakers"] as CaretakerRecord[]) || [];
         const match = list.find(
           (c) =>
             c.phone.replace(/\s+/g, "") === cleanPhone &&
@@ -514,12 +514,10 @@ export const caretakerUpdateMaintenance = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
-    const { error } = await supabaseAdmin
+  .handler(async ({ data }) => {    const { error } = await supabaseAdmin
       .from("maintenance_requests")
       .update({
         status: data.status,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", data.ticket_id);
 
@@ -532,7 +530,7 @@ export type CaretakerTenantRequest = {
   landlord_id: string;
   caretaker_id: string;
   caretaker_name: string;
-  property_id: string;
+  property_id: string | null;
   unit_id: string | null;
   tenant_id: string | null;
   request_type: "add_tenant" | "vacate_tenant";
@@ -548,16 +546,17 @@ export type CaretakerTenantRequest = {
     notes?: string | null;
     reason?: string | null;
     departure_date?: string | null;
+    [key: string]: any;
   };
   created_at: string;
   resolved_at?: string | null;
   properties?: { name: string; code: string } | null;
-  units?: { unit_number: string; room_number: string | null } | null;
-  tenants?: { full_name: string; phone: string } | null;
+  units?: { unit_number: string; room_number?: string | null } | null;
+  tenants?: { full_name: string; phone?: string | null } | null;
 };
 
 /**
- * 8. Caretaker: Submit Request to Add / Onboard New Tenant
+ * 8. Caretaker: Submit Tenant Onboarding Request (Add Tenant)
  */
 export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
   .validator((d: unknown) =>
@@ -566,30 +565,19 @@ export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
         caretaker_id: z.string(),
         landlord_id: z.string(),
         caretaker_name: z.string(),
-        property_id: z.string().uuid(),
-        unit_id: z.string().uuid(),
+        property_id: z.string(),
+        unit_id: z.string(),
         full_name: z.string().min(2),
         phone: z.string().min(9),
-        email: z.string().email().optional().or(z.literal("")),
-        rent_amount: z.number().positive(),
-        deposit_paid: z.number().nonnegative().default(0),
-        emergency_contact: z.string().optional(),
-        lease_start: z.string().optional(),
+        email: z.string().email().optional(),
+        rent_amount: z.number().min(0),
+        deposit_paid: z.number().min(0).default(0),
+        lease_start: z.string(),
         notes: z.string().optional(),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    // 1. Fetch unit & property names for clear notification
-    const { data: unit } = await supabaseAdmin
-      .from("units")
-      .select("unit_number, properties(name)")
-      .eq("id", data.unit_id)
-      .maybeSingle();
-
-    const unitNumber = unit?.unit_number || "Unit";
-    const propName = (unit?.properties as { name?: string })?.name || "Property";
-
     const requestPayload = {
       landlord_id: data.landlord_id,
       caretaker_id: data.caretaker_id,
@@ -597,19 +585,19 @@ export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
       property_id: data.property_id,
       unit_id: data.unit_id,
       tenant_id: null,
-      request_type: "add_tenant",
-      status: "pending",
+      request_type: "add_tenant" as const,
+      status: "pending" as const,
       data: {
-        full_name: data.full_name.trim(),
-        phone: data.phone.trim(),
-        email: data.email?.trim() || null,
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email || null,
         rent_amount: data.rent_amount,
         deposit_paid: data.deposit_paid,
-        emergency_contact: data.emergency_contact?.trim() || null,
-        lease_start: data.lease_start || new Date().toISOString().slice(0, 10),
-        notes: data.notes?.trim() || null,
+        lease_start: data.lease_start,
+        notes: data.notes || null,
       },
       created_at: new Date().toISOString(),
+      resolved_at: null,
     };
 
     try {
@@ -627,12 +615,12 @@ export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
         .eq("id", data.landlord_id)
         .maybeSingle();
 
-      const meta = ((profile as Record<string, unknown>)?.metadata as Record<string, unknown>) || {};
-      const reqList = ((meta.caretaker_requests as CaretakerTenantRequest[]) || []).slice();
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const reqList = ((meta["caretaker_requests"] as CaretakerTenantRequest[]) || []).slice();
       reqList.unshift({
         id: `ctreq_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         ...requestPayload,
-      } as CaretakerTenantRequest);
+      });
 
       await supabaseAdmin
         .from("profiles")
@@ -644,7 +632,7 @@ export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
     await supabaseAdmin.from("notifications").insert({
       landlord_id: data.landlord_id,
       title: "Pending Tenant Onboarding Request",
-      body: `Caretaker ${data.caretaker_name} requested to add tenant ${data.full_name} (${data.phone}) to Room ${unitNumber} at ${propName}. Requires your confirmation.`,
+      body: `Caretaker ${data.caretaker_name} requested to add tenant ${data.full_name} (${data.phone}). Requires your confirmation.`,
       type: "tenant",
     });
 
@@ -688,8 +676,8 @@ export const caretakerRequestVacateTenant = createServerFn({ method: "POST" })
       property_id: tenant.property_id,
       unit_id: tenant.unit_id,
       tenant_id: tenant.id,
-      request_type: "vacate_tenant",
-      status: "pending",
+      request_type: "vacate_tenant" as const,
+      status: "pending" as const,
       data: {
         full_name: tenant.full_name,
         phone: tenant.phone,
@@ -697,6 +685,7 @@ export const caretakerRequestVacateTenant = createServerFn({ method: "POST" })
         departure_date: data.departure_date,
       },
       created_at: new Date().toISOString(),
+      resolved_at: null,
     };
 
     try {
@@ -713,12 +702,12 @@ export const caretakerRequestVacateTenant = createServerFn({ method: "POST" })
         .eq("id", data.landlord_id)
         .maybeSingle();
 
-      const meta = ((profile as Record<string, unknown>)?.metadata as Record<string, unknown>) || {};
-      const reqList = ((meta.caretaker_requests as CaretakerTenantRequest[]) || []).slice();
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const reqList = ((meta["caretaker_requests"] as CaretakerTenantRequest[]) || []).slice();
       reqList.unshift({
         id: `ctreq_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         ...requestPayload,
-      } as CaretakerTenantRequest);
+      });
 
       await supabaseAdmin
         .from("profiles")
@@ -769,8 +758,8 @@ export const listPendingCaretakerRequests = createServerFn({ method: "GET" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = (profile as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
-      const allReqs = (meta?.caretaker_requests as CaretakerTenantRequest[]) || [];
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const allReqs = (meta["caretaker_requests"] as CaretakerTenantRequest[]) || [];
       requests = allReqs.filter((r) => r.status === "pending");
     }
 
@@ -808,7 +797,7 @@ export const resolveCaretakerRequest = createServerFn({ method: "POST" })
     }
 
     let isFromMetadata = false;
-    let metaHolder: Record<string, unknown> = {};
+    let metaHolder: Record<string, any> = {};
 
     if (!request) {
       const { data: profile } = await supabaseAdmin
@@ -817,8 +806,8 @@ export const resolveCaretakerRequest = createServerFn({ method: "POST" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      metaHolder = ((profile as Record<string, unknown>)?.metadata as Record<string, unknown>) || {};
-      const allReqs = (metaHolder.caretaker_requests as CaretakerTenantRequest[]) || [];
+      metaHolder = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const allReqs = (metaHolder["caretaker_requests"] as CaretakerTenantRequest[]) || [];
       request = allReqs.find((r) => r.id === data.request_id) || null;
       isFromMetadata = true;
     }
@@ -893,7 +882,7 @@ export const resolveCaretakerRequest = createServerFn({ method: "POST" })
         } as never)
         .eq("id", data.request_id);
     } else {
-      const allReqs = (metaHolder.caretaker_requests as CaretakerTenantRequest[]) || [];
+      const allReqs = (metaHolder["caretaker_requests"] as CaretakerTenantRequest[]) || [];
       const updatedReqs = allReqs.map((r) =>
         r.id === data.request_id
           ? {
@@ -951,8 +940,8 @@ export const listCaretakerOwnRequests = createServerFn({ method: "POST" })
         .eq("id", data.landlord_id)
         .maybeSingle();
 
-      const meta = (profile as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
-      const allReqs = (meta?.caretaker_requests as CaretakerTenantRequest[]) || [];
+      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
+      const allReqs = (meta["caretaker_requests"] as CaretakerTenantRequest[]) || [];
       requests = allReqs.filter((r) => r.caretaker_id === data.caretaker_id).slice(0, 20);
     }
 
