@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const recordReferral = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ referralCode: z.string().min(4).max(20) }).parse(d))
+  .validator((d: unknown) => z.object({ referralCode: z.string().min(4).max(20) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: result, error } = await supabaseAdmin.rpc("record_referral", {
@@ -49,7 +49,7 @@ export const getAffiliateDashboard = createServerFn({ method: "GET" })
 
 export const requestWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       amount: z.number().min(300),
       mpesaPhone: z.string().min(10).max(15),

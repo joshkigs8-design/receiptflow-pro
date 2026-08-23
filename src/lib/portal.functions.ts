@@ -3,7 +3,7 @@ import { portalRequestSchema, portalVerifySchema } from "./schemas";
 import { z } from "zod";
 
 export const verifyTenant = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => portalVerifySchema.parse(data))
+  .validator((data: unknown) => portalVerifySchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -28,13 +28,13 @@ export const verifyTenant = createServerFn({ method: "POST" })
     if (!tenant)
       return {
         ok: false as const,
-        error: "We could not match that room number and phone number.",
+        error: "We could not match that room number and phone number for this property.",
       };
 
-    const [payments, receipts, announcements, requests, leases] = await Promise.all([
+    const [payments, receipts, announcements, requests, leases, landlordProfile] = await Promise.all([
       supabaseAdmin
         .from("payments")
-        .select("id,amount,method,reference,paid_at,period_label,status")
+        .select("id,amount,method,reference,paid_at,period_label,status,payment_method,reference_number")
         .eq("tenant_id", tenant.id)
         .order("paid_at", { ascending: false }),
       supabaseAdmin
@@ -57,9 +57,24 @@ export const verifyTenant = createServerFn({ method: "POST" })
         .from("leases")
         .select("id,document_url,start_date,end_date,status")
         .eq("tenant_id", tenant.id),
+      supabaseAdmin
+        .from("profiles")
+        .select("company_name,full_name,phone,business_details,logo_url")
+        .eq("id", property.landlord_id)
+        .maybeSingle(),
     ]);
 
-    const paid = (payments.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const thisMonthPayments = (payments.data ?? []).filter((p) => {
+      const pPeriod = (p.period_label || "").trim();
+      const pMonth = (p.paid_at || "").slice(0, 7);
+      return pPeriod === currentMonth || pPeriod.startsWith(currentMonth) || pMonth === currentMonth;
+    });
+    const paidThisMonth = thisMonthPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const monthlyRent = Number(tenant.rent_amount ?? 0);
+    const rentBalance = Math.max(monthlyRent - paidThisMonth, 0);
+
+    const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
     return {
       ok: true as const,
@@ -72,25 +87,38 @@ export const verifyTenant = createServerFn({ method: "POST" })
         occupation: tenant.occupation,
         lease_start: tenant.lease_start,
         lease_end: tenant.lease_end,
-        rent_amount: Number(tenant.rent_amount),
-        deposit_paid: Number(tenant.deposit_paid),
+        rent_amount: monthlyRent,
+        deposit_paid: Number(tenant.deposit_paid ?? 0),
         status: tenant.status,
         unit: tenant.units?.unit_number ?? null,
         room: tenant.units?.room_number ?? null,
         floor: tenant.units?.floor ?? null,
       },
       property: { name: property.name, code: property.code, address: property.address },
+      landlord: {
+        company_name: landlordProfile.data?.company_name || "Property Management",
+        full_name: landlordProfile.data?.full_name || "Landlord",
+        phone: landlordProfile.data?.phone || "",
+        business_details: landlordProfile.data?.business_details || "",
+        logo_url: landlordProfile.data?.logo_url || null,
+      },
       payments: payments.data ?? [],
       receipts: receipts.data ?? [],
       announcements: announcements.data ?? [],
       requests: requests.data ?? [],
       leases: leases.data ?? [],
-      totals: { paid, outstanding: Math.max(Number(tenant.rent_amount) - paid, 0) },
+      totals: {
+        paidThisMonth,
+        monthlyRent,
+        rentBalance,
+        status: paidThisMonth >= monthlyRent && monthlyRent > 0 ? ("PAID" as const) : paidThisMonth > 0 ? ("PARTIAL" as const) : ("UNPAID" as const),
+        paidTotal,
+      },
     };
   });
 
 export const submitTenantRequest = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => portalRequestSchema.parse(data))
+  .validator((data: unknown) => portalRequestSchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: property } = await supabaseAdmin
@@ -132,7 +160,7 @@ export const submitTenantRequest = createServerFn({ method: "POST" })
   });
 
 export const getPublicReceipt = createServerFn({ method: "GET" })
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ publicId: z.string().trim().min(6).max(64) }).parse(data),
   )
   .handler(async ({ data }) => {

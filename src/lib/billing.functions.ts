@@ -34,7 +34,7 @@ export const getSubscription = createServerFn({ method: "GET" })
 
 export const startCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ plan: z.enum(["monthly", "quarterly", "semiannual", "yearly"]), origin: z.string().url() }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -84,7 +84,7 @@ export const startCheckout = createServerFn({ method: "POST" })
 
 export const verifyCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ reference: z.string().min(6).max(120) }).parse(d))
+  .validator((d: unknown) => z.object({ reference: z.string().min(6).max(120) }).parse(d))
   .handler(async ({ data, context }) => {
     const res = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`,

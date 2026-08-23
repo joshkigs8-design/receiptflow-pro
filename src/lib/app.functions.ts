@@ -25,7 +25,7 @@ export const getSettings = createServerFn({ method: "GET" })
 
 export const saveSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => settingsSchema.parse(data))
+  .validator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("profiles")
@@ -49,23 +49,27 @@ export const getDashboard = createServerFn({ method: "GET" })
         sb.from("units").select("id,status,rent,property_id").eq("landlord_id", mine),
         sb
           .from("tenants")
-          .select("id,full_name,rent_amount,status,lease_end,unit_id,property_id")
+          .select("id,full_name,rent_amount,status,lease_end,unit_id,property_id,phone")
           .eq("landlord_id", mine),
         sb
           .from("payments")
-          .select("id,amount,paid_at,method,status,tenant_id")
+          .select(
+            "id,amount,paid_at,method,status,tenant_id,tenants(full_name,phone),properties(name),units(unit_number,room_number),receipts(id,receipt_number,public_id)"
+          )
           .eq("landlord_id", mine)
           .order("paid_at", { ascending: false }),
         sb
           .from("receipts")
-          .select("id,receipt_number,public_id,amount,issued_at,tenant_id")
+          .select("id,receipt_number,public_id,amount,issued_at,tenant_id,tenants(full_name)")
           .eq("landlord_id", mine)
           .order("issued_at", { ascending: false })
-          .limit(6),
+          .limit(8),
         sb
           .from("maintenance_requests")
-          .select("id,status,category,priority,created_at,description")
-          .eq("landlord_id", mine),
+          .select("id,status,category,priority,created_at,description,tenants(full_name),properties(name),units(unit_number)")
+          .eq("landlord_id", mine)
+          .order("created_at", { ascending: false })
+          .limit(8),
         sb
           .from("notifications")
           .select("*")
@@ -111,11 +115,13 @@ export const getDashboard = createServerFn({ method: "GET" })
         monthlyIncome,
         expectedMonthly,
         outstanding: Math.max(expectedMonthly - monthlyIncome, 0),
+        collectionRate: expectedMonthly > 0 ? Math.min(Math.round((monthlyIncome / expectedMonthly) * 100), 100) : 0,
+        occupancyRate: unitRows.length > 0 ? Math.round((unitRows.filter((u) => u.status === "occupied").length / unitRows.length) * 100) : 0,
         receipts: (receipts.data ?? []).length,
         openRequests: (requests.data ?? []).filter((r) => r.status !== "resolved").length,
       },
       revenueByMonth,
-      recentPayments: paymentRows.slice(0, 6),
+      recentPayments: paymentRows.slice(0, 8),
       recentReceipts: receipts.data ?? [],
       requests: requests.data ?? [],
       notifications: notifications.data ?? [],
@@ -138,7 +144,7 @@ export const listProperties = createServerFn({ method: "GET" })
 
 export const saveProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => propertySchema.parse(data))
+  .validator((data: unknown) => propertySchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload = clean({ ...rest, code: rest.code.toUpperCase(), landlord_id: context.userId });
@@ -156,7 +162,7 @@ export const saveProperty = createServerFn({ method: "POST" })
 
 export const deleteProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("properties")
@@ -169,7 +175,7 @@ export const deleteProperty = createServerFn({ method: "POST" })
 
 export const listUnits = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ propertyId: z.string().uuid().optional() }).parse(data ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -186,7 +192,7 @@ export const listUnits = createServerFn({ method: "GET" })
 
 export const saveUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => unitSchema.parse(data))
+  .validator((data: unknown) => unitSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload = clean({ ...rest, landlord_id: context.userId });
@@ -203,7 +209,7 @@ export const saveUnit = createServerFn({ method: "POST" })
 
 export const deleteUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("units")
@@ -228,7 +234,7 @@ export const listTenants = createServerFn({ method: "GET" })
 
 export const saveTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => tenantSchema.parse(data))
+  .validator((data: unknown) => tenantSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload = clean({
@@ -258,7 +264,7 @@ export const saveTenant = createServerFn({ method: "POST" })
 
 export const deleteTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("tenants")
@@ -285,7 +291,7 @@ export const listPayments = createServerFn({ method: "GET" })
 
 export const recordPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => paymentSchema.parse(data))
+  .validator((data: unknown) => paymentSchema.parse(data))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const { data: tenant, error: tenantError } = await sb
@@ -392,7 +398,7 @@ export const listReceipts = createServerFn({ method: "GET" })
 
 export const updatePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z
       .object({
         id: z.string().uuid(),
@@ -450,7 +456,7 @@ export const updatePayment = createServerFn({ method: "POST" })
 
 export const deletePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await context.supabase
       .from("receipts")
@@ -480,7 +486,7 @@ export const listRequests = createServerFn({ method: "GET" })
 
 export const updateRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z
       .object({ id: z.string().uuid(), status: z.enum(["open", "in_progress", "resolved"]) })
       .parse(data),
@@ -509,7 +515,7 @@ export const listAnnouncements = createServerFn({ method: "GET" })
 
 export const saveAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => announcementSchema.parse(data))
+  .validator((data: unknown) => announcementSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("announcements")
@@ -522,7 +528,7 @@ export const saveAnnouncement = createServerFn({ method: "POST" })
 
 export const deleteAnnouncement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("announcements")
@@ -535,7 +541,7 @@ export const deleteAnnouncement = createServerFn({ method: "POST" })
 
 export const globalSearch = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ term: z.string().trim().min(2).max(80) }).parse(data),
   )
   .handler(async ({ data, context }) => {
