@@ -10,10 +10,20 @@ import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/lib/theme";
 import { recordReferral } from "@/lib/affiliate.functions";
 
-const searchSchema = z.object({
-  mode: z.enum(["login", "signup"]).optional(),
-  ref: z.string().max(20).optional(),
-});
+const searchSchema = z
+  .object({
+    mode: z
+      .union([z.string(), z.array(z.string())])
+      .transform((val) => (Array.isArray(val) ? val[0] : val))
+      .pipe(z.enum(["login", "signup"]))
+      .optional(),
+    ref: z
+      .union([z.string(), z.array(z.string())])
+      .transform((val) => (Array.isArray(val) ? val[0] : val))
+      .pipe(z.string().max(40))
+      .optional(),
+  })
+  .passthrough();
 
 export const Route = createFileRoute("/auth")({
   ssr: false,

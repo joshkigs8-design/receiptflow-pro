@@ -43,7 +43,18 @@ import {
 } from "@/lib/subscription-receipt-pdf";
 import { SubscriptionReceiptPrinter } from "@/components/receipt-printer";
 
-const searchSchema = z.object({ reference: z.string().optional() });
+const searchSchema = z
+  .object({
+    reference: z
+      .union([z.string(), z.array(z.string())])
+      .transform((val) => (Array.isArray(val) ? val[0] : val))
+      .optional(),
+    trxref: z
+      .union([z.string(), z.array(z.string())])
+      .transform((val) => (Array.isArray(val) ? val[0] : val))
+      .optional(),
+  })
+  .passthrough();
 
 export const Route = createFileRoute("/_authenticated/billing")({
   validateSearch: (search) => searchSchema.parse(search),
@@ -71,7 +82,9 @@ const perks = [
 ];
 
 function BillingPage() {
-  const { reference } = Route.useSearch();
+  const search = Route.useSearch();
+  const rawRef = search.reference || search.trxref;
+  const reference = typeof rawRef === "string" ? rawRef.trim() : Array.isArray(rawRef) ? (rawRef[0] as string).trim() : undefined;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchSubscription = useServerFn(getSubscription);
