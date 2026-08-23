@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminPortalRouteImport } from './routes/admin-portal'
 import { Route as AffiliateRouteImport } from './routes/affiliate'
 import { Route as AffiliateProgramRouteImport } from './routes/affiliate-program'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -51,6 +52,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPortalRoute = AdminPortalRouteImport.update({
+  id: '/admin-portal',
+  path: '/admin-portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AffiliateRoute = AffiliateRouteImport.update({
@@ -189,6 +195,7 @@ const ApiPublicPaystackWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-portal': typeof AdminPortalRoute
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
@@ -219,6 +226,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-portal': typeof AdminPortalRoute
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
   '/caretaker': typeof CaretakerRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
+  '/admin-portal': typeof AdminPortalRoute
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-portal'
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-portal'
     | '/affiliate-program'
     | '/auth'
     | '/caretaker'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/admin'
+    | '/admin-portal'
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
@@ -374,6 +386,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
+  AdminPortalRoute: typeof AdminPortalRoute
   AffiliateRoute: typeof AffiliateRouteWithChildren
   AffiliateProgramRoute: typeof AffiliateProgramRoute
   AuthRoute: typeof AuthRouteWithChildren
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-portal': {
+      id: '/admin-portal'
+      path: '/admin-portal'
+      fullPath: '/admin-portal'
+      preLoaderRoute: typeof AdminPortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/affiliate': {
@@ -656,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
+  AdminPortalRoute: AdminPortalRoute,
   AffiliateRoute: AffiliateRouteWithChildren,
   AffiliateProgramRoute: AffiliateProgramRoute,
   AuthRoute: AuthRouteWithChildren,

@@ -59,12 +59,6 @@ export function SiteNav() {
             >
               Tenant Portal
             </Link>
-            <Link
-              to="/caretaker"
-              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              Caretaker Portal
-            </Link>
           </div>
 
           <div className="flex items-center gap-2">
@@ -112,13 +106,6 @@ export function SiteNav() {
               className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
             >
               Tenant Portal
-            </Link>
-            <Link
-              to="/caretaker"
-              onClick={() => setOpen(false)}
-              className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent"
-            >
-              Caretaker Portal
             </Link>
             <Link to="/auth" onClick={() => setOpen(false)} className="rounded-2xl px-4 py-3 text-sm font-medium hover:bg-accent">
               Login
