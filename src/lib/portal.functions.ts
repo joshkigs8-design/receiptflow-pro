@@ -34,7 +34,7 @@ export const verifyTenant = createServerFn({ method: "POST" })
     const [payments, receipts, announcements, requests, leases, landlordProfile] = await Promise.all([
       supabaseAdmin
         .from("payments")
-        .select("id,amount,method,reference,paid_at,period_label,status,payment_method,reference_number")
+        .select("id,amount,method,reference,paid_at,period_label,status,notes")
         .eq("tenant_id", tenant.id)
         .order("paid_at", { ascending: false }),
       supabaseAdmin
@@ -65,10 +65,20 @@ export const verifyTenant = createServerFn({ method: "POST" })
     ]);
 
     const currentMonth = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const curMonthLong = now.toLocaleDateString("en-GB", { month: "long" }).toLowerCase();
+    const curMonthShort = now.toLocaleDateString("en-GB", { month: "short" }).toLowerCase();
+    const curYear = currentMonth.slice(0, 4);
+
     const thisMonthPayments = (payments.data ?? []).filter((p) => {
-      const pPeriod = (p.period_label || "").trim();
+      const pPeriod = (p.period_label || "").trim().toLowerCase();
       const pMonth = (p.paid_at || "").slice(0, 7);
-      return pPeriod === currentMonth || pPeriod.startsWith(currentMonth) || pMonth === currentMonth;
+      return (
+        pPeriod === currentMonth ||
+        pPeriod.startsWith(currentMonth) ||
+        pMonth === currentMonth ||
+        (pPeriod.includes(curYear) && (pPeriod.includes(curMonthLong) || pPeriod.includes(curMonthShort)))
+      );
     });
     const paidThisMonth = thisMonthPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const monthlyRent = Number(tenant.rent_amount ?? 0);

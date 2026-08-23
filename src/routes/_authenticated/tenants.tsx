@@ -6,6 +6,7 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
+  listPayments,
   listProperties,
   listTenants,
   listUnits,
@@ -85,6 +86,7 @@ function TenantsPage() {
   const fetchTenants = useServerFn(listTenants);
   const fetchProperties = useServerFn(listProperties);
   const fetchUnits = useServerFn(listUnits);
+  const fetchPayments = useServerFn(listPayments);
   const save = useServerFn(saveTenant);
   const remove = useServerFn(deleteTenant);
   const [term, setTerm] = useState("");
@@ -146,15 +148,26 @@ function TenantsPage() {
 
       allPayments.forEach((p) => {
         const pTenantId = p.tenant_id ?? "";
-        const pPeriod = (p.period_label || "").trim();
+        const pPeriod = (p.period_label || "").trim().toLowerCase();
         const paidAtMonth = (p.paid_at || "").slice(0, 7);
         const pAmount = Number(p.amount ?? 0);
+
+        let selectedMonthLower = "";
+        let selectedShortMonth = "";
+        try {
+          const d = new Date(period + "-01");
+          selectedMonthLower = d.toLocaleDateString("en-GB", { month: "long" }).toLowerCase();
+          selectedShortMonth = d.toLocaleDateString("en-GB", { month: "short" }).toLowerCase();
+        } catch {}
+        const selectedYear = period.slice(0, 4);
 
         const matchesPeriod =
           pPeriod === period ||
           pPeriod.startsWith(period) ||
-          (!pPeriod && paidAtMonth === period) ||
-          paidAtMonth === period;
+          paidAtMonth === period ||
+          (selectedMonthLower && pPeriod.includes(selectedMonthLower) && pPeriod.includes(selectedYear)) ||
+          (selectedShortMonth && pPeriod.includes(selectedShortMonth) && pPeriod.includes(selectedYear)) ||
+          (!pPeriod && paidAtMonth === period);
 
         if (pTenantId === t.id && matchesPeriod && pAmount > 0) {
           paidThisPeriod += pAmount;

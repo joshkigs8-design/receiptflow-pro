@@ -118,12 +118,11 @@ function TenantPortal() {
         toast.error(res.error);
         return;
       }
-      toast.success("Maintenance request sent to your landlord!");
+      toast.success("Maintenance request submitted successfully");
       setRequest({ category: "plumbing", priority: "normal", description: "" });
-      // Re-verify to refresh request list
-      login.mutate(creds);
+      login.mutate();
     },
-    onError: () => toast.error("Could not send the request. Please try again."),
+    onError: () => toast.error("Failed to submit request"),
   });
 
   function handleSignOut() {
