@@ -36,7 +36,7 @@ export function Pricing() {
           </p>
         </motion.div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(PLANS) as (keyof typeof PLANS)[]).map((key, i) => {
             const plan = PLANS[key];
             const best = key === "yearly";
@@ -47,34 +47,36 @@ export function Pricing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                className={`surface-card relative p-8 ${best ? "ring-2 ring-primary shadow-glow" : ""}`}
+                className={`surface-card relative flex flex-col justify-between p-6 sm:p-7 ${best ? "ring-2 ring-primary shadow-glow" : ""}`}
               >
-                {best ? (
-                  <span className="gradient-primary absolute right-6 top-6 rounded-full px-3 py-1 text-[11px] font-bold text-primary-foreground">
-                    Save 2 months
-                  </span>
-                ) : null}
-                <h3 className="font-display text-lg font-bold">{plan.label}</h3>
-                <p className="mt-3 font-display text-4xl font-bold">
-                  {money(plan.amount)}
-                  <span className="ml-1 text-sm font-medium text-muted-foreground">
-                    /{key === "yearly" ? "year" : "month"}
-                  </span>
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {perks.map((p) => (
-                    <li key={p} className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <span className="text-muted-foreground">{p}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div>
+                  {plan.badge ? (
+                    <span className="gradient-primary absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {plan.badge}
+                    </span>
+                  ) : null}
+                  <h3 className="font-display text-lg font-bold">{plan.label}</h3>
+                  <p className="mt-3 font-display text-3xl sm:text-4xl font-bold">
+                    {money(plan.amount)}
+                    <span className="ml-1 text-xs sm:text-sm font-medium text-muted-foreground">
+                      /{plan.periodLabel}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.blurb}</p>
+                  <ul className="mt-6 space-y-2.5 text-xs sm:text-sm">
+                    {perks.map((p) => (
+                      <li key={p} className="flex items-start gap-2">
+                        <Check className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-primary" />
+                        <span className="text-muted-foreground">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <Button
                   asChild
                   size="lg"
                   variant={best ? "default" : "outline"}
-                  className="mt-8 w-full rounded-full"
+                  className="mt-8 w-full rounded-full shadow-glow"
                 >
                   <Link to="/auth" search={{ mode: "signup" }}>
                     Start 1 month free

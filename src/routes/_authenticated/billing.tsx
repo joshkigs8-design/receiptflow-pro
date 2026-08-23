@@ -112,37 +112,39 @@ function BillingPage() {
           </span>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(PLANS) as PlanKey[]).map((key) => {
             const plan = PLANS[key];
             const best = key === "yearly";
             return (
               <div
                 key={key}
-                className={`surface-card relative overflow-hidden p-7 ${best ? "ring-2 ring-primary" : ""}`}
+                className={`surface-card relative flex flex-col justify-between overflow-hidden p-6 sm:p-7 ${best ? "ring-2 ring-primary shadow-glow" : ""}`}
               >
-                {best ? (
-                  <span className="gradient-primary absolute right-5 top-5 rounded-full px-3 py-1 text-[11px] font-bold text-primary-foreground">
-                    Best value
-                  </span>
-                ) : null}
-                <h3 className="font-display text-lg font-bold">{plan.label}</h3>
-                <p className="mt-3 font-display text-4xl font-bold">
-                  {money(plan.amount)}
-                  <span className="ml-1 text-sm font-medium text-muted-foreground">
-                    /{key === "yearly" ? "year" : "month"}
-                  </span>
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
+                <div>
+                  {plan.badge ? (
+                    <span className="gradient-primary absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {plan.badge}
+                    </span>
+                  ) : null}
+                  <h3 className="font-display text-lg font-bold">{plan.label}</h3>
+                  <p className="mt-3 font-display text-3xl sm:text-4xl font-bold">
+                    {money(plan.amount)}
+                    <span className="ml-1 text-xs sm:text-sm font-medium text-muted-foreground">
+                      /{plan.periodLabel}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.blurb}</p>
 
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {perks.map((p) => (
-                    <li key={p} className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <span className="text-muted-foreground">{p}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="mt-6 space-y-2.5 text-xs sm:text-sm">
+                    {perks.map((p) => (
+                      <li key={p} className="flex items-start gap-2">
+                        <Check className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-primary" />
+                        <span className="text-muted-foreground">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Button
                   className="mt-7 w-full rounded-full shadow-glow"

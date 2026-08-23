@@ -35,7 +35,7 @@ export const getSubscription = createServerFn({ method: "GET" })
 export const startCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ plan: z.enum(["monthly", "yearly"]), origin: z.string().url() }).parse(d),
+    z.object({ plan: z.enum(["monthly", "quarterly", "semiannual", "yearly"]), origin: z.string().url() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const plan = PLANS[data.plan];
@@ -101,7 +101,8 @@ export const verifyCheckout = createServerFn({ method: "POST" })
       throw new Error("This payment belongs to another account");
     }
 
-    const planKey: PlanKey = tx.metadata?.plan === "yearly" ? "yearly" : "monthly";
+    const rawPlan = tx.metadata?.plan;
+    const planKey: PlanKey = (rawPlan && rawPlan in PLANS) ? (rawPlan as PlanKey) : "monthly";
     const plan = PLANS[planKey];
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

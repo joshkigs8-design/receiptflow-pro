@@ -30,8 +30,8 @@ export const Route = createFileRoute("/api/public/paystack/webhook")({
 
         const userId = event.data.metadata?.user_id;
         const reference = event.data.reference;
-        if (!userId || !reference) return new Response("ignored");
-        const planKey: PlanKey = event.data.metadata?.plan === "yearly" ? "yearly" : "monthly";
+        const rawPlan = event.data.metadata?.plan;
+        const planKey: PlanKey = (rawPlan && rawPlan in PLANS) ? (rawPlan as PlanKey) : "monthly";
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: existing } = await supabaseAdmin
