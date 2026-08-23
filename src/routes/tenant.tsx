@@ -68,20 +68,11 @@ type PortalData = Extract<Awaited<ReturnType<typeof verifyTenant>>, { ok: true }
 
 const LOCAL_STORAGE_KEY = "rrp_tenant_creds";
 
-export function TenantPortal() {
+function TenantPortal() {
   const verify = useServerFn(verifyTenant);
   const submit = useServerFn(submitTenantRequest);
 
-  const [creds, setCreds] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch {}
-    }
-    return { code: "", room: "", phone: "" };
-  });
-
+  const [creds, setCreds] = useState({ code: "", room: "", phone: "" });
   const [portal, setPortal] = useState<PortalData | null>(null);
   const [request, setRequest] = useState({
     category: "plumbing",
@@ -106,11 +97,18 @@ export function TenantPortal() {
     onError: () => toast.error("Verification failed. Please verify your property code, room, and phone number."),
   });
 
-  // Auto-login if valid credentials exist
+  // Hydration-safe credentials restore
   useEffect(() => {
-    if (creds.code && creds.room && creds.phone && !portal && !login.isPending) {
-      login.mutate(creds);
-    }
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCreds(parsed);
+        if (parsed.code && parsed.room && parsed.phone && !portal) {
+          login.mutate(parsed);
+        }
+      }
+    } catch {}
   }, []);
 
   const raise = useMutation({

@@ -184,17 +184,20 @@ function TenantsPage() {
   }, [tenants.data, selectedPeriod, payments.data]);
 
   const filtered = useMemo(() => {
+    const rows = tenants.data ?? [];
     if (!term.trim() && filter === "all") return rows;
-    const q = term.toLowerCase();
+    const q = term.toLowerCase().trim();
     return rows.filter(
       (t) =>
-        (filter === "all" || filter === "paid"
+        (filter === "all"
           ? true
-          : filter === "partial"
-            ? (rentStatuses[t.id]?.status === "PARTIAL")
-            : filter === "unpaid"
-              ? (rentStatuses[t.id]?.status === "UNPAID")
-              : false) &&
+          : filter === "paid"
+            ? rentStatuses[t.id]?.status === "PAID"
+            : filter === "partial"
+              ? rentStatuses[t.id]?.status === "PARTIAL"
+              : filter === "unpaid"
+                ? rentStatuses[t.id]?.status === "UNPAID"
+                : true) &&
         (t.full_name.toLowerCase().includes(q) ||
           t.phone.includes(q) ||
           (t.properties?.name ?? "").toLowerCase().includes(q)),
