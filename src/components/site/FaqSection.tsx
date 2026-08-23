@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, HelpCircle, Sparkles } from "lucide-react";
 
-const faqs = [
+export const faqsList = [
   {
     q: "How does RentReceiptPro generate verified digital rent receipts?",
     a: "When a landlord records a rent payment (via M-Pesa, bank, cash, or cheque), RentReceiptPro automatically creates an official branded PDF receipt complete with a cryptographic QR code and unique receipt ID. The receipt is permanently recorded on our registry for instant verification.",
@@ -48,7 +48,7 @@ export function FaqSection() {
         </div>
 
         <div className="mt-14 space-y-3.5">
-          {faqs.map((faq, idx) => {
+          {faqsList.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
               <div

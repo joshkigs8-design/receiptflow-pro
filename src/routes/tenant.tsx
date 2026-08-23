@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Phone,
   PhoneCall,
+  Receipt,
   RefreshCw,
   Share2,
   ShieldCheck,
@@ -37,7 +38,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Field } from "@/components/app/Field";
+import { EmptyState, Field } from "@/components/app/Field";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
