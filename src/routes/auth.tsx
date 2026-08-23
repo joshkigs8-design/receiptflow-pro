@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, Gift, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,11 @@ function AuthPage() {
     }
     return ref ?? null;
   });
+
+  useEffect(() => {
+    if (mode === "signup") setSignup(true);
+    else if (mode === "login") setSignup(false);
+  }, [mode]);
 
   useEffect(() => {
     if (ref) {
@@ -187,6 +192,36 @@ function AuthPage() {
                     placeholder="Codevanta Ventures"
                     maxLength={120}
                   />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="referralCode">Referral code (Optional)</Label>
+                    {referralCode ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                        <Gift className="size-3" /> Code applied
+                      </span>
+                    ) : null}
+                  </div>
+                  <Input
+                    id="referralCode"
+                    value={referralCode ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value.trim().toUpperCase();
+                      setReferralCode(val || null);
+                      if (typeof window !== "undefined") {
+                        if (val) localStorage.setItem("rrp_referral_code", val);
+                        else localStorage.removeItem("rrp_referral_code");
+                      }
+                    }}
+                    placeholder="e.g. JOSH2026"
+                    maxLength={20}
+                    className="font-mono uppercase tracking-wider"
+                  />
+                  {referralCode ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Referred by an affiliate? This connects your account to your referrer.
+                    </p>
+                  ) : null}
                 </div>
               </>
             ) : null}

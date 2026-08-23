@@ -222,7 +222,7 @@ function AffiliateDashboardPage() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://rentreceipt.co.ke";
   const referralCode = dashboardData?.affiliate?.referral_code ?? "";
-  const referralLink = referralCode ? `${origin}/affiliate/auth?ref=${referralCode}` : "";
+  const referralLink = referralCode ? `${origin}/auth?mode=signup&ref=${referralCode}` : "";
 
   async function copyLink() {
     if (!referralLink) return;
