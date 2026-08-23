@@ -7,6 +7,7 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   Eye,
   EyeOff,
@@ -23,8 +24,11 @@ import {
   ShieldCheck,
   Trash2,
   UserCheck,
+  UserMinus,
+  UserPlus,
   Users,
   Wrench,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -32,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { money, shortDate } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
@@ -51,9 +56,12 @@ import {
   listCaretakers,
   saveCaretaker,
   deleteCaretaker,
+  listPendingCaretakerRequests,
+  resolveCaretakerRequest,
   defaultPermissions,
   type CaretakerRecord,
   type CaretakerPermissions,
+  type CaretakerTenantRequest,
 } from "@/lib/caretaker.functions";
 import { listProperties } from "@/lib/app.functions";
 
@@ -75,6 +83,8 @@ function CaretakersPage() {
   const qc = useQueryClient();
   const fetchCaretakers = useServerFn(listCaretakers);
   const fetchProperties = useServerFn(listProperties);
+  const fetchPendingRequests = useServerFn(listPendingCaretakerRequests);
+  const resolveRequestFn = useServerFn(resolveCaretakerRequest);
   const saveFn = useServerFn(saveCaretaker);
   const deleteFn = useServerFn(deleteCaretaker);
 
@@ -96,9 +106,35 @@ function CaretakersPage() {
     queryFn: () => fetchCaretakers(),
   });
 
+  const { data: pendingRequests = [], refetch: refetchPending } = useQuery({
+    queryKey: ["pending_caretaker_requests"],
+    queryFn: () => fetchPendingRequests(),
+  });
+
   const { data: properties = [] } = useQuery({
     queryKey: ["properties"],
     queryFn: () => fetchProperties(),
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) =>
+      resolveRequestFn({
+        data: {
+          request_id: id,
+          action,
+        },
+      }),
+    onSuccess: async (_, variables) => {
+      toast.success(
+        variables.action === "approve"
+          ? "Request approved & tenant records updated!"
+          : "Request rejected.",
+      );
+      await refetchPending();
+      await qc.invalidateQueries({ queryKey: ["tenants"] });
+      await qc.invalidateQueries({ queryKey: ["units"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Action failed"),
   });
 
   const saveMutation = useMutation({
@@ -215,6 +251,143 @@ function CaretakersPage() {
             {caretakers.length} Active Staff
           </Badge>
         </div>
+
+        {/* Pending Caretaker Requests Queue (Tenant Additions & Move-outs) */}
+        {pendingRequests.length > 0 && (
+          <div className="surface-card p-6 rounded-3xl border-2 border-amber-500/40 bg-amber-500/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="size-9 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
+                  <Clock className="size-4 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-sm text-foreground flex items-center gap-2">
+                    Pending Caretaker Tenant Requests
+                    <Badge variant="secondary" className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-[10px]">
+                      {pendingRequests.length} Awaiting Confirmation
+                    </Badge>
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Caretakers have submitted tenant onboarding or move-out requests that require your final confirmation before updating your property ledger.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {pendingRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-4 rounded-2xl bg-background border border-border shadow-sm space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] uppercase font-bold gap-1 ${
+                          req.request_type === "add_tenant"
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                            : "bg-red-500/10 text-red-600 border-red-500/20"
+                        }`}
+                      >
+                        {req.request_type === "add_tenant" ? (
+                          <>
+                            <UserPlus className="size-3" /> Add Tenant
+                          </>
+                        ) : (
+                          <>
+                            <UserMinus className="size-3" /> Move-Out
+                          </>
+                        )}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        By {req.caretaker_name}
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-1">
+                      {req.request_type === "add_tenant" ? (
+                        <>
+                          <p className="font-bold text-foreground text-sm">
+                            {req.data.full_name}
+                          </p>
+                          <p className="text-muted-foreground flex items-center gap-1 font-mono text-[11px]">
+                            <Phone className="size-3 text-primary" /> {req.data.phone}
+                          </p>
+                          <div className="p-2 rounded-xl bg-muted/40 text-[11px] space-y-0.5 mt-1 border border-border/50">
+                            <p>
+                              <span className="text-muted-foreground">Unit:</span>{" "}
+                              <span className="font-bold">{req.units?.unit_number || "Room"}</span> (
+                              {req.properties?.name || "Property"})
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">Monthly Rent:</span>{" "}
+                              <span className="font-bold text-emerald-600">
+                                {money(req.data.rent_amount || 0)}
+                              </span>
+                            </p>
+                            {req.data.deposit_paid ? (
+                              <p>
+                                <span className="text-muted-foreground">Deposit Paid:</span>{" "}
+                                <span className="font-bold">{money(req.data.deposit_paid)}</span>
+                              </p>
+                            ) : null}
+                            {req.data.notes ? (
+                              <p className="italic text-muted-foreground text-[10px]">
+                                Note: "{req.data.notes}"
+                              </p>
+                            ) : null}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-bold text-foreground text-sm">
+                            Move-Out: {req.data.full_name || req.tenants?.full_name}
+                          </p>
+                          <div className="p-2 rounded-xl bg-muted/40 text-[11px] space-y-0.5 mt-1 border border-border/50">
+                            <p>
+                              <span className="text-muted-foreground">Room:</span>{" "}
+                              <span className="font-bold">{req.units?.unit_number || "Room"}</span> (
+                              {req.properties?.name || "Property"})
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">Reason:</span>{" "}
+                              <span className="font-medium">{req.data.reason}</span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">Departure Date:</span>{" "}
+                              <span className="font-medium">{req.data.departure_date}</span>
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                    <Button
+                      size="sm"
+                      className="rounded-full shadow-glow font-bold text-xs h-8 flex-1 gap-1"
+                      disabled={resolveMutation.isPending}
+                      onClick={() => resolveMutation.mutate({ id: req.id, action: "approve" })}
+                    >
+                      <Check className="size-3.5" /> Approve &amp; Confirm
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full h-8 text-xs text-red-500 hover:bg-red-500/10 px-3"
+                      disabled={resolveMutation.isPending}
+                      onClick={() => resolveMutation.mutate({ id: req.id, action: "reject" })}
+                    >
+                      <X className="size-3.5" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Search & Filter Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">

@@ -53,6 +53,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link to="/caretaker" className="hover:text-foreground">
+                Caretaker portal
+              </Link>
+            </li>
+            <li>
               <Link to="/verify" className="hover:text-foreground">
                 Verify a receipt
               </Link>

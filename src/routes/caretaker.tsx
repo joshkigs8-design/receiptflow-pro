@@ -31,6 +31,8 @@ import {
   Sparkles,
   User,
   UserCheck,
+  UserMinus,
+  UserPlus,
   Users,
   Wallet,
   Wrench,
@@ -63,7 +65,11 @@ import {
   getCaretakerPortalData,
   caretakerRecordPayment,
   caretakerUpdateMaintenance,
+  caretakerRequestAddTenant,
+  caretakerRequestVacateTenant,
+  listCaretakerOwnRequests,
   type CaretakerPermissions,
+  type CaretakerTenantRequest,
 } from "@/lib/caretaker.functions";
 import { receiptUrl, buildReceiptPdf, type ReceiptRecord } from "@/lib/receipt-pdf";
 
@@ -99,12 +105,15 @@ function CaretakerPortalPage() {
   const portalDataFn = useServerFn(getCaretakerPortalData);
   const recordPayFn = useServerFn(caretakerRecordPayment);
   const updateMaintFn = useServerFn(caretakerUpdateMaintenance);
+  const reqAddTenantFn = useServerFn(caretakerRequestAddTenant);
+  const reqVacateTenantFn = useServerFn(caretakerRequestVacateTenant);
+  const listOwnReqsFn = useServerFn(listCaretakerOwnRequests);
 
   // Authentication State
   const [session, setSession] = useState<CaretakerSession | null>(null);
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPin, setLoginPin] = useState("");
-  const [activeTab, setActiveTab] = useState<"issue" | "tenants" | "maintenance" | "receipts">("issue");
+  const [activeTab, setActiveTab] = useState<"issue" | "tenants" | "maintenance" | "requests" | "receipts">("issue");
 
   // Payment Form State
   const [tenantId, setTenantId] = useState("");
@@ -115,6 +124,23 @@ function CaretakerPortalPage() {
   const [periodLabel, setPeriodLabel] = useState(
     () => new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
   );
+
+  // Add Tenant Dialog State
+  const [addTenantOpen, setAddTenantOpen] = useState(false);
+  const [newTenantName, setNewTenantName] = useState("");
+  const [newTenantPhone, setNewTenantPhone] = useState("");
+  const [newTenantEmail, setNewTenantEmail] = useState("");
+  const [newTenantUnitId, setNewTenantUnitId] = useState("");
+  const [newTenantRent, setNewTenantRent] = useState("");
+  const [newTenantDeposit, setNewTenantDeposit] = useState("");
+  const [newTenantStart, setNewTenantStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newTenantNotes, setNewTenantNotes] = useState("");
+
+  // Vacate Tenant Dialog State
+  const [vacateOpen, setVacateOpen] = useState(false);
+  const [vacateTarget, setVacateTarget] = useState<{ id: string; name: string; room: string } | null>(null);
+  const [vacateReason, setVacateReason] = useState("");
+  const [vacateDate, setVacateDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Success Receipt Modal State
   const [lastIssued, setLastIssued] = useState<{
@@ -177,6 +203,19 @@ function CaretakerPortalPage() {
       }),
   });
 
+  // Load Caretaker's Own Submitted Requests
+  const { data: ownRequests = [], refetch: refetchRequests } = useQuery({
+    queryKey: ["caretaker_own_requests", session?.id],
+    enabled: !!session,
+    queryFn: () =>
+      listOwnReqsFn({
+        data: {
+          caretaker_id: session!.id,
+          landlord_id: session!.landlord_id,
+        },
+      }),
+  });
+
   const recordPaymentMutation = useMutation({
     mutationFn: () =>
       recordPayFn({
@@ -228,12 +267,78 @@ function CaretakerPortalPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
   });
 
+  const requestAddTenantMutation = useMutation({
+    mutationFn: () => {
+      const selectedUnit = portalData?.units.find((u) => u.id === newTenantUnitId);
+      return reqAddTenantFn({
+        data: {
+          caretaker_id: session!.id,
+          landlord_id: session!.landlord_id,
+          caretaker_name: session!.name,
+          property_id: selectedUnit?.property_id || portalData?.properties[0]?.id || "",
+          unit_id: newTenantUnitId,
+          full_name: newTenantName,
+          phone: newTenantPhone,
+          email: newTenantEmail || undefined,
+          rent_amount: Number(newTenantRent),
+          deposit_paid: Number(newTenantDeposit) || 0,
+          lease_start: newTenantStart,
+          notes: newTenantNotes || undefined,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Tenant onboarding request submitted for landlord confirmation!");
+      setAddTenantOpen(false);
+      setNewTenantName("");
+      setNewTenantPhone("");
+      setNewTenantEmail("");
+      setNewTenantUnitId("");
+      setNewTenantRent("");
+      setNewTenantDeposit("");
+      setNewTenantNotes("");
+      await refetchRequests();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
+  });
+
+  const requestVacateTenantMutation = useMutation({
+    mutationFn: () =>
+      reqVacateTenantFn({
+        data: {
+          caretaker_id: session!.id,
+          landlord_id: session!.landlord_id,
+          caretaker_name: session!.name,
+          tenant_id: vacateTarget!.id,
+          reason: vacateReason,
+          departure_date: vacateDate,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Tenant move-out request submitted for landlord confirmation!");
+      setVacateOpen(false);
+      setVacateTarget(null);
+      setVacateReason("");
+      await refetchRequests();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit move-out request"),
+  });
+
   // Auto-populate rent when selecting tenant
   function handleTenantSelect(tId: string) {
     setTenantId(tId);
     const t = portalData?.tenants.find((item) => item.id === tId);
     if (t) {
       setAmount(String(t.rent_amount));
+    }
+  }
+
+  function handleUnitSelectForNewTenant(uId: string) {
+    setNewTenantUnitId(uId);
+    const u = portalData?.units.find((item) => item.id === uId);
+    if (u) {
+      setNewTenantRent(String(u.rent));
+      setNewTenantDeposit(String(u.deposit || u.rent));
     }
   }
 
@@ -274,7 +379,7 @@ function CaretakerPortalPage() {
               </div>
               <h1 className="font-display text-2xl font-bold tracking-tight">Caretaker Portal</h1>
               <p className="text-xs text-muted-foreground">
-                On-site terminal for property caretakers and agents to issue digital receipts &amp; log rent.
+                On-site terminal for property caretakers and agents to issue digital receipts, onboard tenants &amp; log rent.
               </p>
             </div>
 
@@ -355,6 +460,8 @@ function CaretakerPortalPage() {
       (t.units?.unit_number && t.units.unit_number.toLowerCase().includes(tenantSearch.toLowerCase())),
   );
 
+  const pendingRequestsCount = ownRequests.filter((r) => r.status === "pending").length;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Header Bar */}
@@ -392,7 +499,7 @@ function CaretakerPortalPage() {
       {/* Main Caretaker Workspace */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-2xl bg-muted/60 border border-border/60 text-xs font-semibold">
+        <div className="grid grid-cols-5 gap-1.5 p-1.5 rounded-2xl bg-muted/60 border border-border/60 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setActiveTab("issue")}
@@ -413,7 +520,7 @@ function CaretakerPortalPage() {
             }`}
           >
             <Users className="size-3.5 text-emerald-500" />
-            <span className="hidden sm:inline">Tenants &amp; Units</span>
+            <span className="hidden sm:inline">Tenants</span>
             <span className="sm:hidden">Tenants</span>
           </button>
 
@@ -428,6 +535,21 @@ function CaretakerPortalPage() {
             <span className="hidden sm:inline">Maintenance</span>
             <span className="sm:hidden">Tickets</span>
             {(portalData?.maintenance || []).filter((m) => m.status === "pending").length > 0 ? (
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("requests")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 relative ${
+              activeTab === "requests" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Clock className="size-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Approvals</span>
+            <span className="sm:hidden">Status</span>
+            {pendingRequestsCount > 0 ? (
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             ) : null}
           </button>
@@ -595,17 +717,26 @@ function CaretakerPortalPage() {
                       <Users className="size-4 text-emerald-500" /> Building Tenant Directory
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Contact tenants or issue quick receipts directly from the room roster.
+                      Contact tenants, onboard newcomers, or submit move-out departure requests.
                     </p>
                   </div>
-                  <div className="relative w-full sm:w-60">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                    <Input
-                      value={tenantSearch}
-                      onChange={(e) => setTenantSearch(e.target.value)}
-                      placeholder="Search room or tenant..."
-                      className="pl-8 rounded-full text-xs h-9"
-                    />
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:w-52">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                      <Input
+                        value={tenantSearch}
+                        onChange={(e) => setTenantSearch(e.target.value)}
+                        placeholder="Search room or tenant..."
+                        className="pl-8 rounded-full text-xs h-9"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setAddTenantOpen(true)}
+                      className="rounded-full shadow-glow font-semibold text-xs gap-1 h-9 shrink-0"
+                    >
+                      <UserPlus className="size-3.5" /> Onboard Tenant
+                    </Button>
                   </div>
                 </div>
 
@@ -631,24 +762,41 @@ function CaretakerPortalPage() {
                       </div>
 
                       <div className="flex flex-col gap-1.5 shrink-0">
-                        <a
-                          href={`tel:${t.phone}`}
-                          className="inline-flex items-center justify-center size-8 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
-                          title="Call Tenant"
-                        >
-                          <PhoneCall className="size-3.5" />
-                        </a>
-                        <button
-                          type="button"
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`tel:${t.phone}`}
+                            className="inline-flex items-center justify-center size-8 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+                            title="Call Tenant"
+                          >
+                            <PhoneCall className="size-3.5" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleTenantSelect(t.id);
+                              setActiveTab("issue");
+                            }}
+                            className="inline-flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            title="Issue Receipt for Tenant"
+                          >
+                            <Receipt className="size-3.5" />
+                          </button>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => {
-                            handleTenantSelect(t.id);
-                            setActiveTab("issue");
+                            setVacateTarget({
+                              id: t.id,
+                              name: t.full_name,
+                              room: t.units?.unit_number || t.units?.room_number || "",
+                            });
+                            setVacateOpen(true);
                           }}
-                          className="inline-flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                          title="Issue Receipt for Tenant"
+                          className="h-7 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-500/10 px-2 rounded-full"
                         >
-                          <Receipt className="size-3.5" />
-                        </button>
+                          <UserMinus className="size-3 mr-1" /> Vacate
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -744,7 +892,93 @@ function CaretakerPortalPage() {
               </div>
             )}
 
-            {/* TAB 4: ISSUED RECEIPTS FEED */}
+            {/* TAB 4: PENDING APPROVALS & REQUESTS */}
+            {activeTab === "requests" && (
+              <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                  <div>
+                    <h3 className="font-display text-base font-bold flex items-center gap-2">
+                      <Clock className="size-4 text-amber-500" /> Submitted Landlord Requests
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Tenant additions and move-out requests submitted by you, awaiting master landlord confirmation.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {ownRequests.length} Total
+                  </Badge>
+                </div>
+
+                {ownRequests.length ? (
+                  <div className="space-y-3">
+                    {ownRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {req.request_type === "add_tenant" ? (
+                              <span className="p-1 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold flex items-center gap-1 text-[11px]">
+                                <UserPlus className="size-3" /> New Tenant Onboarding
+                              </span>
+                            ) : (
+                              <span className="p-1 rounded-lg bg-red-500/10 text-red-600 font-bold flex items-center gap-1 text-[11px]">
+                                <UserMinus className="size-3" /> Tenant Move-Out Request
+                              </span>
+                            )}
+                          </div>
+                          <Badge
+                            variant={req.status === "approved" ? "default" : req.status === "rejected" ? "destructive" : "secondary"}
+                            className={`text-[10px] uppercase font-bold ${
+                              req.status === "pending"
+                                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                : req.status === "approved"
+                                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                  : ""
+                            }`}
+                          >
+                            {req.status === "pending" ? "Pending Landlord Confirmation" : req.status}
+                          </Badge>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-background border border-border/60 space-y-1">
+                          {req.request_type === "add_tenant" ? (
+                            <>
+                              <p className="font-bold text-foreground">
+                                {req.data.full_name} ({req.data.phone})
+                              </p>
+                              <p className="text-muted-foreground text-[11px]">
+                                Unit: {req.units?.unit_number || "Room"} · Rent: {money(req.data.rent_amount || 0)} · Deposit: {money(req.data.deposit_paid || 0)}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-bold text-foreground">
+                                Move-Out: {req.data.full_name || req.tenants?.full_name}
+                              </p>
+                              <p className="text-muted-foreground text-[11px]">
+                                Reason: {req.data.reason} · Departure: {req.data.departure_date}
+                              </p>
+                            </>
+                          )}
+                        </div>
+
+                        <p className="text-[10px] text-muted-foreground">
+                          Submitted on {shortDate(req.created_at)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-8 text-center text-xs text-muted-foreground italic">
+                    No submitted tenant requests.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* TAB 5: ISSUED RECEIPTS FEED */}
             {activeTab === "receipts" && (
               <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
@@ -821,6 +1055,219 @@ function CaretakerPortalPage() {
           </>
         )}
       </main>
+
+      {/* MODAL 1: ADD / ONBOARD TENANT (REQUEST) */}
+      <Dialog open={addTenantOpen} onOpenChange={setAddTenantOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-bold flex items-center gap-2">
+              <UserPlus className="size-5 text-primary" /> Onboard New Tenant
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Fill in tenant details. This will be submitted as a pending request for landlord confirmation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newTenantUnitId) {
+                toast.error("Please select a unit/room");
+                return;
+              }
+              requestAddTenantMutation.mutate();
+            }}
+            className="space-y-3.5 pt-2"
+          >
+            {/* Unit / Room Selection */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Select Room / Unit *</Label>
+              <Select value={newTenantUnitId} onValueChange={handleUnitSelectForNewTenant}>
+                <SelectTrigger className="rounded-xl h-10 text-xs">
+                  <SelectValue placeholder="Choose unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(portalData?.units || []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      Unit {u.unit_number || u.room_number || "—"} ({money(u.rent)}/mo) — {u.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tenant Name */}
+            <div className="space-y-1">
+              <Label htmlFor="ntName" className="text-xs font-semibold">Tenant Full Name *</Label>
+              <Input
+                id="ntName"
+                required
+                value={newTenantName}
+                onChange={(e) => setNewTenantName(e.target.value)}
+                placeholder="e.g. Grace Wanjiku"
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
+
+            {/* Phone & Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="ntPhone" className="text-xs font-semibold">Phone Number *</Label>
+                <Input
+                  id="ntPhone"
+                  required
+                  value={newTenantPhone}
+                  onChange={(e) => setNewTenantPhone(e.target.value)}
+                  placeholder="0712345678"
+                  className="rounded-xl h-10 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ntEmail" className="text-xs font-semibold">Email (Optional)</Label>
+                <Input
+                  id="ntEmail"
+                  type="email"
+                  value={newTenantEmail}
+                  onChange={(e) => setNewTenantEmail(e.target.value)}
+                  placeholder="grace@example.com"
+                  className="rounded-xl h-10 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Rent Amount & Deposit */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="ntRent" className="text-xs font-semibold">Monthly Rent (KSh) *</Label>
+                <Input
+                  id="ntRent"
+                  type="number"
+                  required
+                  min={1}
+                  value={newTenantRent}
+                  onChange={(e) => setNewTenantRent(e.target.value)}
+                  placeholder="15000"
+                  className="rounded-xl h-10 text-xs font-bold font-display"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ntDep" className="text-xs font-semibold">Deposit Paid (KSh)</Label>
+                <Input
+                  id="ntDep"
+                  type="number"
+                  min={0}
+                  value={newTenantDeposit}
+                  onChange={(e) => setNewTenantDeposit(e.target.value)}
+                  placeholder="15000"
+                  className="rounded-xl h-10 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Lease Start Date */}
+            <div className="space-y-1">
+              <Label htmlFor="ntStart" className="text-xs font-semibold">Move-In / Lease Start Date</Label>
+              <Input
+                id="ntStart"
+                type="date"
+                value={newTenantStart}
+                onChange={(e) => setNewTenantStart(e.target.value)}
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1">
+              <Label htmlFor="ntNotes" className="text-xs font-semibold">Caretaker Onboarding Note</Label>
+              <Input
+                id="ntNotes"
+                value={newTenantNotes}
+                onChange={(e) => setNewTenantNotes(e.target.value)}
+                placeholder="e.g. Keys handed over, electricity meter checked"
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="submit"
+                className="w-full rounded-full shadow-glow font-bold text-xs h-10"
+                disabled={requestAddTenantMutation.isPending || !newTenantName || !newTenantPhone || !newTenantUnitId}
+              >
+                {requestAddTenantMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Submit Onboarding Request"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 2: VACATE / MOVE-OUT TENANT (REQUEST) */}
+      <Dialog open={vacateOpen} onOpenChange={setVacateOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 sm:p-7">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-bold flex items-center gap-2 text-red-600">
+              <UserMinus className="size-5" /> Request Tenant Move-Out
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Submit departure confirmation for Room {vacateTarget?.room} ({vacateTarget?.name}). Requires landlord approval.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!vacateReason) {
+                toast.error("Please enter a move-out reason");
+                return;
+              }
+              requestVacateTenantMutation.mutate();
+            }}
+            className="space-y-3.5 pt-2"
+          >
+            <div className="space-y-1">
+              <Label htmlFor="vacDate" className="text-xs font-semibold">Departure Date</Label>
+              <Input
+                id="vacDate"
+                type="date"
+                value={vacateDate}
+                onChange={(e) => setVacateDate(e.target.value)}
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="vacReason" className="text-xs font-semibold">Reason for Move-Out *</Label>
+              <Input
+                id="vacReason"
+                required
+                value={vacateReason}
+                onChange={(e) => setVacateReason(e.target.value)}
+                placeholder="e.g. Relocating, End of lease, Handed over keys"
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="submit"
+                variant="destructive"
+                className="w-full rounded-full font-bold text-xs h-10"
+                disabled={requestVacateTenantMutation.isPending || !vacateReason}
+              >
+                {requestVacateTenantMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Submit Move-Out for Approval"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Instant Success Receipt Dialog */}
       <Dialog open={lastIssued !== null} onOpenChange={(open) => !open && setLastIssued(null)}>
