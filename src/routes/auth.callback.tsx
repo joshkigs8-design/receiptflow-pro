@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordReferral, enrollAffiliate } from "@/lib/affiliate.functions";
+import { applyTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -38,6 +39,13 @@ function AuthCallbackPage() {
           const isAffiliate =
             (typeof window !== "undefined" && (window as any).rrp_isAffiliate === true) ||
             user?.user_metadata?.["affiliate_signup"] === true;
+
+          // Restore saved theme preference if present in metadata
+          if (user?.user_metadata?.["theme_mode"] || user?.user_metadata?.["theme_accent"]) {
+            const m = user.user_metadata["theme_mode"] || "system";
+            const a = user.user_metadata["theme_accent"] || "emerald";
+            applyTheme(m, a);
+          }
 
           // If affiliate, ensure enrolled
           if (isAffiliate) {

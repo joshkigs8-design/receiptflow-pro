@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeToggle } from "@/lib/theme";
+import { ThemePicker, ThemeToggle, type ThemeAccent, type ThemeMode, useTheme } from "@/lib/theme";
 import { recordReferral } from "@/lib/affiliate.functions";
 
 const searchSchema = z
@@ -53,6 +53,9 @@ function AuthPage() {
   const [company, setCompany] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const { mode: currentMode, accent: currentAccent } = useTheme();
+  const [chosenMode, setChosenMode] = useState<ThemeMode>(currentMode);
+  const [chosenAccent, setChosenAccent] = useState<ThemeAccent>(currentAccent);
 
   // Persist referral code in localStorage to survive page refreshes
   const [referralCode, setReferralCode] = useState<string | null>(() => {
@@ -99,6 +102,8 @@ function AuthPage() {
               full_name: name,
               company_name: company || "Codevanta Ventures",
               referral_code: referralCode,
+              theme_mode: chosenMode,
+              theme_accent: chosenAccent,
             },
           },
         });
@@ -258,6 +263,21 @@ function AuthPage() {
                 maxLength={72}
               />
             </div>
+
+            {signup ? (
+              <div className="pt-3 pb-1 border-t border-border/60">
+                <ThemePicker
+                  valueMode={chosenMode}
+                  valueAccent={chosenAccent}
+                  onChange={(m, a) => {
+                    setChosenMode(m);
+                    setChosenAccent(a);
+                  }}
+                  compact={true}
+                />
+              </div>
+            ) : null}
+
             <Button type="submit" className="w-full rounded-full shadow-glow" disabled={busy}>
               {busy ? (
                 <Loader2 className="size-4 animate-spin" />
