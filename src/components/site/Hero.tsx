@@ -4,15 +4,18 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
+  Check,
   CheckCircle2,
-  Download,
+  Clock,
+  DoorOpen,
   FileCheck2,
-  Gift,
+  FileText,
   MessageCircle,
   QrCode,
   ShieldCheck,
+  Smartphone,
   Sparkles,
-  UserCheck,
+  TrendingUp,
   Users,
   Wallet,
   Zap,
@@ -21,281 +24,258 @@ import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[96svh] flex items-center justify-center overflow-hidden pt-28 pb-20">
-      {/* 1. Cinematic Architectural Photography Background */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1800&auto=format&fit=crop&q=85"
-          alt="Modern Luxury Apartment Architecture Kenya"
-          className="size-full object-cover object-center filter brightness-[0.35] dark:brightness-[0.25] contrast-[1.1] scale-105 animate-in fade-in duration-1000"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_20%,var(--color-primary)/0.22,transparent_75%)]" />
-      </div>
+    <section className="relative min-h-[92svh] flex items-center justify-center overflow-hidden pt-28 pb-16 bg-[#F7F8F5] dark:bg-[#061A13] text-[#101714] dark:text-[#F7F8F5]">
+      {/* Background Architectural Atmosphere & Soft Radial Gradients */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#063B2A08_1px,transparent_1px),linear-gradient(to_bottom,#063B2A08_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_65%_50%_at_50%_10%,#000_70%,transparent_100%)]" />
+      <div className="pointer-events-none absolute top-0 right-1/4 w-[600px] h-[350px] bg-[#087443]/10 blur-[130px] rounded-full" />
+      <div className="pointer-events-none absolute top-1/3 left-10 w-[400px] h-[300px] bg-[#C9A227]/10 blur-[110px] rounded-full" />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 text-center">
-        {/* 2. Top Trust Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-xl shadow-lg"
-        >
-          <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-blue-400 font-bold">#1 PropTech in Kenya</span>
-          <span className="text-white/40">·</span>
-          <span className="text-slate-200 hidden sm:inline">M-Pesa Daraja 3.0 &amp; KRA Tax Compliant PDFs</span>
-        </motion.div>
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          
+          {/* ========================================================================= */}
+          {/* LEFT COLUMN: EDITORIAL HEADLINE, POSITIONING, AND HIGH-CONVERTING CTAS   */}
+          {/* ========================================================================= */}
+          <div className="lg:col-span-6 text-left space-y-6">
+            
+            {/* Small Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 rounded-full border border-[#063B2A]/15 dark:border-white/15 bg-[#E8F2ED] dark:bg-[#0A261D] px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] shadow-sm"
+            >
+              <span className="text-sm">🇰🇪</span>
+              <span className="tracking-wide">BUILT FOR RENTAL BUSINESSES IN KENYA</span>
+            </motion.div>
 
-        {/* 3. Main Multi-Billion Company Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-6 font-display text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white drop-shadow-md"
-        >
-          The Operating System for{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-sky-300">
-            Modern Rental Real Estate
-          </span>
-        </motion.h1>
+            {/* Main Editorial Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-[#101714] dark:text-[#F7F8F5]"
+            >
+              MANAGE RENTALS. <br className="hidden sm:inline" />
+              <span className="text-[#C9A227] dark:text-[#E5BA38]">WITHOUT THE HEADACHE.</span>
+            </motion.h1>
 
-        {/* 4. Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-slate-200 leading-relaxed font-medium"
-        >
-          Issue instant, tamper-proof QR-verified PDF rent receipts, track M-Pesa payments in real time, delegate permissions to caretakers, and automate your entire Kenyan rental portfolio.
-        </motion.p>
+            {/* Supporting Text */}
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="max-w-xl text-base sm:text-lg text-[#4A5B53] dark:text-[#94A89E] leading-relaxed font-normal"
+            >
+              Manage properties, keep track of tenants, monitor payments and send professional receipts — all from one beautifully simple platform.
+            </motion.p>
 
-        {/* 5. CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3.5"
-        >
-          <Button
-            asChild
-            size="lg"
-            className="rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 px-8 text-sm shadow-[0_0_30px_rgba(37,99,235,0.4)] border border-blue-400/40 transition-all hover:scale-105"
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex flex-wrap items-center gap-3.5 pt-2"
+            >
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full bg-[#087443] hover:bg-[#063B2A] text-white font-bold h-13 px-8 text-sm sm:text-base shadow-[0_10px_25px_-5px_rgba(8,116,67,0.35)] transition-all hover:scale-105 border border-[#C9A227]/40"
+              >
+                <Link to="/auth" search={{ mode: "signup" }}>
+                  Start Managing Your Rentals <ArrowRight className="ml-2 size-4 text-[#C9A227]" />
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-full border-[#063B2A]/20 dark:border-white/20 bg-[#FFFFFF] dark:bg-[#0A261D] text-[#101714] dark:text-[#F7F8F5] hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] h-13 px-6 text-sm font-bold shadow-sm"
+              >
+                <a href="#how-it-works">See How It Works</a>
+              </Button>
+            </motion.div>
+
+            {/* Under-the-Buttons Micro-Trust */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="pt-2 text-xs font-semibold text-[#4A5B53] dark:text-[#94A89E] flex items-center gap-2"
+            >
+              <span>No complicated setup</span>
+              <span>•</span>
+              <span>Built for landlords</span>
+              <span>•</span>
+              <span>Access anywhere</span>
+            </motion.div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* RIGHT COLUMN: 3D/LIFESTYLE PRODUCTION SAAS & SMARTPHONE COMPOSITION       */}
+          {/* ========================================================================= */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-6 relative"
           >
-            <Link to="/auth" search={{ mode: "signup" }}>
-              Start 1 Month Free Trial <ArrowRight className="ml-2 size-4" />
-            </Link>
-          </Button>
+            {/* Ambient Shadow Box */}
+            <div className="relative mx-auto max-w-[540px] lg:max-w-none">
+              
+              {/* Laptop Shell Container */}
+              <div className="rounded-3xl p-3 sm:p-4 bg-[#FFFFFF] dark:bg-[#0A261D] border-2 border-[#063B2A]/10 dark:border-white/10 shadow-[0_25px_60px_-15px_rgba(6,59,42,0.18)] text-left space-y-4">
+                
+                {/* Window Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-[#E2E8E4] dark:border-white/10 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2.5 rounded-full bg-rose-400 inline-block" />
+                    <span className="size-2.5 rounded-full bg-amber-400 inline-block" />
+                    <span className="size-2.5 rounded-full bg-emerald-400 inline-block" />
+                    <span className="ml-2 font-mono text-[11px] text-[#4A5B53] dark:text-[#94A89E] font-medium hidden sm:inline">
+                      rentreceipt.co.ke/dashboard — Live Portfolio
+                    </span>
+                  </div>
+                  <span className="font-bold text-[11px] text-[#087443] bg-[#E8F2ED] dark:bg-[#0D3528] px-2.5 py-0.5 rounded-full border border-[#087443]/20">
+                    ● Active Session
+                  </span>
+                </div>
 
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="rounded-full bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-md h-12 px-6 text-sm font-semibold"
-          >
-            <a href="#demo">
-              <QrCode className="mr-2 size-4 text-blue-400" /> Test Live Receipt Demo
-            </a>
-          </Button>
+                {/* Dashboard Production Layout */}
+                <div className="space-y-4">
+                  {/* Top 3 KPI Cards */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="p-3 rounded-2xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 space-y-1">
+                      <p className="text-[10px] font-bold text-[#4A5B53] dark:text-[#94A89E] uppercase tracking-wider">Properties</p>
+                      <p className="font-display text-lg sm:text-xl font-extrabold text-[#101714] dark:text-[#F7F8F5]">14 Estates</p>
+                      <p className="text-[10px] text-[#087443] font-semibold">186 Units</p>
+                    </div>
 
-          <Button
-            asChild
-            size="lg"
-            variant="ghost"
-            className="rounded-full h-12 px-5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/10"
-          >
-            <Link to="/tenant">
-              <Users className="mr-1.5 size-4" /> Tenant Portal →
-            </Link>
-          </Button>
-        </motion.div>
+                    <div className="p-3 rounded-2xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 space-y-1">
+                      <p className="text-[10px] font-bold text-[#4A5B53] dark:text-[#94A89E] uppercase tracking-wider">Collected</p>
+                      <p className="font-display text-lg sm:text-xl font-extrabold text-[#063B2A] dark:text-[#52B788]">KES 4.82M</p>
+                      <p className="text-[10px] text-[#087443] font-semibold">98.4% Rate</p>
+                    </div>
 
-        {/* 6. Key Enterprise Trust Highlights */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          className="mt-7 flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-300"
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="size-4 text-emerald-400" /> Instant M-Pesa WhatsApp Receipts
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="size-4 text-emerald-400" /> Tamper-Proof Public QR Verification
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="size-4 text-emerald-400" /> Caretaker Sub-Accounts &amp; Approvals
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="size-4 text-emerald-400" /> 1-Click KRA Tax Financial Reports
-          </span>
-        </motion.div>
+                    <div className="p-3 rounded-2xl bg-[#E8F2ED] dark:bg-[#0D3528] border border-[#087443]/20 space-y-1">
+                      <p className="text-[10px] font-bold text-[#063B2A] dark:text-[#52B788] uppercase tracking-wider">Pending</p>
+                      <p className="font-display text-lg sm:text-xl font-extrabold text-[#C9A227]">KES 145K</p>
+                      <p className="text-[10px] text-[#4A5B53] dark:text-[#94A89E] font-semibold">3 Tenants</p>
+                    </div>
+                  </div>
 
-        {/* 7. REAL-ESTATE SHOWCASE & LIVE FINTECH DASHBOARD HERO MOCKUP */}
-        <motion.div
-          initial={{ opacity: 0, y: 45, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.9, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mt-14 mx-auto max-w-5xl rounded-3xl p-3 sm:p-4 bg-gradient-to-b from-white/15 via-white/5 to-transparent border border-white/20 backdrop-blur-2xl shadow-[0_20px_70px_-20px_rgba(0,0,0,0.8)]"
-        >
-          <div className="rounded-2xl bg-card border border-border/80 overflow-hidden text-left shadow-2xl">
-            {/* Top Window Bar */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/40">
-              <div className="flex items-center gap-2">
-                <span className="size-3 rounded-full bg-rose-500/80 inline-block" />
-                <span className="size-3 rounded-full bg-amber-500/80 inline-block" />
-                <span className="size-3 rounded-full bg-emerald-500/80 inline-block" />
-                <span className="ml-2 font-mono text-[11px] text-muted-foreground hidden sm:inline">
-                  rentreceipt.co.ke/dashboard — Apex Real Estate Management Kenya
+                  {/* Mini Collection Graph + Recent Payment Feed */}
+                  <div className="p-3.5 rounded-2xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <p className="font-bold text-[#101714] dark:text-[#F7F8F5] flex items-center gap-1.5">
+                        <TrendingUp className="size-3.5 text-[#087443]" /> Monthly Collection Velocity
+                      </p>
+                      <span className="font-mono text-[10px] text-[#087443] font-bold">+24.5% vs 2025</span>
+                    </div>
+
+                    {/* Chart Bars */}
+                    <div className="flex items-end gap-1.5 h-16 pt-2 border-b border-[#E2E8E4] dark:border-white/10">
+                      {[40, 52, 60, 55, 70, 65, 82, 78, 88, 92, 95, 100].map((val, idx) => (
+                        <div key={idx} className="flex-1 bg-[#E8F2ED] dark:bg-[#0D3528] rounded-t-sm h-full flex items-end">
+                          <div
+                            style={{ height: `${val}%` }}
+                            className={`w-full rounded-t-sm ${
+                              idx >= 10 ? "bg-[#C9A227]" : "bg-[#087443]"
+                            }`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Recent Transaction Row */}
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-6 items-center justify-center rounded-full bg-[#087443]/15 text-[#087443]">
+                          <Check className="size-3.5 stroke-[3]" />
+                        </span>
+                        <div>
+                          <p className="font-bold text-[#101714] dark:text-[#F7F8F5]">Mary W. Mwangi · Apt 4B</p>
+                          <p className="text-[10px] text-[#4A5B53] dark:text-[#94A89E] font-mono">M-PESA: QKH7829X1P</p>
+                        </div>
+                      </div>
+                      <span className="font-bold font-mono text-[#063B2A] dark:text-[#52B788]">KES 45,000</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overlapping Smartphone: Digital Rent Receipt Display */}
+              <motion.div
+                initial={{ opacity: 0, x: 20, y: 20 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.45 }}
+                className="absolute -bottom-8 -right-2 sm:-right-6 w-60 sm:w-68 rounded-3xl p-3.5 bg-[#FFFFFF] dark:bg-[#0A261D] border-2 border-[#C9A227] shadow-[0_20px_50px_rgba(201,162,39,0.25)] text-left space-y-3 hidden sm:block"
+              >
+                <div className="flex items-center justify-between border-b border-[#E2E8E4] dark:border-white/10 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="size-4 text-[#087443]" />
+                    <span className="font-display font-extrabold text-[11px] tracking-tight">RENT RECEIPT</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-[#087443] bg-[#E8F2ED] dark:bg-[#0D3528] px-2 py-0.5 rounded-full">
+                    QR VERIFIED
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-[#4A5B53] dark:text-[#94A89E]">Tenant:</span>
+                    <span className="font-bold">Mary W. Mwangi</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#4A5B53] dark:text-[#94A89E]">Property:</span>
+                    <span className="font-bold">Kilimani Heights</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#4A5B53] dark:text-[#94A89E]">Unit:</span>
+                    <span className="font-bold">Unit 4B</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#4A5B53] dark:text-[#94A89E]">Method:</span>
+                    <span className="font-bold text-[#087443]">M-PESA</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-[#E2E8E4] dark:border-white/10">
+                    <span className="font-bold text-[#063B2A] dark:text-[#F7F8F5]">Paid:</span>
+                    <span className="font-bold font-mono text-[#087443] text-xs">KES 45,000</span>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-[#E8F2ED] dark:bg-[#0D3528] flex items-center justify-between gap-2 text-[10px]">
+                  <QrCode className="size-6 text-[#063B2A] dark:text-[#52B788]" />
+                  <span className="font-semibold text-[#087443] flex items-center gap-1">
+                    <MessageCircle className="size-3" /> WhatsApp Sent
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Floating UI Badges */}
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-4 -left-4 bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#063B2A]/15 dark:border-white/15 px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold"
+              >
+                <span className="flex size-5 items-center justify-center rounded-full bg-[#087443] text-white">
+                  <Check className="size-3 stroke-[3]" />
                 </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
-                <span>Live Portfolio Active</span>
-              </div>
+                <span>Rent Paid ✓</span>
+              </motion.div>
+
+              <motion.div
+                animate={{ y: [0, 6, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute top-1/2 -left-6 bg-[#063B2A] text-white px-3.5 py-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 text-xs font-bold hidden sm:flex"
+              >
+                <Zap className="size-3.5 text-[#C9A227]" />
+                <span>KES 245,000 Collected Today</span>
+              </motion.div>
+
             </div>
-
-            {/* Mockup Body: Real-World Kenyan PropTech Dashboard Layout with Estate Photos */}
-            <div className="p-4 sm:p-6 space-y-6">
-              {/* Header Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Collected</p>
-                  <p className="font-display text-2xl sm:text-3xl font-black text-foreground">KSh 4,820,000</p>
-                  <p className="text-[11px] font-semibold text-emerald-500">+18.4% vs last month</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Occupancy Rate</p>
-                  <p className="font-display text-2xl sm:text-3xl font-black text-foreground">98.4%</p>
-                  <p className="text-[11px] font-semibold text-muted-foreground">124 of 126 Units</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Properties</p>
-                  <p className="font-display text-2xl sm:text-3xl font-black text-foreground">8 Estates</p>
-                  <p className="text-[11px] font-semibold text-muted-foreground">Nairobi &amp; Mombasa</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30 space-y-1">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Receipts Issued</p>
-                  <p className="font-display text-2xl sm:text-3xl font-black text-primary">1,248 Verified</p>
-                  <p className="text-[11px] font-semibold text-primary">100% WhatsApp Delivered</p>
-                </div>
-              </div>
-
-              {/* Two Column Section: Estate Showcase & Live Transaction Feed */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                {/* Left: Managed Estates with High-Res Photography */}
-                <div className="lg:col-span-6 space-y-3">
-                  <div className="flex items-center justify-between pb-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Building2 className="size-3.5 text-primary" /> Active Managed Estates
-                    </p>
-                    <span className="text-[10px] font-mono text-muted-foreground">8 Properties</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="group relative rounded-2xl overflow-hidden border border-border/80 bg-card shadow-sm">
-                      <img
-                        src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop&q=80"
-                        alt="Kilimani Heights Nairobi"
-                        className="h-28 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="p-2.5 space-y-0.5">
-                        <p className="font-bold text-xs text-foreground truncate">Kilimani Heights</p>
-                        <p className="text-[10px] text-muted-foreground">32 Units · 100% Occupied</p>
-                        <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">KSh 1,440,000 / mo</p>
-                      </div>
-                    </div>
-
-                    <div className="group relative rounded-2xl overflow-hidden border border-border/80 bg-card shadow-sm">
-                      <img
-                        src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=500&auto=format&fit=crop&q=80"
-                        alt="Westlands Executive Suites"
-                        className="h-28 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="p-2.5 space-y-0.5">
-                        <p className="font-bold text-xs text-foreground truncate">Westlands Executive</p>
-                        <p className="text-[10px] text-muted-foreground">24 Units · 96% Occupied</p>
-                        <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">KSh 1,560,000 / mo</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Live PDF Receipt Preview Card */}
-                <div className="lg:col-span-6 p-4 rounded-2xl bg-card border-2 border-primary/40 shadow-glow space-y-3">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="gradient-primary flex size-7 items-center justify-center rounded-lg shadow-sm">
-                        <FileCheck2 className="size-4 text-primary-foreground" />
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold">OFFICIAL DIGITAL RENT RECEIPT</p>
-                        <p className="text-[10px] font-mono text-muted-foreground">RCP-202608-8X92A</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                      <ShieldCheck className="size-3.5" /> QR VERIFIED
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs py-1">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Tenant</p>
-                      <p className="font-bold">Mary Wanjiku Mwangi</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Property &amp; Unit</p>
-                      <p className="font-bold">Kilimani Heights · Apt 4B</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Period</p>
-                      <p className="font-semibold">August 2026 Rent</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Amount Paid</p>
-                      <p className="font-black text-sm text-primary">KSh 45,000.00</p>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2">
-                      <QrCode className="size-8 text-primary shrink-0" />
-                      <div className="text-[10px] text-muted-foreground leading-tight">
-                        <p className="font-bold text-foreground">Scannable Public Proof</p>
-                        <p>rentreceipt.co.ke/receipt/RCP-8X92A</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-500/15 px-2.5 py-1 rounded-full">
-                      <MessageCircle className="size-3.5" /> WhatsApp Sent
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 8. Corporate Trust Metrics Banner */}
-        <div className="mt-16 pt-8 border-t border-white/15 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-black text-white">KSh 250M+</p>
-            <p className="text-xs font-semibold text-slate-300 mt-1">Rent Payments Tracked</p>
-          </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-black text-white">14,000+</p>
-            <p className="text-xs font-semibold text-slate-300 mt-1">Units Managed Across Kenya</p>
-          </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-black text-white">3 Seconds</p>
-            <p className="text-xs font-semibold text-slate-300 mt-1">Receipt Generation &amp; WhatsApp</p>
-          </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-black text-white">99.98%</p>
-            <p className="text-xs font-semibold text-slate-300 mt-1">System &amp; Server Uptime</p>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

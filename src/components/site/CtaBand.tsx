@@ -5,34 +5,37 @@ import { Button } from "@/components/ui/button";
 
 export function CtaBand() {
   return (
-    <section className="px-4 sm:px-6 py-24 bg-background">
+    <section className="px-4 sm:px-6 py-24 bg-[#F7F8F5] dark:bg-[#061A13]">
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         whileInView={{ opacity: 1, scale: 1 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] p-8 sm:p-14 text-center border-2 border-primary/40 bg-gradient-to-br from-primary/15 via-card to-background shadow-float space-y-6"
+        className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] p-8 sm:p-14 text-center border-2 border-[#C9A227]/40 bg-[#063B2A] text-white shadow-[0_25px_70px_rgba(6,59,42,0.4)] space-y-6"
       >
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 border border-primary/30 px-3.5 py-1.5 text-xs font-bold text-primary">
+        {/* Subtle Ambient Radial Lighting */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(8,116,67,0.4),transparent_70%)]" />
+
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-[#0A261D] border border-[#C9A227]/40 px-3.5 py-1.5 text-xs font-bold text-[#C9A227]">
           <Sparkles className="size-3.5" /> 1 Month Free Trial On Signup
         </div>
 
-        <h2 className="font-display text-3xl sm:text-5xl font-black text-foreground tracking-tight">
-          Transform your rental operations today
+        <h2 className="font-display text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+          READY TO TAKE CONTROL OF YOUR RENTALS?
         </h2>
 
-        <p className="mx-auto max-w-xl text-muted-foreground text-base sm:text-lg font-medium leading-relaxed">
-          Join hundreds of Kenyan property owners issuing tamper-proof QR receipts and automating their rental cashflow. No manual receipt books, zero lost records.
+        <p className="mx-auto max-w-xl text-white/80 text-base sm:text-lg font-medium leading-relaxed">
+          Stop juggling notebooks, spreadsheets and scattered payment records. Bring your rental business into one simple platform.
         </p>
 
-        <div className="pt-2 flex flex-wrap justify-center items-center gap-3.5">
+        <div className="pt-2 flex flex-wrap justify-center items-center gap-3.5 relative z-10">
           <Button
             asChild
             size="lg"
-            className="rounded-full shadow-glow font-bold h-12 px-8 text-sm hover:scale-105 transition-all"
+            className="rounded-full bg-[#087443] hover:bg-[#055732] text-white font-bold h-12 px-8 text-sm shadow-lg transition-all hover:scale-105 border border-[#C9A227]/50"
           >
             <Link to="/auth" search={{ mode: "signup" }}>
-              Start 1 Month Free <ArrowRight className="ml-2 size-4" />
+              Get Started Today <ArrowRight className="ml-2 size-4 text-[#C9A227]" />
             </Link>
           </Button>
 
@@ -40,39 +43,30 @@ export function CtaBand() {
             asChild
             size="lg"
             variant="outline"
-            className="rounded-full h-12 px-6 text-sm font-semibold border-border/80 hover:bg-muted"
+            className="rounded-full h-12 px-6 text-sm font-semibold border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md"
           >
-            <a
-              href="https://wa.me/254742868209?text=Hello%20RentReceiptPro%20Team%2C%20I%20would%20like%20to%20learn%20more%20about%20your%20landlord%20software."
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2"
-            >
-              <MessageCircle className="size-4 text-emerald-500" /> WhatsApp Support (0742868209)
-            </a>
+            <a href="#features">Explore RentReceipt Pro</a>
           </Button>
 
           <Button
             asChild
             size="lg"
             variant="ghost"
-            className="rounded-full h-12 px-5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+            className="rounded-full h-12 px-5 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10"
           >
-            <Link to="/affiliate-program">
-              <Gift className="mr-1.5 size-4 text-primary" /> Affiliate Program (Earn KSh 50)
-            </Link>
+            <Link to="/tenant">Tenant Portal →</Link>
           </Button>
         </div>
 
-        <div className="pt-4 flex flex-wrap justify-center items-center gap-6 text-xs text-muted-foreground font-semibold">
+        <div className="pt-4 flex flex-wrap justify-center items-center gap-6 text-xs text-white/70 font-semibold relative z-10">
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-emerald-500" /> No credit card required
+            <ShieldCheck className="size-4 text-[#C9A227]" /> No credit card required
           </span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-emerald-500" /> Setup in 2 minutes
+            <ShieldCheck className="size-4 text-[#C9A227]" /> Setup in 2 minutes
           </span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-emerald-500" /> Cancel anytime
+            <ShieldCheck className="size-4 text-[#C9A227]" /> Cancel anytime
           </span>
         </div>
       </motion.div>

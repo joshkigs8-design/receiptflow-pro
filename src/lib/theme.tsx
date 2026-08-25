@@ -15,6 +15,14 @@ export interface AccentThemeOption {
 
 export const ACCENT_THEMES: AccentThemeOption[] = [
   {
+    id: "emerald",
+    name: "Forest & Emerald",
+    tagline: "Official Kenyan PropTech Green",
+    colorHex: "#087443",
+    bgHex: "from-[#063B2A] to-[#087443]",
+    ringHex: "ring-[#087443]",
+  },
+  {
     id: "sapphire",
     name: "Royal Sapphire",
     tagline: "Corporate Executive & Azure",
@@ -23,20 +31,12 @@ export const ACCENT_THEMES: AccentThemeOption[] = [
     ringHex: "ring-blue-500",
   },
   {
-    id: "emerald",
-    name: "Emerald Safari",
-    tagline: "Kenya Green & Fintech Trust",
-    colorHex: "#10B981",
-    bgHex: "from-emerald-500 to-teal-700",
-    ringHex: "ring-emerald-500",
-  },
-  {
     id: "amber",
-    name: "Sunset Amber",
-    tagline: "Warm Copper & Energy",
-    colorHex: "#F59E0B",
-    bgHex: "from-amber-500 to-orange-600",
-    ringHex: "ring-amber-500",
+    name: "Champagne Gold & Amber",
+    tagline: "Warm Luxury & Energy",
+    colorHex: "#C9A227",
+    bgHex: "from-[#C9A227] to-[#E5BA38]",
+    ringHex: "ring-[#C9A227]",
   },
   {
     id: "amethyst",
@@ -56,7 +56,7 @@ export const ACCENT_THEMES: AccentThemeOption[] = [
   },
 ];
 
-export const themeInitScript = `(function(){try{var m=localStorage.getItem('rrp-theme')||'system';var isDark=m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',isDark);var a=localStorage.getItem('rrp-accent')||'sapphire';document.documentElement.setAttribute('data-accent',a);}catch(e){}})();`;
+export const themeInitScript = `(function(){try{var m=localStorage.getItem('rrp-theme')||'system';var isDark=m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',isDark);var a=localStorage.getItem('rrp-accent')||'emerald';document.documentElement.setAttribute('data-accent',a);}catch(e){}})();`;
 
 /**
  * Apply theme mode and accent palette directly to document and persist in localStorage
@@ -84,14 +84,14 @@ export function applyTheme(mode: ThemeMode, accent: ThemeAccent) {
  */
 export function useTheme() {
   const [mode, setModeState] = useState<ThemeMode>("system");
-  const [accent, setAccentState] = useState<ThemeAccent>("sapphire");
+  const [accent, setAccentState] = useState<ThemeAccent>("emerald");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     try {
       const storedMode = (localStorage.getItem("rrp-theme") as ThemeMode) || "system";
-      const storedAccent = (localStorage.getItem("rrp-accent") as ThemeAccent) || "sapphire";
+      const storedAccent = (localStorage.getItem("rrp-accent") as ThemeAccent) || "emerald";
       setModeState(storedMode);
       setAccentState(storedAccent);
       applyTheme(storedMode, storedAccent);

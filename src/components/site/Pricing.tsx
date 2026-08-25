@@ -1,161 +1,161 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Check, CheckCircle2, MessageCircle, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PLANS, type PlanKey } from "@/lib/plans";
-import { money } from "@/lib/format";
-
-const perks = [
-  "Unlimited properties, units & tenants",
-  "QR-verified PDF rent receipts",
-  "Tenant portal & maintenance requests",
-  "Income reports & analytics",
-  "Custom receipt branding",
-  "M-Pesa, card and bank payments via Paystack",
-];
-
-const standardPlanKeys: PlanKey[] = ["monthly", "quarterly", "semiannual", "yearly"];
 
 export function Pricing() {
-  return (
-    <section id="pricing" className="px-6 py-24">
-      <div className="mx-auto max-w-6xl space-y-12">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center"
-        >
-          <span className="glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5" /> 1 month free on signup
-          </span>
-          <h2 className="mt-5 font-display text-3xl font-bold sm:text-4xl">
-            Simple, honest pricing for Kenyan landlords
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Try everything free for one month. Keep going from KSh 400 a month — cancel anytime.
-          </p>
-        </motion.div>
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
 
-        {/* 1. Standard Self-Service Plans Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {standardPlanKeys.map((key, i) => {
-            const plan = PLANS[key];
-            const best = key === "yearly";
-            return (
-              <motion.div
-                key={key}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                className={`surface-card relative flex flex-col justify-between p-6 sm:p-7 rounded-3xl ${best ? "ring-2 ring-primary shadow-glow" : ""}`}
-              >
+  const selfServicePlans = [
+    {
+      id: "monthly",
+      name: "Monthly Plan",
+      price: 400,
+      period: "/ month",
+      desc: "Flexible month-to-month property management.",
+      badge: "Flexible",
+      features: [
+        "Unlimited properties & units",
+        "Instant M-PESA WhatsApp receipts",
+        "Public QR verification portal",
+        "Tenant self-service portal",
+        "Caretaker sub-accounts",
+      ],
+      popular: false,
+    },
+    {
+      id: "annual",
+      name: "Annual Plan",
+      price: 4000,
+      period: "/ year",
+      desc: "Best value for professional landlords (Save KSh 800).",
+      badge: "Most Popular — Save 17%",
+      features: [
+        "Unlimited properties & units",
+        "Instant M-PESA WhatsApp receipts",
+        "Public QR verification portal",
+        "Tenant self-service portal",
+        "Caretaker sub-accounts & permissions",
+        "KRA tax & financial reports export",
+        "Priority 24/7 WhatsApp VIP support",
+      ],
+      popular: true,
+    },
+  ];
+
+  return (
+    <section id="pricing" className="relative py-28 bg-[#FFFFFF] dark:bg-[#0A261D] overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        
+        {/* Section Header */}
+        <div className="mx-auto max-w-3xl text-center space-y-3 mb-16">
+          <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] bg-[#E8F2ED] dark:bg-[#0D3528] border border-[#063B2A]/10 dark:border-white/10">
+            <Sparkles className="size-3.5 text-[#C9A227]" /> Transparent Pricing
+          </span>
+          <h2 className="font-display text-3xl sm:text-5xl font-black tracking-tight text-[#101714] dark:text-[#F7F8F5]">
+            SIMPLE PRICING. POWERFUL MANAGEMENT.
+          </h2>
+          <p className="text-base sm:text-lg text-[#4A5B53] dark:text-[#94A89E]">
+            Plans designed for Kenyan landlords, caretakers, and property management agencies.
+          </p>
+        </div>
+
+        {/* Pricing Cards */}
+        <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto items-stretch">
+          {selfServicePlans.map((plan) => (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className={`p-8 sm:p-9 rounded-3xl flex flex-col justify-between text-left transition-all ${
+                plan.popular
+                  ? "bg-[#063B2A] text-white border-2 border-[#C9A227] shadow-[0_20px_60px_rgba(6,59,42,0.3)] relative"
+                  : "bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 shadow-sm"
+              }`}
+            >
+              {plan.popular ? (
+                <span className="absolute -top-3.5 right-8 bg-[#C9A227] text-[#101714] font-extrabold text-[11px] px-3.5 py-1 rounded-full shadow-md">
+                  {plan.badge}
+                </span>
+              ) : null}
+
+              <div className="space-y-6">
                 <div>
-                  {plan.badge ? (
-                    <span className="gradient-primary absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                      {plan.badge}
-                    </span>
-                  ) : null}
-                  <h3 className="font-display text-lg font-bold">{plan.label}</h3>
-                  <p className="mt-3 font-display text-3xl sm:text-4xl font-bold">
-                    {money(plan.amount)}
-                    <span className="ml-1 text-xs sm:text-sm font-medium text-muted-foreground">
-                      /{plan.periodLabel}
-                    </span>
+                  <h3 className={`font-display text-xl font-bold ${plan.popular ? "text-white" : "text-[#101714] dark:text-[#F7F8F5]"}`}>
+                    {plan.name}
+                  </h3>
+                  <p className={`text-xs mt-1 ${plan.popular ? "text-white/70" : "text-[#4A5B53] dark:text-[#94A89E]"}`}>
+                    {plan.desc}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{plan.blurb}</p>
-                  <ul className="mt-6 space-y-2.5 text-xs sm:text-sm">
-                    {perks.map((p) => (
-                      <li key={p} className="flex items-start gap-2">
-                        <Check className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-primary" />
-                        <span className="text-muted-foreground">{p}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
+
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold">KES</span>
+                  <span className="font-display text-4xl sm:text-5xl font-black">{plan.price.toLocaleString()}</span>
+                  <span className={`text-xs ${plan.popular ? "text-white/70" : "text-[#4A5B53] dark:text-[#94A89E]"}`}>{plan.period}</span>
+                </div>
+
+                <div className="space-y-2.5 pt-2 border-t border-current/10">
+                  {plan.features.map((feat) => (
+                    <div key={feat} className="flex items-center gap-2.5 text-xs">
+                      <CheckCircle2 className={`size-4 shrink-0 ${plan.popular ? "text-[#C9A227]" : "text-[#087443]"}`} />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-8">
                 <Button
                   asChild
                   size="lg"
-                  variant={best ? "default" : "outline"}
-                  className="mt-8 w-full rounded-full shadow-glow"
+                  className={`w-full rounded-full font-bold h-12 text-sm shadow-md transition-all hover:scale-105 ${
+                    plan.popular
+                      ? "bg-[#087443] hover:bg-[#055732] text-white border border-[#C9A227]/40"
+                      : "bg-[#063B2A] hover:bg-[#087443] text-white"
+                  }`}
                 >
                   <Link to="/auth" search={{ mode: "signup" }}>
-                    Start 1 month free
+                    Start 1 Month Free Trial <ArrowRight className="ml-1.5 size-4 text-[#C9A227]" />
                   </Link>
                 </Button>
-              </motion.div>
-            );
-          })}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* 2. VIP Concierge "Done-For-You Setup" Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="surface-card relative overflow-hidden p-8 sm:p-10 rounded-3xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-card to-background shadow-float"
-        >
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-bold text-primary">
-                <Zap className="size-3.5" /> Done-For-You Concierge Onboarding
-              </span>
-              <h3 className="font-display text-2xl sm:text-3xl font-bold">
-                Too busy to input your properties &amp; tenants? We'll do it for you!
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Just send us your tenant list, room numbers, and arrears via <strong>WhatsApp, Excel, or photos of your notebook</strong>. Our team will input, map, and verify your entire property portfolio within 24 hours.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs font-medium text-foreground">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary shrink-0" />
-                  <span>100% full tenant &amp; unit data migration</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary shrink-0" />
-                  <span>Starting balances &amp; deposit mapping</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary shrink-0" />
-                  <span>1-on-1 Caretaker WhatsApp training</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary shrink-0" />
-                  <span>Live support agent on standby</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full lg:w-80 space-y-4 shrink-0 bg-card/80 p-6 rounded-2xl border border-border/80">
-              <div className="text-center pb-2 border-b border-border/60">
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
-                  VIP Setup Package
-                </p>
-                <p className="font-display text-3xl font-bold text-primary mt-1">KSh 2,500</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  1-Time Setup or bundled with VIP Annual at KSh 5,500/yr
-                </p>
-              </div>
-
-              <Button asChild size="lg" className="w-full rounded-full shadow-glow font-bold text-sm">
-                <a
-                  href="https://wa.me/254742868209?text=Hello%20RentReceiptPro%20Team%2C%20I%20would%20like%20the%20Done-For-You%20Data%20Setup%20service%20for%20my%20properties.%20Here%20is%20my%20tenant%20list."
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="size-4" /> Send List on WhatsApp
-                </a>
-              </Button>
-              <p className="text-[11px] text-center text-muted-foreground">
-                WhatsApp: 0742868209 · Fast 24-Hour Turnaround
-              </p>
-            </div>
+        {/* VIP Concierge "Done-For-You Data Setup" Banner */}
+        <div className="mt-14 max-w-4xl mx-auto rounded-3xl p-6 sm:p-7 bg-[#E8F2ED] dark:bg-[#0D3528] border-2 border-[#087443]/30 flex flex-col sm:flex-row items-center justify-between gap-6 text-left">
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-[#063B2A] dark:text-[#52B788] bg-[#FFFFFF] dark:bg-[#0A261D] px-2.5 py-0.5 rounded-full">
+              VIP Concierge Onboarding
+            </span>
+            <h4 className="font-display font-bold text-base sm:text-lg text-[#101714] dark:text-[#F7F8F5]">
+              Want us to import all your tenants &amp; units for you?
+            </h4>
+            <p className="text-xs text-[#4A5B53] dark:text-[#94A89E]">
+              Send us your handwritten notebooks, Excel sheets, or WhatsApp lists. Our team will structure and load everything into your system within 2 hours.
+            </p>
           </div>
-        </motion.div>
+
+          <Button
+            asChild
+            className="rounded-full bg-[#087443] hover:bg-[#063B2A] text-white text-xs font-bold shrink-0 h-11 px-6 shadow-md border border-[#C9A227]/30"
+          >
+            <a
+              href="https://wa.me/254742868209?text=Hello%20RentReceiptPro%20Team%2C%20I%20have%20my%20tenant%20list%20and%20need%20the%20Done-For-You%20Data%20Setup."
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2"
+            >
+              <MessageCircle className="size-4 text-[#C9A227]" /> WhatsApp Us (0742868209)
+            </a>
+          </Button>
+        </div>
+
       </div>
     </section>
   );

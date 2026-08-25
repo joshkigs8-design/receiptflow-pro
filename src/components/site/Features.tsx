@@ -14,115 +14,126 @@ import {
   UserCheck,
   Users,
   Wallet,
-  Wrench,
   Zap,
 } from "lucide-react";
 
-const bentoFeatures = [
+const featureShowcase = [
   {
-    icon: QrCode,
-    badge: "Public Verification",
-    title: "Tamper-Proof QR Code Receipts",
+    icon: Building2,
+    badge: "Multi-Estate Architecture",
+    title: "Property Management",
+    tagline: "Keep every property, unit and tenant organized from one place.",
     description:
-      "Every generated receipt contains a cryptographically verified public QR code. Tenants, banks, employers and embassies can scan to verify authenticity in 1 second.",
-    highlight: "Zero forgery risk",
-    colSpan: "lg:col-span-8",
+      "Manage single apartments, multi-story residential blocks, commercial spaces, and student hostels with dedicated unit breakdown and occupancy tracking.",
+    colSpan: "lg:col-span-6",
+    highlight: "Unlimited properties & units",
   },
   {
-    icon: Smartphone,
-    badge: "M-Pesa Daraja 3.0",
-    title: "Automated M-Pesa & Bank Tracking",
+    icon: Wallet,
+    badge: "M-PESA & Bank Reconciliation",
+    title: "Payment Tracking",
+    tagline: "Know what has been paid, what is pending and what needs your attention.",
     description:
-      "Record M-Pesa Till, Paybill, Bank transfers, Cheques or Cash. Auto-reconciles rent payments against units and calculates balances instantly.",
-    highlight: "Instant Reconciliation",
-    colSpan: "lg:col-span-4",
+      "Log M-PESA Paybill, Till numbers, Bank transfers, Cheques, or Cash. Partial payments auto-adjust remaining balances without manual math.",
+    colSpan: "lg:col-span-6",
+    highlight: "Instant balance auto-matching",
   },
   {
-    icon: UserCheck,
-    badge: "Delegated Access",
-    title: "Caretaker & Agent Permissions",
+    icon: FileCheck2,
+    badge: "Public QR Verification",
+    title: "Professional Receipts",
+    tagline: "Create and send professional rental receipts instantly.",
     description:
-      "Invite your estate caretakers with restricted on-site permissions: they can record payments and issue receipts, but cannot alter rent prices or delete properties.",
-    highlight: "Role-Based Security",
+      "Every generated receipt contains a cryptographically verified public QR code. Dispatched straight to tenant WhatsApp with official landlord digital seal.",
     colSpan: "lg:col-span-4",
+    highlight: "Tamper-proof & branded PDF",
   },
   {
     icon: Users,
-    badge: "5-Star Experience",
-    title: "Tenant Self-Service Portal",
+    badge: "5-Star Tenant Experience",
+    title: "Tenant Management",
+    tagline: "Keep tenant information organized and accessible whenever you need it.",
     description:
-      "Tenants log in seamlessly with phone OTP to view their full payment history, download historical tax receipts, and submit maintenance tickets with photos.",
-    highlight: "Zero Landlord Phone Calls",
+      "Store leases, tenant contact details, payment history, and emergency contacts. Tenants log in via OTP to download historical tax receipts on demand.",
     colSpan: "lg:col-span-4",
+    highlight: "Self-service tenant portal",
   },
   {
     icon: BarChart3,
-    badge: "KRA Ready",
-    title: "Tax & Financial Year-End Reports",
+    badge: "KRA Tax Ready",
+    title: "Reports & Insights",
+    tagline: "Turn rental data into clear insights that help you make better decisions.",
     description:
-      "Export comprehensive rental income reports, occupancy charts, and arrears statements formatted for Kenyan accountants and KRA tax compliance.",
-    highlight: "1-Click Excel / PDF Export",
+      "Export rental income ledgers, occupancy percentages, and arrears statements formatted for Kenyan accountants and KRA annual tax filings.",
     colSpan: "lg:col-span-4",
+    highlight: "1-Click PDF / Excel export",
   },
 ];
 
 export function Features() {
   return (
-    <section id="features" className="relative py-28 overflow-hidden bg-background">
+    <section id="features" className="relative py-28 bg-[#FFFFFF] dark:bg-[#0A261D] overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mx-auto max-w-3xl text-center space-y-3">
-          <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5 text-primary" /> Enterprise Platform Architecture
+        
+        {/* Section Header */}
+        <div className="mx-auto max-w-3xl text-center space-y-3 mb-16">
+          <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] bg-[#E8F2ED] dark:bg-[#0D3528] border border-[#063B2A]/10 dark:border-white/10">
+            <Sparkles className="size-3.5 text-[#C9A227]" /> Comprehensive Capabilities
           </span>
-          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
-            Engineered for high-performing Kenyan landlords
+          <h2 className="font-display text-3xl sm:text-5xl font-black tracking-tight text-[#101714] dark:text-[#F7F8F5]">
+            EVERYTHING YOU NEED TO RUN YOUR RENTALS.
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground">
-            From single residential apartments to multi-hundred unit commercial portfolios — all your property operations in one unified system.
+          <p className="text-base sm:text-lg text-[#4A5B53] dark:text-[#94A89E]">
+            A complete suite of modern property management tools engineered specifically for Kenyan landlords.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-12">
-          {bentoFeatures.map((f, i) => (
-            <motion.article
+        {/* Feature Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-12">
+          {featureShowcase.map((f, idx) => (
+            <motion.div
               key={f.title}
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-              className={`surface-card group relative flex flex-col justify-between p-7 sm:p-8 rounded-3xl border border-border/80 hover:border-primary/50 transition-all duration-300 hover:shadow-float ${f.colSpan}`}
+              transition={{ duration: 0.5, delay: idx * 0.08 }}
+              className={`p-7 sm:p-8 rounded-3xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 hover:border-[#087443] transition-all flex flex-col justify-between group shadow-sm ${f.colSpan}`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-[#E8F2ED] dark:bg-[#0D3528] text-[#063B2A] dark:text-[#52B788] group-hover:scale-110 transition-transform">
                     <f.icon className="size-6" />
                   </span>
-                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                  <span className="text-[10px] font-bold text-[#087443] dark:text-[#52B788] bg-[#E8F2ED] dark:bg-[#0D3528] px-3 py-1 rounded-full">
                     {f.badge}
                   </span>
                 </div>
 
-                <div>
-                  <h3 className="font-display text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                <div className="space-y-1.5 text-left">
+                  <h3 className="font-display text-xl font-bold text-[#101714] dark:text-[#F7F8F5]">
                     {f.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-xs font-bold text-[#087443] dark:text-[#52B788]">
+                    {f.tagline}
+                  </p>
+                  <p className="text-xs text-[#4A5B53] dark:text-[#94A89E] leading-relaxed pt-1">
                     {f.description}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-foreground">
-                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <div className="mt-6 pt-4 border-t border-[#E2E8E4] dark:border-white/10 flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-[#087443] dark:text-[#52B788]">
                   <CheckCircle2 className="size-4" /> {f.highlight}
                 </span>
-                <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  Learn more →
+                <span className="text-[#C9A227] font-bold group-hover:translate-x-1 transition-transform">
+                  Explore →
                 </span>
               </div>
-            </motion.article>
+            </motion.div>
           ))}
         </div>
+
       </div>
     </section>
   );
