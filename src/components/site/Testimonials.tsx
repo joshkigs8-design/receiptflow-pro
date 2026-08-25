@@ -80,7 +80,11 @@ export function Testimonials() {
                 <img
                   src={t.image}
                   alt={t.name}
-                  className="size-12 rounded-full object-cover border-2 border-primary/20 shrink-0"
+                  width="48"
+                  height="48"
+                  loading="lazy"
+                  decoding="async"
+                  className="size-12 rounded-full object-cover border-2 border-[#087443]/30 shrink-0"
                 />
                 <div className="min-w-0">
                   <h4 className="text-sm font-bold text-foreground truncate">{t.name}</h4>

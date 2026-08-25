@@ -65,8 +65,12 @@ export function KenyanContext() {
           >
             <div className="relative rounded-3xl overflow-hidden border-2 border-[#063B2A]/15 dark:border-white/15 shadow-[0_20px_50px_rgba(6,59,42,0.15)]">
               <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80"
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=75"
                 alt="Kenyan Landlord Reviewing Rent Collections"
+                width="600"
+                height="500"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-[500px] object-cover object-top"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#063B2A]/90 via-transparent to-transparent" />
@@ -112,3 +116,4 @@ export function KenyanContext() {
     </section>
   );
 }
+

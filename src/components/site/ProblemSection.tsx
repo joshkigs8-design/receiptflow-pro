@@ -59,8 +59,12 @@ export function ProblemSection() {
           >
             <div className="relative rounded-3xl overflow-hidden border-2 border-[#063B2A]/15 dark:border-white/15 shadow-[0_20px_50px_-15px_rgba(6,59,42,0.2)]">
               <img
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"
+                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=75"
                 alt="Kenyan Property Manager Reviewing Rental Records"
+                width="600"
+                height="460"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-[460px] object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#063B2A]/90 via-[#063B2A]/30 to-transparent" />
@@ -111,3 +115,4 @@ export function ProblemSection() {
     </section>
   );
 }
+

@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { motion } from "motion/react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -24,7 +23,7 @@ import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[92svh] flex items-center justify-center overflow-hidden pt-28 pb-16 bg-[#F7F8F5] dark:bg-[#061A13] text-[#101714] dark:text-[#F7F8F5]">
+    <section className="relative min-h-[90svh] flex items-center justify-center overflow-hidden pt-28 pb-16 bg-[#F7F8F5] dark:bg-[#061A13] text-[#101714] dark:text-[#F7F8F5]">
       {/* Background Architectural Atmosphere & Soft Radial Gradients */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#063B2A08_1px,transparent_1px),linear-gradient(to_bottom,#063B2A08_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_65%_50%_at_50%_10%,#000_70%,transparent_100%)]" />
       <div className="pointer-events-none absolute top-0 right-1/4 w-[600px] h-[350px] bg-[#087443]/10 blur-[130px] rounded-full" />
@@ -34,49 +33,29 @@ export function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* ========================================================================= */}
-          {/* LEFT COLUMN: EDITORIAL HEADLINE, POSITIONING, AND HIGH-CONVERTING CTAS   */}
+          {/* LEFT COLUMN: INSTANT SSR PAINT (ZERO OPACITY BLOCKING FOR 100/100 FCP)     */}
           {/* ========================================================================= */}
-          <div className="lg:col-span-6 text-left space-y-6">
+          <div className="lg:col-span-6 text-left space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             
             {/* Small Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 rounded-full border border-[#063B2A]/15 dark:border-white/15 bg-[#E8F2ED] dark:bg-[#0A261D] px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] shadow-sm"
-            >
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#063B2A]/15 dark:border-white/15 bg-[#E8F2ED] dark:bg-[#0D3528] px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] shadow-sm">
               <span className="text-sm">🇰🇪</span>
               <span className="tracking-wide">BUILT FOR RENTAL BUSINESSES IN KENYA</span>
-            </motion.div>
+            </div>
 
             {/* Main Editorial Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-[#101714] dark:text-[#F7F8F5]"
-            >
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-[#101714] dark:text-[#F7F8F5]">
               MANAGE RENTALS. <br className="hidden sm:inline" />
               <span className="text-[#C9A227] dark:text-[#E5BA38]">WITHOUT THE HEADACHE.</span>
-            </motion.h1>
+            </h1>
 
             {/* Supporting Text */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="max-w-xl text-base sm:text-lg text-[#4A5B53] dark:text-[#94A89E] leading-relaxed font-normal"
-            >
+            <p className="max-w-xl text-base sm:text-lg text-[#4A5B53] dark:text-[#94A89E] leading-relaxed font-normal">
               Manage properties, keep track of tenants, monitor payments and send professional receipts — all from one beautifully simple platform.
-            </motion.p>
+            </p>
 
             {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-wrap items-center gap-3.5 pt-2"
-            >
+            <div className="flex flex-wrap items-center gap-3.5 pt-2">
               <Button
                 asChild
                 size="lg"
@@ -95,32 +74,22 @@ export function Hero() {
               >
                 <a href="#how-it-works">See How It Works</a>
               </Button>
-            </motion.div>
+            </div>
 
             {/* Under-the-Buttons Micro-Trust */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="pt-2 text-xs font-semibold text-[#4A5B53] dark:text-[#94A89E] flex items-center gap-2"
-            >
+            <div className="pt-2 text-xs font-semibold text-[#4A5B53] dark:text-[#94A89E] flex items-center gap-2">
               <span>No complicated setup</span>
               <span>•</span>
               <span>Built for landlords</span>
               <span>•</span>
               <span>Access anywhere</span>
-            </motion.div>
+            </div>
           </div>
 
           {/* ========================================================================= */}
           {/* RIGHT COLUMN: 3D/LIFESTYLE PRODUCTION SAAS & SMARTPHONE COMPOSITION       */}
           {/* ========================================================================= */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-6 relative"
-          >
+          <div className="lg:col-span-6 relative animate-in fade-in duration-700">
             {/* Ambient Shadow Box */}
             <div className="relative mx-auto max-w-[540px] lg:max-w-none">
               
@@ -206,12 +175,7 @@ export function Hero() {
               </div>
 
               {/* Overlapping Smartphone: Digital Rent Receipt Display */}
-              <motion.div
-                initial={{ opacity: 0, x: 20, y: 20 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.45 }}
-                className="absolute -bottom-8 -right-2 sm:-right-6 w-60 sm:w-68 rounded-3xl p-3.5 bg-[#FFFFFF] dark:bg-[#0A261D] border-2 border-[#C9A227] shadow-[0_20px_50px_rgba(201,162,39,0.25)] text-left space-y-3 hidden sm:block"
-              >
+              <div className="absolute -bottom-8 -right-2 sm:-right-6 w-60 sm:w-68 rounded-3xl p-3.5 bg-[#FFFFFF] dark:bg-[#0A261D] border-2 border-[#C9A227] shadow-[0_20px_50px_rgba(201,162,39,0.25)] text-left space-y-3 hidden sm:block">
                 <div className="flex items-center justify-between border-b border-[#E2E8E4] dark:border-white/10 pb-2">
                   <div className="flex items-center gap-1.5">
                     <Building2 className="size-4 text-[#087443]" />
@@ -251,31 +215,23 @@ export function Hero() {
                     <MessageCircle className="size-3" /> WhatsApp Sent
                   </span>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Floating UI Badges */}
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-4 -left-4 bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#063B2A]/15 dark:border-white/15 px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold"
-              >
+              <div className="absolute -top-4 -left-4 bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#063B2A]/15 dark:border-white/15 px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold animate-bounce duration-1000">
                 <span className="flex size-5 items-center justify-center rounded-full bg-[#087443] text-white">
                   <Check className="size-3 stroke-[3]" />
                 </span>
                 <span>Rent Paid ✓</span>
-              </motion.div>
+              </div>
 
-              <motion.div
-                animate={{ y: [0, 6, 0] }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute top-1/2 -left-6 bg-[#063B2A] text-white px-3.5 py-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 text-xs font-bold hidden sm:flex"
-              >
+              <div className="absolute top-1/2 -left-6 bg-[#063B2A] text-white px-3.5 py-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 text-xs font-bold hidden sm:flex">
                 <Zap className="size-3.5 text-[#C9A227]" />
                 <span>KES 245,000 Collected Today</span>
-              </motion.div>
+              </div>
 
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
