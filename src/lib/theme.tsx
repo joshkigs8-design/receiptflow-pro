@@ -15,14 +15,6 @@ export interface AccentThemeOption {
 
 export const ACCENT_THEMES: AccentThemeOption[] = [
   {
-    id: "amber",
-    name: "Electric Orange",
-    tagline: "Sunset Copper & High Energy",
-    colorHex: "#FF7A00",
-    bgHex: "from-orange-500 to-amber-600",
-    ringHex: "ring-orange-500",
-  },
-  {
     id: "emerald",
     name: "Emerald Safari",
     tagline: "Kenya Green & Fintech Trust",
@@ -65,7 +57,6 @@ export function applyTheme(mode: ThemeMode, accent: ThemeAccent) {
   if (typeof window === "undefined") return;
 
   try {
-    localStorage.setItem("rrp-theme", mode);
     localStorage.setItem("rrp-accent", accent);
   } catch {
     /* ignore storage failure */
@@ -94,7 +85,6 @@ export function useTheme() {
       const storedAccent = (localStorage.getItem("rrp-accent") as ThemeAccent) || "amber";
       setModeState(storedMode);
       setAccentState(storedAccent);
-      applyTheme(storedMode, storedAccent);
     } catch {
       /* ignore */
     }
@@ -102,7 +92,6 @@ export function useTheme() {
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    applyTheme(newMode, accent);
   };
 
   const setAccent = (newAccent: ThemeAccent) => {

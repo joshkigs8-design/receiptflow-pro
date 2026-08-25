@@ -79,11 +79,11 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-background">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card/80 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-screen w-64 flex-col border-r border-border bg-card/95 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center justify-between px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-border/40">
           <Link to="/dashboard" className="flex items-center gap-2.5">
             <span className="gradient-primary flex size-8 items-center justify-center rounded-lg shadow-glow">
               <Building2 className="size-4 text-primary-foreground" />
@@ -95,26 +95,40 @@ export function AppShell({
           </button>
         </div>
 
-        <nav className="mt-2 space-y-1 px-3 pb-8">
-          {nav.map((item) => {
-            const active = pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active
-                    ? "gradient-primary text-primary-foreground shadow-glow"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                <item.icon className="size-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
+          <nav className="space-y-1 pb-6">
+            {nav.map((item) => {
+              const active = pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                    active
+                      ? "gradient-primary text-primary-foreground shadow-glow font-bold"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="shrink-0 p-3 border-t border-border/40 bg-muted/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="w-full justify-start gap-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+          >
+            <LogOut className="size-3.5" />
+            <span>Sign Out</span>
+          </Button>
+        </div>
       </aside>
 
       {open ? (

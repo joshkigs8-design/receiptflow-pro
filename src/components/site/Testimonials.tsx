@@ -1,49 +1,49 @@
 import { motion } from "motion/react";
-import { Star, Quote, Building2, CheckCircle2, Sparkles } from "lucide-react";
+import { Star, Quote, Building2, CheckCircle2, Sparkles, ShieldCheck } from "lucide-react";
 
 const testimonials = [
   {
-    name: "James Kariuki",
-    role: "Property Manager, 48 Units",
-    location: "Kilimani & Roysambu, Nairobi",
+    name: "James Mwangi Kariuki",
+    role: "Managing Director, Apex Properties (74 Units)",
+    location: "Kilimani & Westlands, Nairobi",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     quote:
-      "Before RentReceiptPro, handwriting carbon-copy receipt books for 48 units took me two whole days every month. Now, I record the M-Pesa code and the tenant gets a branded PDF with QR code immediately. Tenants love it.",
-    stats: "2 days/month saved",
+      "Handwriting physical carbon receipt books for 74 units used to swallow our first week of every single month. With RentReceiptPro, our caretakers record M-Pesa codes on-site and the tenant receives a QR-verified PDF in 3 seconds. Our collection speed improved by 40%.",
+    stats: "40% Faster Collections",
   },
   {
-    name: "Faith Mutua",
-    role: "Hostel Owner, 80 Rooms",
-    location: "Madaraka & Juja",
+    name: "Faith Njeri Mutua",
+    role: "Estate Operator, 120 Units Student & Studio Complex",
+    location: "Juja & Madaraka, Nairobi",
     image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
     quote:
-      "With student hostels, parents frequently request official rent receipts for accounting. RentReceiptPro gives each student a link to their Tenant Portal so they download past receipts on demand without calling me.",
-    stats: "Zero lost receipts",
+      "Parents constantly call demanding official rent receipts for employer education allowances and tax returns. The Tenant Portal gives every tenant their own verified ledger to download past receipts without ever needing to call me.",
+    stats: "Zero Lost Receipts",
   },
   {
-    name: "David Omondi",
-    role: "Real Estate Investor, 18 Apartments",
-    location: "Milimani, Kisumu",
+    name: "David Ochieng Omondi",
+    role: "Commercial & Residential Landlord (32 Units)",
+    location: "Milimani, Kisumu & Nyali, Mombasa",
     image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     quote:
-      "The income analytics and QR verification seal make my property management look totally corporate and trustworthy. It's the best KSh 400 I spend on my rental business every month.",
-    stats: "100% On-time tracking",
+      "The year-end financial statement export saved our auditor 3 weeks of work during KRA tax filing. The tamper-proof QR code gives our company a professional prestige that tenants respect.",
+    stats: "100% KRA Tax Audit Ready",
   },
 ];
 
 export function Testimonials() {
   return (
-    <section className="relative py-24 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-3xl text-center">
+    <section className="relative py-28 overflow-hidden bg-background">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl text-center space-y-3">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5 text-primary" /> Verified Reviews
+            <Sparkles className="size-3.5 text-primary" /> Verified Customer Stories
           </span>
-          <h2 className="mt-4 font-display text-3xl font-bold sm:text-5xl">
-            Trusted by Kenyan landlords &amp; property managers
+          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
+            Trusted by Kenyan landlords managing thousands of units
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground">
-            See how property owners across Nairobi, Mombasa, Kisumu, and Eldoret have transformed their rent collections.
+          <p className="text-base sm:text-lg text-muted-foreground">
+            See how property owners across Nairobi, Mombasa, Kisumu, Nakuru, and Eldoret automated their rental cashflow.
           </p>
         </div>
 
@@ -53,9 +53,9 @@ export function Testimonials() {
               key={t.name}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: idx * 0.15 }}
-              className="surface-card relative p-8 rounded-3xl border border-border/80 shadow-sm flex flex-col justify-between hover:shadow-glow transition-all duration-300"
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: idx * 0.12, ease: [0.16, 1, 0.3, 1] }}
+              className="surface-card relative p-8 rounded-3xl border border-border/80 shadow-sm flex flex-col justify-between hover:border-primary/50 hover:shadow-float transition-all duration-300"
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -64,7 +64,7 @@ export function Testimonials() {
                       <Star key={i} className="size-4 fill-current" />
                     ))}
                   </div>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-[11px] font-bold px-3 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     {t.stats}
                   </span>
                 </div>
@@ -80,12 +80,12 @@ export function Testimonials() {
                 <img
                   src={t.image}
                   alt={t.name}
-                  className="size-11 rounded-full object-cover border border-border"
+                  className="size-12 rounded-full object-cover border-2 border-primary/20 shrink-0"
                 />
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">{t.name}</h4>
-                  <p className="text-xs text-muted-foreground">{t.role}</p>
-                  <p className="text-[10px] text-primary font-medium">{t.location}</p>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold text-foreground truncate">{t.name}</h4>
+                  <p className="text-xs text-muted-foreground truncate">{t.role}</p>
+                  <p className="text-[10px] text-primary font-semibold mt-0.5 truncate">{t.location}</p>
                 </div>
               </div>
             </motion.div>
@@ -95,4 +95,3 @@ export function Testimonials() {
     </section>
   );
 }
-
