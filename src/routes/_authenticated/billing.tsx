@@ -236,6 +236,103 @@ function BillingPage() {
           })}
         </div>
 
+        {/* ------------------------------------------------------------- */}
+        {/* VIP CONCIERGE / DONE-FOR-YOU DATA ENTRY & ONBOARDING PACKAGES  */}
+        {/* ------------------------------------------------------------- */}
+        <div className="surface-card relative overflow-hidden p-6 sm:p-8 rounded-3xl border-2 border-primary/40 bg-gradient-to-br from-primary/5 via-card to-background shadow-glow">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
+                <Sparkles className="size-3.5" /> VIP Done-For-You Data Setup
+              </div>
+              <h3 className="font-display text-xl sm:text-2xl font-bold">
+                Too busy to type in your tenants? We'll enter everything for you!
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Send us your tenant list, room numbers, rent amounts and arrears via <strong>WhatsApp, Excel or PDF photos</strong>. Our dedicated concierge team will input, map, and verify your entire property portfolio within 24 hours.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs font-medium text-foreground">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <span>All properties, units &amp; tenant records entered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <span>Starting rent balances &amp; deposit mapping</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <span>1-on-1 WhatsApp Caretaker &amp; Agent training</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <span>Dedicated VIP account manager</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full lg:w-80 space-y-3 shrink-0">
+              {/* Option 1: 1-Time Setup Service */}
+              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">1-Time Concierge Setup</span>
+                  <span className="font-display font-bold text-base text-primary">KSh 2,500</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Complete portfolio data migration + 1 month system access.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full rounded-full shadow-glow text-xs"
+                  disabled={pending !== null}
+                  onClick={() => pay("concierge_setup")}
+                >
+                  {pending === "concierge_setup" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    "Order 1-Time Setup (KSh 2,500)"
+                  )}
+                </Button>
+              </div>
+
+              {/* Option 2: VIP Annual Concierge Bundle */}
+              <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-primary flex items-center gap-1">
+                    <Sparkles className="size-3" /> VIP Annual Bundle
+                  </span>
+                  <span className="font-display font-bold text-base text-primary">KSh 5,500 / yr</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  1-Year Unlimited Subscription + Full Setup included (Save KSh 1,000).
+                </p>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full rounded-full shadow-glow text-xs font-bold"
+                  disabled={pending !== null}
+                  onClick={() => pay("concierge_annual")}
+                >
+                  {pending === "concierge_annual" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    "Get VIP Annual (KSh 5,500)"
+                  )}
+                </Button>
+              </div>
+
+              <a
+                href="https://wa.me/254742868209?text=Hello%20RentReceiptPro%20Team%2C%20I%20would%20like%20the%20Done-For-You%20Data%20Setup%20service%20for%20my%20properties.%20Here%20is%20my%20tenant%20list."
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 text-xs font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
+              >
+                <MessageCircle className="size-3.5" /> Send list via WhatsApp (0742868209) →
+              </a>
+            </div>
+          </div>
+        </div>
+
         <p className="text-center text-xs text-muted-foreground">
           Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 14 days
           free. Need help? WhatsApp 0742868209.

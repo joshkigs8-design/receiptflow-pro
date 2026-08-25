@@ -164,7 +164,7 @@ export const updateLandlordSubscription = createServerFn({ method: "POST" })
   .validator((d: unknown) =>
     z.object({
       userId: z.string().uuid(),
-      plan: z.enum(["monthly", "quarterly", "semiannual", "yearly"]).optional(),
+      plan: z.enum(["monthly", "quarterly", "semiannual", "yearly", "concierge_setup", "concierge_annual"]).optional(),
       endsAt: z.string().optional().nullable(),
       status: z.enum(["active", "trial", "expired"]).optional(),
     }).parse(d)

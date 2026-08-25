@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Building2, Gift, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, Gift, KeyRound, Loader2, MailCheck, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ const searchSchema = z
     mode: z
       .union([z.string(), z.array(z.string())])
       .transform((val) => (Array.isArray(val) ? val[0] : val))
-      .pipe(z.enum(["login", "signup"]))
+      .pipe(z.enum(["login", "signup", "forgot", "reset"]))
       .optional(),
     ref: z
       .union([z.string(), z.array(z.string())])
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Sign in or create your Rent Receipt Pro landlord account to manage properties and receipts.",
+          "Sign in, reset password or create your Rent Receipt Pro landlord account to manage properties and receipts.",
       },
       { property: "og:title", content: "Landlord Login — Rent Receipt Pro" },
       { property: "og:description", content: "Access your Rent Receipt Pro landlord dashboard." },
@@ -43,12 +43,15 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+type AuthMode = "login" | "signup" | "forgot" | "reset";
+
 function AuthPage() {
-  const { mode, ref } = Route.useSearch();
+  const { mode: initialMode, ref } = Route.useSearch();
   const navigate = useNavigate();
-  const [signup, setSignup] = useState(mode === "signup");
+  const [mode, setMode] = useState<AuthMode>(initialMode || "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,9 +74,8 @@ function AuthPage() {
   });
 
   useEffect(() => {
-    if (mode === "signup") setSignup(true);
-    else if (mode === "login") setSignup(false);
-  }, [mode]);
+    if (initialMode) setMode(initialMode);
+  }, [initialMode]);
 
   useEffect(() => {
     if (ref) {
@@ -84,15 +86,25 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session && mode !== "reset") {
+        navigate({ to: "/dashboard", replace: true });
+      }
     });
-  }, [navigate]);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      }
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, [navigate, mode]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
-      if (signup) {
+      if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -113,7 +125,6 @@ function AuthPage() {
           toast.success("Check your email to confirm your account.");
           return;
         }
-        // Session created immediately (email confirmation disabled or already confirmed)
         if (referralCode) {
           try {
             await recordReferral({ data: { referralCode } });
@@ -121,17 +132,34 @@ function AuthPage() {
             console.warn("Referral recording failed:", err);
           }
         }
-        // Clear referral code after successful use
         localStorage.removeItem("rrp_referral_code");
         setReferralCode(null);
         navigate({ to: "/dashboard" });
-      } else {
+      } else if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate({ to: "/dashboard" });
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/auth?mode=reset`,
+        });
+        if (error) throw error;
+        setSent(true);
+        toast.success("Password reset link sent to your email!");
+      } else if (mode === "reset") {
+        if (!password || password.length < 6) {
+          throw new Error("Password must be at least 6 characters");
+        }
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        toast.success("Password updated successfully! Welcome back.");
+        navigate({ to: "/dashboard", replace: true });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Authentication failed");
+      toast.error(err instanceof Error ? err.message : "Authentication request failed");
     } finally {
       setBusy(false);
     }
@@ -150,7 +178,6 @@ function AuthPage() {
         toast.error(`Google sign-in failed: ${error.message}`);
         return;
       }
-      // If no error, Supabase will redirect to the callback URL
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
     }
@@ -163,7 +190,7 @@ function AuthPage() {
         <ThemeToggle />
       </div>
 
-      <div className="surface-card relative w-full max-w-md p-8">
+      <div className="surface-card relative w-full max-w-md p-8 rounded-3xl border border-border/80 shadow-float">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="gradient-primary flex size-9 items-center justify-center rounded-xl shadow-glow">
             <Building2 className="size-5 text-primary-foreground" />
@@ -171,22 +198,49 @@ function AuthPage() {
           <span className="font-display font-bold">Rent Receipt Pro</span>
         </Link>
 
-        <h1 className="mt-6 text-2xl font-bold">
-          {signup ? "Create your landlord account" : "Welcome back"}
+        <h1 className="mt-6 text-2xl font-bold font-display">
+          {mode === "signup"
+            ? "Create your landlord account"
+            : mode === "forgot"
+              ? "Reset your password"
+              : mode === "reset"
+                ? "Set new password"
+                : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {signup
+          {mode === "signup"
             ? "Start managing properties and issuing digital receipts."
-            : "Sign in to your Codevanta Ventures dashboard."}
+            : mode === "forgot"
+              ? "Enter your email and we'll send you a password reset link."
+              : mode === "reset"
+                ? "Enter your new secure password below."
+                : "Sign in to your Codevanta Ventures dashboard."}
         </p>
 
         {sent ? (
-          <p className="mt-6 rounded-2xl bg-accent p-4 text-sm">
-            We sent a confirmation link to <strong>{email}</strong>. Confirm it, then sign in.
-          </p>
+          <div className="mt-6 rounded-2xl bg-accent/40 border border-primary/20 p-5 text-sm space-y-3">
+            <div className="flex items-center gap-2 text-primary font-bold">
+              <MailCheck className="size-4" /> Link Sent Successfully
+            </div>
+            <p className="text-xs text-muted-foreground">
+              We sent a secure link to <strong className="text-foreground">{email}</strong>. Check your inbox and follow the instructions.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full rounded-full mt-2"
+              onClick={() => {
+                setSent(false);
+                setMode("login");
+              }}
+            >
+              ← Back to Sign In
+            </Button>
+          </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            {signup ? (
+            {mode === "signup" ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
@@ -240,31 +294,83 @@ function AuthPage() {
                 </div>
               </>
             ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                maxLength={200}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                maxLength={72}
-              />
-            </div>
 
-            {signup ? (
+            {mode !== "reset" ? (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  maxLength={200}
+                  placeholder="landlord@example.com"
+                />
+              </div>
+            ) : null}
+
+            {mode === "login" || mode === "signup" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "login" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("forgot");
+                        setSent(false);
+                      }}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  maxLength={72}
+                />
+              </div>
+            ) : null}
+
+            {mode === "reset" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="password">New Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    maxLength={72}
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    maxLength={72}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {mode === "signup" ? (
               <div className="pt-3 pb-1 border-t border-border/60">
                 <ThemePicker
                   valueMode={chosenMode}
@@ -281,8 +387,12 @@ function AuthPage() {
             <Button type="submit" className="w-full rounded-full shadow-glow" disabled={busy}>
               {busy ? (
                 <Loader2 className="size-4 animate-spin" />
-              ) : signup ? (
+              ) : mode === "signup" ? (
                 "Create account"
+              ) : mode === "forgot" ? (
+                "Send reset link"
+              ) : mode === "reset" ? (
+                "Update password"
               ) : (
                 "Sign in"
               )}
@@ -290,32 +400,51 @@ function AuthPage() {
           </form>
         )}
 
-        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-        </div>
+        {mode === "forgot" ? (
+          <div className="mt-5 text-center">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              onClick={() => {
+                setMode("login");
+                setSent(false);
+              }}
+            >
+              <ArrowLeft className="size-3" /> Back to sign in
+            </button>
+          </div>
+        ) : null}
 
-        <Button variant="outline" className="w-full rounded-full" onClick={google}>
-          Continue with Google
-        </Button>
+        {mode === "login" || mode === "signup" ? (
+          <>
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+            </div>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          {signup ? "Already have an account?" : "New to Rent Receipt Pro?"}{" "}
-          <button
-            type="button"
-            className="font-semibold text-primary hover:underline"
-            onClick={() => {
-              setSignup((v) => !v);
-              setSent(false);
-            }}
-          >
-            {signup ? "Sign in" : "Create one"}
-          </button>
-        </p>
-        <p className="mt-3 text-center text-sm">
-          <Link to="/tenant" className="text-muted-foreground hover:text-foreground">
-            I'm a tenant → open the portal
-          </Link>
-        </p>
+            <Button variant="outline" className="w-full rounded-full" onClick={google}>
+              Continue with Google
+            </Button>
+
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              {mode === "signup" ? "Already have an account?" : "New to Rent Receipt Pro?"}{" "}
+              <button
+                type="button"
+                className="font-semibold text-primary hover:underline"
+                onClick={() => {
+                  setMode((m) => (m === "signup" ? "login" : "signup"));
+                  setSent(false);
+                }}
+              >
+                {mode === "signup" ? "Sign in" : "Create one"}
+              </button>
+            </p>
+            <p className="mt-3 text-center text-sm">
+              <Link to="/tenant" className="text-muted-foreground hover:text-foreground">
+                I'm a tenant → open the portal
+              </Link>
+            </p>
+          </>
+        ) : null}
       </div>
     </div>
   );
