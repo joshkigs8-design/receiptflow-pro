@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import {
   ArrowRight,
   BarChart3,
@@ -40,9 +39,8 @@ const sidebarNav = [
 export function ProductSection() {
   return (
     <section className="relative py-28 bg-[#063B2A] text-white overflow-hidden">
-      {/* Ambient Lighting & Grid */}
+      {/* Ambient Lighting (No Grid Marks) */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(8,116,67,0.35),transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px]" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         
@@ -60,13 +58,7 @@ export function ProductSection() {
         </div>
 
         {/* Large Detailed SaaS Production Mockup Container */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="rounded-3xl p-3 sm:p-5 bg-white/10 backdrop-blur-2xl border-2 border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.5)] text-left"
-        >
+        <div className="rounded-3xl p-3 sm:p-5 bg-white/10 backdrop-blur-2xl border-2 border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.5)] text-left animate-in fade-in duration-500">
           <div className="rounded-2xl bg-[#061A13] border border-white/10 overflow-hidden shadow-2xl">
             
             {/* Top SaaS App Header */}
@@ -245,7 +237,7 @@ export function ProductSection() {
             </div>
 
           </div>
-        </motion.div>
+        </div>
 
       </div>
     </section>

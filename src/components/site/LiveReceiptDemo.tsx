@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "motion/react";
 import {
   CheckCircle2,
   Download,

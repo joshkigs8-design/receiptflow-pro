@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { Building2, Clock, FileCheck2, ShieldCheck, Sparkles, TrendingUp, Users, Wallet } from "lucide-react";
 import { Counter } from "./Counter";
 
@@ -50,15 +49,11 @@ export function SocialProof() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {metrics.map((m, idx) => (
-            <motion.div
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {metrics.map((m) => (
+            <div
               key={m.label}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="text-center space-y-1.5 p-4 rounded-2xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10"
+              className="text-center space-y-1.5 p-4 rounded-2xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 hover:border-[#087443] transition-colors"
             >
               <div className="flex justify-center">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F2ED] dark:bg-[#0D3528] text-[#063B2A] dark:text-[#52B788]">
@@ -72,11 +67,10 @@ export function SocialProof() {
               </p>
               <p className="text-xs font-bold text-[#063B2A] dark:text-[#52B788]">{m.label}</p>
               <p className="text-[11px] text-[#4A5B53] dark:text-[#94A89E]">{m.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
 }
-

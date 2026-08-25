@@ -1,18 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { motion } from "motion/react";
 import { ArrowRight, Gift, MessageCircle, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function CtaBand() {
   return (
     <section className="px-4 sm:px-6 py-24 bg-[#F7F8F5] dark:bg-[#061A13]">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] p-8 sm:p-14 text-center border-2 border-[#C9A227]/40 bg-[#063B2A] text-white shadow-[0_25px_70px_rgba(6,59,42,0.4)] space-y-6"
-      >
+      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] p-8 sm:p-14 text-center border-2 border-[#C9A227]/40 bg-[#063B2A] text-white shadow-[0_25px_70px_rgba(6,59,42,0.4)] space-y-6">
         {/* Subtle Ambient Radial Lighting */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(8,116,67,0.4),transparent_70%)]" />
 
@@ -69,7 +62,7 @@ export function CtaBand() {
             <ShieldCheck className="size-4 text-[#C9A227]" /> Cancel anytime
           </span>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

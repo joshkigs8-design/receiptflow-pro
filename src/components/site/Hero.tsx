@@ -24,8 +24,7 @@ import { Button } from "@/components/ui/button";
 export function Hero() {
   return (
     <section className="relative min-h-[90svh] flex items-center justify-center overflow-hidden pt-28 pb-16 bg-[#F7F8F5] dark:bg-[#061A13] text-[#101714] dark:text-[#F7F8F5]">
-      {/* Background Architectural Atmosphere & Soft Radial Gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#063B2A08_1px,transparent_1px),linear-gradient(to_bottom,#063B2A08_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_65%_50%_at_50%_10%,#000_70%,transparent_100%)]" />
+      {/* Background Atmosphere & Soft Radial Lighting (No Grid Marks) */}
       <div className="pointer-events-none absolute top-0 right-1/4 w-[600px] h-[350px] bg-[#087443]/10 blur-[130px] rounded-full" />
       <div className="pointer-events-none absolute top-1/3 left-10 w-[400px] h-[300px] bg-[#C9A227]/10 blur-[110px] rounded-full" />
 

@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import {
   BarChart3,
   Building2,
@@ -90,13 +89,9 @@ export function Features() {
 
         {/* Feature Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-12">
-          {featureShowcase.map((f, idx) => (
-            <motion.div
+          {featureShowcase.map((f) => (
+            <div
               key={f.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: idx * 0.08 }}
               className={`p-7 sm:p-8 rounded-3xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 hover:border-[#087443] transition-all flex flex-col justify-between group shadow-sm ${f.colSpan}`}
             >
               <div className="space-y-4">
@@ -130,7 +125,7 @@ export function Features() {
                   Explore →
                 </span>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

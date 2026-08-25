@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { ArrowRight, Building, CheckCircle2, FileCheck2, Send, Smartphone, Sparkles, Wallet } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -54,13 +53,9 @@ export function HowItWorks() {
           {/* Connecting Line (Desktop) */}
           <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-[#087443]/40 via-[#C9A227]/40 to-[#087443]/40 -z-0" />
 
-          {steps.map((s, idx) => (
-            <motion.div
+          {steps.map((s) => (
+            <div
               key={s.step}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: idx * 0.15 }}
               className="p-8 rounded-3xl bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#E2E8E4] dark:border-white/10 shadow-sm hover:border-[#087443] transition-all flex flex-col justify-between group relative z-10"
             >
               <div>
@@ -92,7 +87,7 @@ export function HowItWorks() {
               <div className="mt-8 pt-4 border-t border-[#E2E8E4] dark:border-white/10 flex items-center gap-2 text-xs font-semibold text-[#087443] dark:text-[#52B788]">
                 <CheckCircle2 className="size-4" /> Ready in seconds
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

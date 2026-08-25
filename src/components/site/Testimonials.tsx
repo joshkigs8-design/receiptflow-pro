@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { Star, Quote, Building2, CheckCircle2, Sparkles, ShieldCheck } from "lucide-react";
 
 const testimonials = [
@@ -48,13 +47,9 @@ export function Testimonials() {
         </div>
 
         <div className="mt-16 grid gap-8 md:grid-cols-3">
-          {testimonials.map((t, idx) => (
-            <motion.div
+          {testimonials.map((t) => (
+            <div
               key={t.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: idx * 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="surface-card relative p-8 rounded-3xl border border-border/80 shadow-sm flex flex-col justify-between hover:border-primary/50 hover:shadow-float transition-all duration-300"
             >
               <div>
@@ -92,7 +87,7 @@ export function Testimonials() {
                   <p className="text-[10px] text-primary font-semibold mt-0.5 truncate">{t.location}</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

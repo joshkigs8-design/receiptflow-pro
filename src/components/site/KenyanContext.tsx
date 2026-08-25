@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { CheckCircle2, Globe, MapPin, MessageCircle, QrCode, ShieldCheck, Smartphone, Sparkles, Wallet } from "lucide-react";
 
 const kenyanHighlights = [
@@ -52,17 +51,11 @@ export function KenyanContext() {
           </p>
         </div>
 
-        {/* 2-Column Layout: Lifestyle Image + Kenyan Feature Matrix */}
+        {/* 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
-          {/* Left Column: Authentic African Landlord Photography */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.8 }}
-            className="lg:col-span-5 relative"
-          >
+          {/* Left Column: Photography */}
+          <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden border-2 border-[#063B2A]/15 dark:border-white/15 shadow-[0_20px_50px_rgba(6,59,42,0.15)]">
               <img
                 src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=75"
@@ -84,17 +77,13 @@ export function KenyanContext() {
                 <p className="text-xs text-white/80">From single studio units to 200+ apartment complexes.</p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Column: 6 Local Highlights */}
+          {/* Right Column: 6 Highlights */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {kenyanHighlights.map((k, idx) => (
-              <motion.div
+            {kenyanHighlights.map((k) => (
+              <div
                 key={k.title}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: idx * 0.08 }}
                 className="p-5 rounded-3xl bg-[#F7F8F5] dark:bg-[#061A13] border border-[#E2E8E4] dark:border-white/10 space-y-2 text-left hover:border-[#087443] transition-all"
               >
                 <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F2ED] dark:bg-[#0D3528] text-[#063B2A] dark:text-[#52B788]">
@@ -106,7 +95,7 @@ export function KenyanContext() {
                 <p className="text-xs text-[#4A5B53] dark:text-[#94A89E] leading-relaxed">
                   {k.desc}
                 </p>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -116,4 +105,3 @@ export function KenyanContext() {
     </section>
   );
 }
-

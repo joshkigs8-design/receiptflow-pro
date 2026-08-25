@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { BookOpen, CheckCircle2, FileSpreadsheet, FileX2, Layers, Receipt, Search, Sparkles } from "lucide-react";
 
 const problems = [
@@ -46,17 +45,11 @@ export function ProblemSection() {
           </p>
         </div>
 
-        {/* 2-Column Editorial Grid: High-Res Lifestyle Photo + 4 Problem Cards */}
+        {/* 2-Column Editorial Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
-          {/* Left Column: Authentic African Property Executive Photography */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-5 relative"
-          >
+          {/* Left Column: Authentic Photography */}
+          <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden border-2 border-[#063B2A]/15 dark:border-white/15 shadow-[0_20px_50px_-15px_rgba(6,59,42,0.2)]">
               <img
                 src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=75"
@@ -75,17 +68,13 @@ export function ProblemSection() {
                 <p className="text-[10px] text-[#C9A227] font-semibold pt-1">Nairobi, Kenya</p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Column: 4 Elegant Editorial Cards */}
+          {/* Right Column: 4 Editorial Cards */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {problems.map((p, idx) => (
-              <motion.div
+            {problems.map((p) => (
+              <div
                 key={p.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
                 className="p-6 rounded-3xl bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#E2E8E4] dark:border-white/10 shadow-sm hover:border-[#087443] transition-all space-y-3 text-left group"
               >
                 <div className="flex items-center justify-between">
@@ -106,7 +95,7 @@ export function ProblemSection() {
                     {p.explanation}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -115,4 +104,3 @@ export function ProblemSection() {
     </section>
   );
 }
-

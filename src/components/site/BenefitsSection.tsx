@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { CheckCircle2, Clock, FolderGit2, Layers, Sparkles, TrendingUp, Wallet } from "lucide-react";
 
 const benefits = [
@@ -56,13 +55,9 @@ export function BenefitsSection() {
 
         {/* 4 Large Premium Cards */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {benefits.map((b, idx) => (
-            <motion.div
+          {benefits.map((b) => (
+            <div
               key={b.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
               className="p-7 rounded-3xl bg-[#FFFFFF] dark:bg-[#0A261D] border border-[#E2E8E4] dark:border-white/10 shadow-sm hover:border-[#087443] transition-all flex flex-col justify-between group text-left"
             >
               <div className="space-y-4">
@@ -88,7 +83,7 @@ export function BenefitsSection() {
               <div className="mt-6 pt-4 border-t border-[#E2E8E4] dark:border-white/10 text-xs font-bold text-[#087443] dark:text-[#52B788] flex items-center gap-1.5">
                 <CheckCircle2 className="size-3.5" /> {b.metric}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -96,4 +91,3 @@ export function BenefitsSection() {
     </section>
   );
 }
-
