@@ -15,6 +15,14 @@ export interface AccentThemeOption {
 
 export const ACCENT_THEMES: AccentThemeOption[] = [
   {
+    id: "sapphire",
+    name: "Royal Sapphire",
+    tagline: "Corporate Executive & Azure",
+    colorHex: "#2563EB",
+    bgHex: "from-blue-600 to-indigo-800",
+    ringHex: "ring-blue-500",
+  },
+  {
     id: "emerald",
     name: "Emerald Safari",
     tagline: "Kenya Green & Fintech Trust",
@@ -23,12 +31,12 @@ export const ACCENT_THEMES: AccentThemeOption[] = [
     ringHex: "ring-emerald-500",
   },
   {
-    id: "sapphire",
-    name: "Royal Sapphire",
-    tagline: "Corporate Executive & Azure",
-    colorHex: "#2563EB",
-    bgHex: "from-blue-600 to-indigo-800",
-    ringHex: "ring-blue-500",
+    id: "amber",
+    name: "Sunset Amber",
+    tagline: "Warm Copper & Energy",
+    colorHex: "#F59E0B",
+    bgHex: "from-amber-500 to-orange-600",
+    ringHex: "ring-amber-500",
   },
   {
     id: "amethyst",
@@ -48,7 +56,7 @@ export const ACCENT_THEMES: AccentThemeOption[] = [
   },
 ];
 
-export const themeInitScript = `(function(){try{var m=localStorage.getItem('rrp-theme')||'system';var isDark=m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',isDark);var a=localStorage.getItem('rrp-accent')||'amber';document.documentElement.setAttribute('data-accent',a);}catch(e){}})();`;
+export const themeInitScript = `(function(){try{var m=localStorage.getItem('rrp-theme')||'system';var isDark=m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',isDark);var a=localStorage.getItem('rrp-accent')||'sapphire';document.documentElement.setAttribute('data-accent',a);}catch(e){}})();`;
 
 /**
  * Apply theme mode and accent palette directly to document and persist in localStorage
@@ -57,6 +65,7 @@ export function applyTheme(mode: ThemeMode, accent: ThemeAccent) {
   if (typeof window === "undefined") return;
 
   try {
+    localStorage.setItem("rrp-theme", mode);
     localStorage.setItem("rrp-accent", accent);
   } catch {
     /* ignore storage failure */
@@ -75,16 +84,17 @@ export function applyTheme(mode: ThemeMode, accent: ThemeAccent) {
  */
 export function useTheme() {
   const [mode, setModeState] = useState<ThemeMode>("system");
-  const [accent, setAccentState] = useState<ThemeAccent>("amber");
+  const [accent, setAccentState] = useState<ThemeAccent>("sapphire");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     try {
       const storedMode = (localStorage.getItem("rrp-theme") as ThemeMode) || "system";
-      const storedAccent = (localStorage.getItem("rrp-accent") as ThemeAccent) || "amber";
+      const storedAccent = (localStorage.getItem("rrp-accent") as ThemeAccent) || "sapphire";
       setModeState(storedMode);
       setAccentState(storedAccent);
+      applyTheme(storedMode, storedAccent);
     } catch {
       /* ignore */
     }

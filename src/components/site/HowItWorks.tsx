@@ -7,38 +7,41 @@ const steps = [
   {
     step: "01",
     icon: Building,
-    title: "Add Properties & Tenants",
-    description: "Input your buildings, apartments, rooms, and assign tenants with their rent amounts in under 2 minutes.",
-    badge: "Quick Setup",
+    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80",
+    title: "Add Properties & Units",
+    description: "Map your buildings, apartments, and assign tenants with rent amounts in under 2 minutes (or send us your list and we'll import it).",
+    badge: "Quick 2-Min Setup",
   },
   {
     step: "02",
     icon: Wallet,
+    image: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600&auto=format&fit=crop&q=80",
     title: "Record Rent Collection",
-    description: "Enter payments received via M-Pesa, bank transfer, cheque, or cash. Automatic balance calculation handles partial payments.",
-    badge: "M-Pesa Ready",
+    description: "Log payments received via M-Pesa Till/Paybill, Bank transfers, Cheques, or Cash. Automatic balance calculation handles partial payments.",
+    badge: "M-Pesa Auto-Match",
   },
   {
     step: "03",
     icon: Send,
-    title: "Instant Verified Digital Receipt",
-    description: "A tamper-proof PDF with cryptographic QR code is generated instantly. Share on WhatsApp or SMS in a single click.",
-    badge: "Instant Delivery",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80",
+    title: "Instant QR Digital Receipt",
+    description: "A tamper-proof PDF with cryptographic QR code is generated instantly. Dispatched to the tenant's WhatsApp in a single click.",
+    badge: "3-Sec WhatsApp Delivery",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="relative py-24 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-3xl text-center">
+    <section className="relative py-28 overflow-hidden bg-background">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl text-center space-y-3">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5 text-primary" /> Seamless Workflow
+            <Sparkles className="size-3.5 text-primary" /> Seamless 3-Step Operations
           </span>
-          <h2 className="mt-4 font-display text-3xl font-bold sm:text-5xl">
-            How RentReceiptPro Works
+          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
+            How RentReceiptPro works
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground">
+          <p className="text-base sm:text-lg text-muted-foreground">
             No more manual paper receipt books or lost records. Run your entire rental operations in three effortless steps.
           </p>
         </div>
@@ -49,38 +52,46 @@ export function HowItWorks() {
               key={s.step}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: idx * 0.15 }}
-              className="surface-card relative p-8 rounded-3xl border border-border/80 shadow-sm flex flex-col justify-between hover:shadow-glow transition-all duration-300 group"
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: idx * 0.12, ease: [0.16, 1, 0.3, 1] }}
+              className="surface-card group relative overflow-hidden rounded-3xl border border-border/80 shadow-sm flex flex-col justify-between hover:border-primary/50 hover:shadow-float transition-all duration-300"
             >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-3xl font-black text-primary/30 group-hover:text-primary transition-colors">
-                    {s.step}
-                  </span>
-                  <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-[11px] font-bold">
-                    {s.badge}
-                  </span>
-                </div>
-
-                <div className="mt-6 flex size-14 items-center justify-center rounded-2xl bg-accent group-hover:scale-110 transition-transform text-primary">
-                  <s.icon className="size-7" />
-                </div>
-
-                <h3 className="mt-6 font-display text-xl font-bold">{s.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+              <div className="relative h-48 w-full overflow-hidden border-b border-border/60">
+                <img
+                  src={s.image}
+                  alt={s.title}
+                  className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+                <span className="absolute top-4 left-4 font-mono text-2xl font-black text-white bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20">
+                  {s.step}
+                </span>
+                <span className="absolute top-4 right-4 rounded-full bg-primary text-primary-foreground px-3 py-1 text-[10px] font-bold shadow-md">
+                  {s.badge}
+                </span>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-border/60 flex items-center gap-2 text-xs font-semibold text-primary">
-                <CheckCircle2 className="size-4" /> Ready in seconds
+              <div className="p-6 sm:p-7 space-y-3 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-display text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                    {s.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                    {s.description}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-border/60 flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="size-4" /> Ready in seconds
+                </div>
               </div>
             </motion.div>
           ))}
         </div>
 
         {/* Action Callout */}
-        <div className="mt-12 text-center">
-          <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8">
+        <div className="mt-14 text-center">
+          <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12 text-sm">
             <Link to="/auth" search={{ mode: "signup" }}>
               Get Started In 2 Minutes <ArrowRight className="ml-2 size-4" />
             </Link>
@@ -90,4 +101,3 @@ export function HowItWorks() {
     </section>
   );
 }
-
