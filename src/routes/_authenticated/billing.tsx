@@ -158,14 +158,14 @@ function BillingPage() {
 
   return (
     <AppShell title="Billing" description="Your Rent Receipt Pro subscription and payment history">
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8 max-w-full overflow-hidden">
         {/* Current Status Header Card */}
-        <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-6 rounded-3xl border border-border/80 shadow-sm">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Current status</p>
-            <p className="mt-1 font-display text-xl font-bold">{statusLabel}</p>
+        <div className="surface-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/80 shadow-sm">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Current status</p>
+            <p className="mt-1 font-display text-lg sm:text-xl font-bold truncate">{statusLabel}</p>
             {data ? (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
                 {data.active
                   ? `Access valid until ${shortDate(data.endsAt)}`
                   : `Ended ${shortDate(data.endsAt)}`}
@@ -173,8 +173,8 @@ function BillingPage() {
             ) : null}
           </div>
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold ${
-              data?.active ? "gradient-primary text-primary-foreground shadow-glow" : "bg-muted"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold self-start sm:self-auto shrink-0 ${
+              data?.active ? "gradient-primary text-primary-foreground shadow-glow" : "bg-muted text-foreground"
             }`}
           >
             {data?.onTrial ? <Sparkles className="size-3.5" /> : <BadgeCheck className="size-3.5" />}
@@ -182,35 +182,41 @@ function BillingPage() {
           </span>
         </div>
 
-        {/* Main Production Plan Cards */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Main Production Plan Cards Grid */}
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {(["monthly", "quarterly", "semiannual", "yearly"] as PlanKey[]).map((key) => {
             const plan = PLANS[key];
             const best = key === "yearly";
             return (
               <div
                 key={key}
-                className={`surface-card relative flex flex-col justify-between overflow-hidden p-6 sm:p-7 rounded-3xl ${best ? "ring-2 ring-primary shadow-glow" : ""}`}
+                className={`surface-card relative flex flex-col justify-between overflow-hidden p-5 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all ${
+                  best
+                    ? "border-primary ring-2 ring-primary/40 shadow-glow bg-gradient-to-b from-primary/5 via-card to-card"
+                    : "border-border/80 hover:border-primary/50"
+                }`}
               >
                 <div>
                   {plan.badge ? (
-                    <span className="gradient-primary absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="gradient-primary absolute right-4 top-4 rounded-full px-2.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-primary-foreground shadow-sm">
                       {plan.badge}
                     </span>
                   ) : null}
-                  <h3 className="font-display text-lg font-bold">{plan.label}</h3>
-                  <p className="mt-3 font-display text-3xl sm:text-4xl font-bold">
-                    {money(plan.amount)}
-                    <span className="ml-1 text-xs sm:text-sm font-medium text-muted-foreground">
+                  <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{plan.label}</h3>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    <span className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                      {money(plan.amount)}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
                       /{plan.periodLabel}
                     </span>
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{plan.blurb}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground leading-snug">{plan.blurb}</p>
 
-                  <ul className="mt-6 space-y-2.5 text-xs sm:text-sm">
+                  <ul className="mt-5 space-y-2 text-xs">
                     {perks.map((p) => (
                       <li key={p} className="flex items-start gap-2">
-                        <Check className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-primary" />
+                        <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
                         <span className="text-muted-foreground">{p}</span>
                       </li>
                     ))}
@@ -218,7 +224,7 @@ function BillingPage() {
                 </div>
 
                 <Button
-                  className="mt-7 w-full rounded-full shadow-glow font-semibold"
+                  className="mt-6 w-full rounded-full shadow-glow font-semibold h-11 text-xs sm:text-sm"
                   variant={best ? "default" : "outline"}
                   disabled={pending !== null}
                   onClick={() => pay(key)}
@@ -236,22 +242,20 @@ function BillingPage() {
           })}
         </div>
 
-        {/* ------------------------------------------------------------- */}
-        {/* VIP CONCIERGE / DONE-FOR-YOU DATA ENTRY & ONBOARDING PACKAGES  */}
-        {/* ------------------------------------------------------------- */}
-        <div className="surface-card relative overflow-hidden p-6 sm:p-8 rounded-3xl border-2 border-primary/40 bg-gradient-to-br from-primary/5 via-card to-background shadow-glow">
+        {/* VIP CONCIERGE / DONE-FOR-YOU DATA ENTRY PACKAGES */}
+        <div className="surface-card relative overflow-hidden p-5 sm:p-7 rounded-2xl sm:rounded-3xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-background shadow-sm">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-0.5 text-xs font-bold text-primary">
                 <Sparkles className="size-3.5" /> VIP Done-For-You Data Setup
               </div>
-              <h3 className="font-display text-xl sm:text-2xl font-bold">
+              <h3 className="font-display text-lg sm:text-2xl font-bold leading-snug">
                 Too busy to type in your tenants? We'll enter everything for you!
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                 Send us your tenant list, room numbers, rent amounts and arrears via <strong>WhatsApp, Excel or PDF photos</strong>. Our dedicated concierge team will input, map, and verify your entire property portfolio within 24 hours.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs font-medium text-foreground">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs font-medium text-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-primary shrink-0" />
                   <span>All properties, units &amp; tenant records entered</span>
@@ -273,17 +277,17 @@ function BillingPage() {
 
             <div className="w-full lg:w-80 space-y-3 shrink-0">
               {/* Option 1: 1-Time Setup Service */}
-              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm space-y-2.5">
+              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">1-Time Concierge Setup</span>
-                  <span className="font-display font-bold text-base text-primary">KSh 2,500</span>
+                  <span className="font-display font-bold text-sm sm:text-base text-primary">KSh 2,500</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground leading-snug">
                   Complete portfolio data migration + 1 month system access.
                 </p>
                 <Button
                   size="sm"
-                  className="w-full rounded-full shadow-glow text-xs"
+                  className="w-full rounded-full shadow-glow text-xs h-9"
                   disabled={pending !== null}
                   onClick={() => pay("concierge_setup")}
                 >
@@ -296,20 +300,20 @@ function BillingPage() {
               </div>
 
               {/* Option 2: VIP Annual Concierge Bundle */}
-              <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary shadow-sm space-y-2.5">
+              <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary shadow-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-primary flex items-center gap-1">
                     <Sparkles className="size-3" /> VIP Annual Bundle
                   </span>
-                  <span className="font-display font-bold text-base text-primary">KSh 5,500 / yr</span>
+                  <span className="font-display font-bold text-sm sm:text-base text-primary">KSh 5,500 / yr</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground leading-snug">
                   1-Year Unlimited Subscription + Full Setup included (Save KSh 1,000).
                 </p>
                 <Button
                   size="sm"
                   variant="default"
-                  className="w-full rounded-full shadow-glow text-xs font-bold"
+                  className="w-full rounded-full shadow-glow text-xs font-bold h-9"
                   disabled={pending !== null}
                   onClick={() => pay("concierge_annual")}
                 >
@@ -333,98 +337,165 @@ function BillingPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground px-2">
           Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 14 days
           free. Need help? WhatsApp 0742868209.
         </p>
 
         {/* Subscription Payment History Ledger & Official Receipts */}
-        <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+        <div className="surface-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/80 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="font-display text-base font-bold flex items-center gap-2">
+              <h3 className="font-display text-sm sm:text-base font-bold flex items-center gap-2">
                 <FileCheck2 className="size-4 text-primary" /> Platform Payment History &amp; Receipts
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Click any payment to open the animated receipt printer and download official tax receipts for your business deductions.
               </p>
             </div>
-            <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto">
+            <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto shrink-0">
               {data?.history.length ?? 0} Recorded
             </Badge>
           </div>
 
-          {data?.history.length ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead className="text-left text-xs uppercase text-muted-foreground border-b border-border/60">
-                  <tr>
-                    <th className="pb-3">Date</th>
-                    <th className="pb-3">Plan</th>
-                    <th className="pb-3">Amount</th>
-                    <th className="pb-3">Reference</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Receipt Terminal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {data.history.map((row) => (
-                    <tr key={row.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 text-xs font-mono">{shortDate(row.paid_at ?? row.created_at)}</td>
-                      <td className="py-3 capitalize font-semibold text-xs">
-                        {PLANS[(row.plan as PlanKey) ?? "monthly"]?.label ?? row.plan}
-                      </td>
-                      <td className="py-3 font-display font-bold text-xs text-emerald-500">
+          {data?.history?.length ? (
+            <div>
+              {/* Mobile Card Layout (< 640px) */}
+              <div className="space-y-3 sm:hidden mt-3">
+                {data.history.map((row) => (
+                  <div
+                    key={row.id}
+                    className="p-3.5 rounded-2xl bg-muted/20 border border-border/70 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-mono font-medium text-muted-foreground">
+                        {shortDate(row.paid_at ?? row.created_at)}
+                      </span>
+                      <Badge
+                        variant={row.status === "success" ? "default" : "secondary"}
+                        className={`text-[10px] uppercase font-bold px-2 py-0.2 ${
+                          row.status === "success"
+                            ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                            : ""
+                        }`}
+                      >
+                        {row.status === "success" ? "Paid & Settled" : row.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-xs text-foreground capitalize">
+                          {PLANS[(row.plan as PlanKey) ?? "monthly"]?.label ?? row.plan}
+                        </p>
+                        <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[170px]">
+                          Ref: {row.reference}
+                        </p>
+                      </div>
+                      <span className="font-display font-black text-sm text-emerald-600">
                         {money(row.amount)}
-                      </td>
-                      <td className="py-3 font-mono text-xs text-muted-foreground">
-                        {row.reference}
-                      </td>
-                      <td className="py-3">
-                        <Badge
-                          variant={row.status === "success" ? "default" : "secondary"}
-                          className={`text-[10px] uppercase font-bold ${
-                            row.status === "success"
-                              ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                              : ""
-                          }`}
-                        >
-                          {row.status === "success" ? "Paid & Settled" : row.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full h-8 px-2.5 text-xs gap-1"
-                            onClick={() => setSelectedPayment(row as SubscriptionPaymentRecord)}
-                          >
-                            <Eye className="size-3 text-primary" /> Print / View
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="rounded-full h-8 px-2.5 text-xs gap-1 shadow-glow"
-                            disabled={downloadingId === row.id}
-                            onClick={() => handleDownloadPdf(row as SubscriptionPaymentRecord)}
-                          >
-                            {downloadingId === row.id ? (
-                              <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                              <Download className="size-3" />
-                            )}
-                            PDF
-                          </Button>
-                        </div>
-                      </td>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-full h-8 text-xs gap-1"
+                        onClick={() => setSelectedPayment(row as SubscriptionPaymentRecord)}
+                      >
+                        <Eye className="size-3 text-primary" /> View Receipt
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 rounded-full h-8 text-xs gap-1 shadow-glow"
+                        disabled={downloadingId === row.id}
+                        onClick={() => handleDownloadPdf(row as SubscriptionPaymentRecord)}
+                      >
+                        {downloadingId === row.id ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <Download className="size-3" />
+                        )}
+                        Download PDF
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop / Tablet Table Layout (>= 640px) */}
+              <div className="hidden sm:block mt-4 overflow-x-auto">
+                <table className="w-full text-sm min-w-[620px]">
+                  <thead className="text-left text-xs uppercase text-muted-foreground border-b border-border/60">
+                    <tr>
+                      <th className="pb-3">Date</th>
+                      <th className="pb-3">Plan</th>
+                      <th className="pb-3">Amount</th>
+                      <th className="pb-3">Reference</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3 text-right">Receipt Terminal</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {data.history.map((row) => (
+                      <tr key={row.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 text-xs font-mono">{shortDate(row.paid_at ?? row.created_at)}</td>
+                        <td className="py-3 capitalize font-semibold text-xs">
+                          {PLANS[(row.plan as PlanKey) ?? "monthly"]?.label ?? row.plan}
+                        </td>
+                        <td className="py-3 font-display font-bold text-xs text-emerald-600">
+                          {money(row.amount)}
+                        </td>
+                        <td className="py-3 font-mono text-xs text-muted-foreground">
+                          {row.reference}
+                        </td>
+                        <td className="py-3">
+                          <Badge
+                            variant={row.status === "success" ? "default" : "secondary"}
+                            className={`text-[10px] uppercase font-bold ${
+                              row.status === "success"
+                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                : ""
+                            }`}
+                          >
+                            {row.status === "success" ? "Paid & Settled" : row.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1"
+                              onClick={() => setSelectedPayment(row as SubscriptionPaymentRecord)}
+                            >
+                              <Eye className="size-3 text-primary" /> Print / View
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1 shadow-glow"
+                              disabled={downloadingId === row.id}
+                              onClick={() => handleDownloadPdf(row as SubscriptionPaymentRecord)}
+                            >
+                              {downloadingId === row.id ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                <Download className="size-3" />
+                              )}
+                              PDF
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground italic py-4 text-center">
-              No subscription payments recorded yet. Test a payment using the 2 Shillings Test button above.
+              No subscription payments recorded yet.
             </p>
           )}
         </div>
@@ -432,9 +503,9 @@ function BillingPage() {
 
       {/* Animated Physical Receipt Printer Dialog */}
       <Dialog open={selectedPayment !== null} onOpenChange={(open) => !open && setSelectedPayment(null)}>
-        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto rounded-3xl p-5 sm:p-6 bg-background border-border">
+        <DialogContent className="w-[95vw] max-w-md max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 bg-background border-border">
           <DialogHeader className="text-center pb-1">
-            <DialogTitle className="font-display text-lg font-bold">
+            <DialogTitle className="font-display text-base sm:text-lg font-bold">
               Subscription Receipt Terminal
             </DialogTitle>
             <DialogDescription className="text-xs">
