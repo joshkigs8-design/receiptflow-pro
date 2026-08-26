@@ -10,6 +10,10 @@ const steps = [
     subtitle: "Add your properties, units and tenants.",
     description: "Map your buildings, apartments, and assign tenants with rent amounts in under 2 minutes (or send us your tenant list and we'll import it for you).",
     badge: "Quick 2-Min Setup",
+    linkTo: "/auth",
+    search: { mode: "signup" },
+    href: undefined,
+    cta: "Explore Setup →",
   },
   {
     step: "02",
@@ -18,6 +22,10 @@ const steps = [
     subtitle: "Record and monitor rental payments effortlessly.",
     description: "Log payments received via M-PESA, Bank transfers, Cheques, or Cash. Automatic balance calculation handles partial payments and arrears with zero math.",
     badge: "M-PESA Friendly",
+    linkTo: undefined,
+    search: undefined,
+    href: "#demo",
+    cta: "Explore Payment Demo →",
   },
   {
     step: "03",
@@ -26,6 +34,10 @@ const steps = [
     subtitle: "Generate professional receipts and send them instantly.",
     description: "A tamper-proof PDF with cryptographic QR code is generated instantly and dispatched directly to the tenant's WhatsApp in a single click.",
     badge: "Instant WhatsApp Dispatch",
+    linkTo: undefined,
+    search: undefined,
+    href: "#demo",
+    cta: "Explore Live Receipt →",
   },
 ];
 
@@ -84,15 +96,34 @@ export function HowItWorks() {
                 </p>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-[#E2E8E4] dark:border-white/10 flex items-center gap-2 text-xs font-semibold text-[#087443] dark:text-[#52B788]">
-                <CheckCircle2 className="size-4" /> Ready in seconds
+              <div className="mt-8 pt-4 border-t border-[#E2E8E4] dark:border-white/10 flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1 text-[#087443] dark:text-[#52B788]">
+                  <CheckCircle2 className="size-4" /> Ready in seconds
+                </span>
+
+                {s.linkTo ? (
+                  <Link
+                    to={s.linkTo}
+                    search={s.search as any}
+                    className="text-[#C9A227] hover:text-[#087443] font-bold group-hover:translate-x-1 transition-all inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {s.cta}
+                  </Link>
+                ) : (
+                  <a
+                    href={s.href}
+                    className="text-[#C9A227] hover:text-[#087443] font-bold group-hover:translate-x-1 transition-all inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {s.cta}
+                  </a>
+                )}
               </div>
             </div>
           ))}
         </div>
 
         {/* Action CTA */}
-        <div className="mt-14 text-center">
+        <div className="mt-14 text-center flex flex-wrap justify-center items-center gap-4">
           <Button
             asChild
             size="lg"
@@ -101,6 +132,15 @@ export function HowItWorks() {
             <Link to="/auth" search={{ mode: "signup" }}>
               Get Started In 2 Minutes <ArrowRight className="ml-2 size-4 text-[#C9A227]" />
             </Link>
+          </Button>
+
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="rounded-full border-[#063B2A]/20 bg-[#FFFFFF] text-[#101714] hover:bg-[#E8F2ED] h-12 px-6 text-sm font-bold shadow-sm"
+          >
+            <a href="#demo">Explore Live Demo Simulator →</a>
           </Button>
         </div>
 

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
@@ -26,6 +27,10 @@ const featureShowcase = [
       "Manage single apartments, multi-story residential blocks, commercial spaces, and student hostels with dedicated unit breakdown and occupancy tracking.",
     colSpan: "lg:col-span-6",
     highlight: "Unlimited properties & units",
+    linkTo: "/auth",
+    search: { mode: "signup" },
+    href: undefined,
+    ctaText: "Explore Properties →",
   },
   {
     icon: Wallet,
@@ -36,6 +41,10 @@ const featureShowcase = [
       "Log M-PESA Paybill, Till numbers, Bank transfers, Cheques, or Cash. Partial payments auto-adjust remaining balances without manual math.",
     colSpan: "lg:col-span-6",
     highlight: "Instant balance auto-matching",
+    linkTo: undefined,
+    search: undefined,
+    href: "#demo",
+    ctaText: "Explore Payment Demo →",
   },
   {
     icon: FileCheck2,
@@ -46,6 +55,10 @@ const featureShowcase = [
       "Every generated receipt contains a cryptographically verified public QR code. Dispatched straight to tenant WhatsApp with official landlord digital seal.",
     colSpan: "lg:col-span-4",
     highlight: "Tamper-proof & branded PDF",
+    linkTo: undefined,
+    search: undefined,
+    href: "#demo",
+    ctaText: "Explore Live Receipts →",
   },
   {
     icon: Users,
@@ -56,6 +69,10 @@ const featureShowcase = [
       "Store leases, tenant contact details, payment history, and emergency contacts. Tenants log in via OTP to download historical tax receipts on demand.",
     colSpan: "lg:col-span-4",
     highlight: "Self-service tenant portal",
+    linkTo: "/tenant",
+    search: undefined,
+    href: undefined,
+    ctaText: "Explore Tenant Portal →",
   },
   {
     icon: BarChart3,
@@ -66,6 +83,10 @@ const featureShowcase = [
       "Export rental income ledgers, occupancy percentages, and arrears statements formatted for Kenyan accountants and KRA annual tax filings.",
     colSpan: "lg:col-span-4",
     highlight: "1-Click PDF / Excel export",
+    linkTo: "/auth",
+    search: { mode: "signup" },
+    href: undefined,
+    ctaText: "Explore Tax Reports →",
   },
 ];
 
@@ -121,9 +142,23 @@ export function Features() {
                 <span className="flex items-center gap-1.5 text-[#087443] dark:text-[#52B788]">
                   <CheckCircle2 className="size-4" /> {f.highlight}
                 </span>
-                <span className="text-[#C9A227] font-bold group-hover:translate-x-1 transition-transform">
-                  Explore →
-                </span>
+
+                {f.linkTo ? (
+                  <Link
+                    to={f.linkTo}
+                    search={f.search as any}
+                    className="text-[#C9A227] hover:text-[#087443] font-bold group-hover:translate-x-1 transition-all inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {f.ctaText}
+                  </Link>
+                ) : (
+                  <a
+                    href={f.href}
+                    className="text-[#C9A227] hover:text-[#087443] font-bold group-hover:translate-x-1 transition-all inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {f.ctaText}
+                  </a>
+                )}
               </div>
             </div>
           ))}
