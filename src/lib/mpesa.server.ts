@@ -85,6 +85,12 @@ export async function generateDarajaAccessToken(
   return json.access_token;
 }
 
+export const DARAJA_SANDBOX_DEFAULTS = {
+  shortcode: "174379",
+  passkey: "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
+  transaction_type: "CustomerPayBillOnline" as const,
+};
+
 /**
  * Sends a Lipa Na M-Pesa Online STK Push request to Safaricom Daraja
  */
@@ -104,9 +110,16 @@ export async function sendDarajaStkPush(params: {
 }> {
   const { config, phoneNumber, amount, accountReference, transactionDesc, callbackUrl } = params;
 
+  const shortcode = config.shortcode?.trim() || (config.environment === "sandbox" ? DARAJA_SANDBOX_DEFAULTS.shortcode : "");
+  const passkey = config.passkey?.trim() || (config.environment === "sandbox" ? DARAJA_SANDBOX_DEFAULTS.passkey : "");
+
+  if (!shortcode || !passkey) {
+    throw new Error("M-Pesa Shortcode and Passkey are required.");
+  }
+
   const normalizedPhone = normalizeKenyanPhone(phoneNumber);
   const timestamp = getDarajaTimestamp();
-  const password = Buffer.from(`${config.shortcode.trim()}${config.passkey.trim()}${timestamp}`).toString("base64");
+  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
 
   const accessToken = await generateDarajaAccessToken(
     config.consumer_key,
@@ -116,13 +129,13 @@ export async function sendDarajaStkPush(params: {
 
   const baseUrl = getDarajaBaseUrl(config.environment);
   const payload = {
-    BusinessShortCode: config.shortcode.trim(),
+    BusinessShortCode: shortcode,
     Password: password,
     Timestamp: timestamp,
     TransactionType: config.transaction_type || "CustomerPayBillOnline",
     Amount: Math.round(amount),
     PartyA: normalizedPhone,
-    PartyB: config.shortcode.trim(),
+    PartyB: shortcode,
     PhoneNumber: normalizedPhone,
     CallBackURL: callbackUrl,
     AccountReference: accountReference.slice(0, 12),
@@ -259,3 +272,4 @@ export async function saveLandlordMpesaConfig(
     console.error("Profile metadata update failed:", e);
   }
 }
+

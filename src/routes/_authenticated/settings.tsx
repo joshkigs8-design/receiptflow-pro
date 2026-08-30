@@ -336,9 +336,14 @@ function SettingsPage() {
           <Field label="Environment" htmlFor="env">
             <Select
               value={mpesaForm.environment}
-              onValueChange={(v: "sandbox" | "production") =>
-                setMpesaForm({ ...mpesaForm, environment: v })
-              }
+              onValueChange={(v: "sandbox" | "production") => {
+                const next = { ...mpesaForm, environment: v };
+                if (v === "sandbox" && (!mpesaForm.shortcode || !mpesaForm.passkey)) {
+                  next.shortcode = "174379";
+                  next.passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
+                }
+                setMpesaForm(next);
+              }}
             >
               <SelectTrigger id="env" className="font-semibold">
                 <SelectValue placeholder="Select environment" />
@@ -360,6 +365,36 @@ function SettingsPage() {
               className="font-mono uppercase font-semibold"
             />
           </Field>
+
+          {mpesaForm.environment === "sandbox" && (
+            <div className="sm:col-span-2 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <Sparkles className="size-3.5" /> Safaricom Sandbox Testing Mode
+                </span>
+                <p className="text-muted-foreground text-[11px]">
+                  Standard Sandbox Shortcode: <strong>174379</strong> · Passkey is pre-filled. You only need your Consumer Key &amp; Secret from Safaricom Daraja.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs h-7 px-3 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 shrink-0 self-start sm:self-auto font-semibold"
+                onClick={() => {
+                  setMpesaForm((prev) => ({
+                    ...prev,
+                    shortcode: "174379",
+                    passkey: "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
+                    transaction_type: "CustomerPayBillOnline",
+                  }));
+                  toast.success("Applied standard Safaricom Sandbox Shortcode (174379) & Passkey!");
+                }}
+              >
+                Auto-fill Sandbox Defaults
+              </Button>
+            </div>
+          )}
 
           <Field label="Daraja Consumer Key" htmlFor="ck" className="sm:col-span-2">
             <Input

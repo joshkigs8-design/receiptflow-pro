@@ -81,3 +81,4 @@ CREATE POLICY "landlord own mpesa config update" ON public.landlord_mpesa_config
 CREATE POLICY "landlord own mpesa transactions read" ON public.mpesa_transactions
   FOR SELECT TO authenticated
   USING (landlord_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+
