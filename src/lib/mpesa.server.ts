@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export interface LandlordMpesaConfig {
@@ -11,6 +12,53 @@ export interface LandlordMpesaConfig {
   environment: "sandbox" | "production";
   account_reference_prefix?: string | null;
   is_active: boolean;
+}
+
+const MASTER_SECRET =
+  process.env["APP_ENCRYPTION_KEY"] ||
+  process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
+  "rentreceipt-mpesa-vault-master-key-2026";
+
+const ENCRYPTION_KEY = crypto.createHash("sha256").update(MASTER_SECRET).digest();
+
+/**
+ * Encrypts a sensitive credential using AES-256-GCM before storing in database
+ */
+export function encryptSecret(plainText: string): string {
+  if (!plainText || plainText.startsWith("enc:v1:")) return plainText;
+  try {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(plainText, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    const authTag = cipher.getAuthTag().toString("hex");
+    return `enc:v1:${iv.toString("hex")}:${authTag}:${encrypted}`;
+  } catch (err) {
+    return plainText;
+  }
+}
+
+/**
+ * Decrypts an AES-256-GCM encrypted credential in memory on backend
+ */
+export function decryptSecret(cipherText: string): string {
+  if (!cipherText || !cipherText.startsWith("enc:v1:")) return cipherText;
+  try {
+    const parts = cipherText.split(":");
+    const ivHex = parts[2];
+    const authTagHex = parts[3];
+    const encryptedHex = parts[4];
+    if (parts.length !== 5 || !ivHex || !authTagHex || !encryptedHex) return cipherText;
+
+    const iv = Buffer.from(ivHex, "hex");
+    const authTag = Buffer.from(authTagHex, "hex");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
+    const decrypted = decipher.update(encryptedHex, "hex", "utf8") + decipher.final("utf8");
+    return decrypted;
+  } catch (err) {
+    return cipherText;
+  }
 }
 
 /**
@@ -162,7 +210,7 @@ export async function sendDarajaStkPush(params: {
 }
 
 /**
- * Retrieves the active M-Pesa configuration for a landlord
+ * Retrieves the active M-Pesa configuration for a landlord with decrypted secrets
  */
 export async function getLandlordMpesaConfig(landlordId: string): Promise<LandlordMpesaConfig | null> {
   const { data: config, error } = await supabaseAdmin
@@ -173,14 +221,18 @@ export async function getLandlordMpesaConfig(landlordId: string): Promise<Landlo
     .maybeSingle();
 
   if (!error && config) {
-    return config as LandlordMpesaConfig;
+    return {
+      ...(config as LandlordMpesaConfig),
+      consumer_secret: decryptSecret(config.consumer_secret),
+      passkey: decryptSecret(config.passkey),
+    };
   }
 
   return null;
 }
 
 /**
- * Saves or updates landlord M-Pesa configuration in the secure landlord_mpesa_configs table
+ * Saves or updates landlord M-Pesa configuration in the secure landlord_mpesa_configs table with AES-256-GCM encryption at rest
  */
 export async function saveLandlordMpesaConfig(
   landlordId: string,
@@ -190,8 +242,8 @@ export async function saveLandlordMpesaConfig(
     landlord_id: landlordId,
     shortcode: config.shortcode.trim(),
     consumer_key: config.consumer_key.trim(),
-    consumer_secret: config.consumer_secret.trim(),
-    passkey: config.passkey.trim(),
+    consumer_secret: encryptSecret(config.consumer_secret.trim()),
+    passkey: encryptSecret(config.passkey.trim()),
     transaction_type: config.transaction_type,
     environment: config.environment,
     account_reference_prefix: config.account_reference_prefix?.trim() || "RRP",

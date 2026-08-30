@@ -77,7 +77,12 @@ import {
   startProcessingWithdrawal,
   updateLandlordSubscription,
 } from "@/lib/admin.functions";
-import { listAdminMpesaTransactions } from "@/lib/mpesa.functions";
+import {
+  getAdminLandlordMpesaSettings,
+  listAdminMpesaTransactions,
+  saveAdminLandlordMpesaSettings,
+  testLandlordMpesaConnection,
+} from "@/lib/mpesa.functions";
 import { money, shortDate } from "@/lib/format";
 
 const title = "Owner Admin Portal — Rent Receipt Pro";
@@ -407,6 +412,9 @@ function AdminDashboard() {
   const fetchLandlordPortfolio = useServerFn(getLandlordPortfolio);
   const fetchPlatformPayments = useServerFn(listPlatformPayments);
   const fetchAdminMpesa = useServerFn(listAdminMpesaTransactions);
+  const fetchAdminLandlordMpesa = useServerFn(getAdminLandlordMpesaSettings);
+  const saveAdminLandlordMpesa = useServerFn(saveAdminLandlordMpesaSettings);
+  const testMpesa = useServerFn(testLandlordMpesaConnection);
 
   // Queries
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -442,9 +450,21 @@ function AdminDashboard() {
   const [selectedLandlord, setSelectedLandlord] = useState<any | null>(null);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [editAccessModalOpen, setEditAccessModalOpen] = useState(false);
+  const [adminMpesaModalOpen, setAdminMpesaModalOpen] = useState(false);
   const [customPlan, setCustomPlan] = useState<"monthly" | "quarterly" | "semiannual" | "yearly">("monthly");
   const [customEndsAt, setCustomEndsAt] = useState("");
   const [customStatus, setCustomStatus] = useState<"active" | "trial" | "expired">("active");
+
+  const [adminMpesaForm, setAdminMpesaForm] = useState({
+    shortcode: "",
+    consumer_key: "",
+    consumer_secret: "",
+    passkey: "",
+    environment: "sandbox" as "sandbox" | "production",
+    transaction_type: "CustomerPayBillOnline" as "CustomerPayBillOnline" | "CustomerBuyGoodsOnline",
+    account_reference_prefix: "RRP",
+    is_active: true,
+  });
 
   // Voucher Generator Form
   const [code, setCode] = useState(randomCode);
@@ -458,6 +478,58 @@ function AdminDashboard() {
     queryKey: ["landlord-portfolio", selectedLandlord?.id],
     queryFn: () => fetchLandlordPortfolio({ data: { landlordId: selectedLandlord.id } }),
     enabled: Boolean(selectedLandlord?.id) && portfolioModalOpen,
+  });
+
+  // Admin Landlord M-Pesa Settings query
+  const { isLoading: landlordMpesaLoading } = useQuery({
+    queryKey: ["admin-landlord-mpesa", selectedLandlord?.id],
+    queryFn: async () => {
+      const res = await fetchAdminLandlordMpesa({ data: { landlordId: selectedLandlord.id } });
+      if (res) {
+        setAdminMpesaForm({
+          shortcode: res.shortcode || "",
+          consumer_key: res.consumer_key || "",
+          consumer_secret: res.consumer_secret_masked || "",
+          passkey: res.passkey_masked || "",
+          environment: res.environment || "sandbox",
+          transaction_type: res.transaction_type || "CustomerPayBillOnline",
+          account_reference_prefix: res.account_reference_prefix || "RRP",
+          is_active: res.is_active ?? true,
+        });
+      }
+      return res;
+    },
+    enabled: Boolean(selectedLandlord?.id) && adminMpesaModalOpen,
+  });
+
+  const saveAdminMpesaMut = useMutation({
+    mutationFn: () =>
+      saveAdminLandlordMpesa({
+        data: {
+          landlordId: selectedLandlord.id,
+          ...adminMpesaForm,
+        },
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message || "Landlord M-Pesa configuration updated successfully!");
+      setAdminMpesaModalOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin_mpesa_transactions"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to save M-Pesa configuration"),
+  });
+
+  const testAdminMpesaMut = useMutation({
+    mutationFn: () =>
+      testMpesa({
+        data: {
+          consumer_key: adminMpesaForm.consumer_key,
+          consumer_secret: adminMpesaForm.consumer_secret,
+          environment: adminMpesaForm.environment,
+        },
+      }),
+    onSuccess: (res) => toast.success(res.message),
+    onError: (err: any) => toast.error(err?.message || "Test connection failed"),
   });
 
   // Mutations
@@ -935,6 +1007,18 @@ function AdminDashboard() {
                               }}
                             >
                               <Eye className="size-3.5 text-primary" /> View
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 font-semibold"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setAdminMpesaModalOpen(true);
+                              }}
+                            >
+                              <Smartphone className="size-3.5 text-emerald-600" /> M-Pesa
                             </Button>
 
                             <Button
@@ -1786,6 +1870,198 @@ function AdminDashboard() {
               onClick={() => updateSubscriptionMut.mutate()}
             >
               {updateSubscriptionMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG 3: SUPERADMIN LANDLORD M-PESA CREDENTIAL ONBOARDING & VAULT */}
+      <Dialog open={adminMpesaModalOpen} onOpenChange={setAdminMpesaModalOpen}>
+        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Smartphone className="size-5 text-emerald-600" /> Configure M-Pesa STK Collection
+            </DialogTitle>
+            <DialogDescription>
+              Managing credentials for <strong className="text-foreground">{selectedLandlord?.full_name || selectedLandlord?.email}</strong>. Secrets are stored with AES-256-GCM encryption at rest.
+            </DialogDescription>
+          </DialogHeader>
+
+          {landlordMpesaLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="size-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                <div className="space-y-0.5">
+                  <Label htmlFor="admin_mpesa_active" className="text-xs font-semibold cursor-pointer">
+                    Enable STK Push for this Landlord
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When active, tenants can pay rent via instant Lipa Na M-Pesa STK push.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="admin_mpesa_active"
+                  checked={adminMpesaForm.is_active}
+                  onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, is_active: e.target.checked })}
+                  className="size-4 accent-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_shortcode" className="text-xs">Shortcode (Paybill / Till)</Label>
+                  <Input
+                    id="admin_shortcode"
+                    value={adminMpesaForm.shortcode}
+                    onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, shortcode: e.target.value.trim() })}
+                    placeholder="e.g. 174379"
+                    className="font-mono text-xs h-9 rounded-2xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_env" className="text-xs">Environment</Label>
+                  <Select
+                    value={adminMpesaForm.environment}
+                    onValueChange={(v: "sandbox" | "production") => {
+                      const next = { ...adminMpesaForm, environment: v };
+                      if (v === "sandbox" && (!adminMpesaForm.shortcode || !adminMpesaForm.passkey)) {
+                        next.shortcode = "174379";
+                        next.passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
+                      }
+                      setAdminMpesaForm(next);
+                    }}
+                  >
+                    <SelectTrigger id="admin_env" className="h-9 rounded-2xl text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                      <SelectItem value="production">Production (Live Payments)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_txtype" className="text-xs">Transaction Type</Label>
+                  <Select
+                    value={adminMpesaForm.transaction_type}
+                    onValueChange={(v: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline") =>
+                      setAdminMpesaForm({ ...adminMpesaForm, transaction_type: v })
+                    }
+                  >
+                    <SelectTrigger id="admin_txtype" className="h-9 rounded-2xl text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CustomerPayBillOnline">Paybill (CustomerPayBillOnline)</SelectItem>
+                      <SelectItem value="CustomerBuyGoodsOnline">Buy Goods / Till (CustomerBuyGoodsOnline)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_prefix" className="text-xs">Account Ref Prefix</Label>
+                  <Input
+                    id="admin_prefix"
+                    value={adminMpesaForm.account_reference_prefix}
+                    onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, account_reference_prefix: e.target.value.trim() })}
+                    placeholder="e.g. RRP"
+                    className="font-mono text-xs h-9 rounded-2xl uppercase font-bold"
+                  />
+                </div>
+              </div>
+
+              {adminMpesaForm.environment === "sandbox" && (
+                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    Auto-fill standard Safaricom Sandbox Shortcode (174379) &amp; Passkey
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs h-7 px-3 text-emerald-600 border-emerald-500/30 font-semibold shrink-0"
+                    onClick={() => {
+                      setAdminMpesaForm((prev) => ({
+                        ...prev,
+                        shortcode: "174379",
+                        passkey: "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
+                        transaction_type: "CustomerPayBillOnline",
+                      }));
+                      toast.success("Filled Safaricom Sandbox defaults!");
+                    }}
+                  >
+                    Fill Defaults
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_ck" className="text-xs">Daraja Consumer Key</Label>
+                <Input
+                  id="admin_ck"
+                  value={adminMpesaForm.consumer_key}
+                  onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, consumer_key: e.target.value.trim() })}
+                  placeholder="Paste Consumer Key from developer.safaricom.co.ke"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_cs" className="text-xs">Daraja Consumer Secret</Label>
+                <Input
+                  id="admin_cs"
+                  type="password"
+                  value={adminMpesaForm.consumer_secret}
+                  onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, consumer_secret: e.target.value.trim() })}
+                  placeholder="••••••••••••"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_pk" className="text-xs">Lipa Na M-Pesa Online Passkey</Label>
+                <Input
+                  id="admin_pk"
+                  type="password"
+                  value={adminMpesaForm.passkey}
+                  onChange={(e) => setAdminMpesaForm({ ...adminMpesaForm, passkey: e.target.value.trim() })}
+                  placeholder="••••••••••••"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-xs h-9 gap-1.5 font-semibold"
+                  disabled={testAdminMpesaMut.isPending || !adminMpesaForm.consumer_key || !adminMpesaForm.consumer_secret}
+                  onClick={() => testAdminMpesaMut.mutate()}
+                >
+                  {testAdminMpesaMut.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                  Test Daraja Connection
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" className="rounded-full text-xs" onClick={() => setAdminMpesaModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full shadow-glow text-xs font-semibold"
+              disabled={saveAdminMpesaMut.isPending || !adminMpesaForm.shortcode || !adminMpesaForm.consumer_key}
+              onClick={() => saveAdminMpesaMut.mutate()}
+            >
+              {saveAdminMpesaMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Save & Encrypt Configuration"}
             </Button>
           </DialogFooter>
         </DialogContent>

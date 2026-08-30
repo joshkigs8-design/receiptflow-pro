@@ -358,3 +358,88 @@ export const listAdminMpesaTransactions = createServerFn({ method: "GET" })
       };
     });
   });
+
+/**
+ * 7. ADMIN: Get Landlord M-Pesa Settings for Onboarding / Inspection
+ */
+export const getAdminLandlordMpesaSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({ landlordId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const config = await getLandlordMpesaConfig(data.landlordId);
+
+    if (!config) {
+      return {
+        configured: false,
+        shortcode: "",
+        consumer_key: "",
+        consumer_secret_masked: "",
+        passkey_masked: "",
+        environment: "sandbox" as const,
+        transaction_type: "CustomerPayBillOnline" as const,
+        account_reference_prefix: "RRP",
+        is_active: false,
+      };
+    }
+
+    return {
+      configured: true,
+      shortcode: config.shortcode,
+      consumer_key: config.consumer_key,
+      consumer_secret_masked: config.consumer_secret ? "••••••••••••" + config.consumer_secret.slice(-4) : "",
+      passkey_masked: config.passkey ? "••••••••••••" + config.passkey.slice(-4) : "",
+      environment: config.environment,
+      transaction_type: config.transaction_type,
+      account_reference_prefix: config.account_reference_prefix || "RRP",
+      is_active: config.is_active,
+    };
+  });
+
+/**
+ * 8. ADMIN: Save / Update Landlord M-Pesa Settings
+ */
+export const saveAdminLandlordMpesaSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        landlordId: z.string().uuid(),
+        shortcode: z.string().min(5).max(10),
+        consumer_key: z.string().min(10),
+        consumer_secret: z.string().min(10),
+        passkey: z.string().min(10),
+        environment: z.enum(["sandbox", "production"]).default("sandbox"),
+        transaction_type: z.enum(["CustomerPayBillOnline", "CustomerBuyGoodsOnline"]).default("CustomerPayBillOnline"),
+        account_reference_prefix: z.string().max(10).optional().nullable(),
+        is_active: z.boolean().default(true),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+
+    let finalSecret = data.consumer_secret;
+    let finalPasskey = data.passkey;
+
+    if (data.consumer_secret.includes("••••") || data.passkey.includes("••••")) {
+      const existing = await getLandlordMpesaConfig(data.landlordId);
+      if (existing) {
+        if (data.consumer_secret.includes("••••")) finalSecret = existing.consumer_secret;
+        if (data.passkey.includes("••••")) finalPasskey = existing.passkey;
+      }
+    }
+
+    await saveLandlordMpesaConfig(data.landlordId, {
+      shortcode: data.shortcode,
+      consumer_key: data.consumer_key,
+      consumer_secret: finalSecret,
+      passkey: finalPasskey,
+      environment: data.environment,
+      transaction_type: data.transaction_type,
+      account_reference_prefix: data.account_reference_prefix || "RRP",
+      is_active: data.is_active,
+    });
+
+    return { ok: true, message: "Landlord M-Pesa configuration updated successfully by admin." };
+  });
