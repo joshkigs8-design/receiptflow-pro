@@ -522,7 +522,6 @@ function TenantPortal() {
                       <PhoneCall className="size-3.5 text-emerald-500" /> Call Landlord
                     </Button>
                     <Button
-                      size="sm"
                       className="rounded-full gap-1.5 text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                       onClick={() =>
                         window.open(
