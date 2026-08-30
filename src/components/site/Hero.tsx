@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   DoorOpen,
+  Download,
   FileCheck2,
   FileText,
   MessageCircle,
@@ -20,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 
 export function Hero() {
   return (
@@ -66,12 +68,22 @@ export function Hero() {
               </Button>
 
               <Button
-                asChild
+                type="button"
                 size="lg"
                 variant="outline"
-                className="rounded-full border-[#063B2A]/20 dark:border-white/20 bg-[#FFFFFF] dark:bg-[#0A261D] text-[#101714] dark:text-[#F7F8F5] hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] h-13 px-6 text-sm font-bold shadow-sm"
+                onClick={() => downloadLandlordManualPdf()}
+                className="rounded-full border-[#063B2A]/20 dark:border-white/20 bg-[#FFFFFF] dark:bg-[#0A261D] text-[#087443] dark:text-[#52B788] hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] h-13 px-6 text-sm font-bold shadow-sm gap-2"
               >
-                <a href="#how-it-works">See How It Works</a>
+                <Download className="size-4 text-[#087443] dark:text-[#52B788]" /> Download Manual (PDF)
+              </Button>
+
+              <Button
+                asChild
+                size="lg"
+                variant="ghost"
+                className="rounded-full text-[#4A5B53] dark:text-[#94A89E] hover:text-[#101714] dark:hover:text-[#F7F8F5] h-13 px-4 text-sm font-semibold"
+              >
+                <a href="#how-it-works">How It Works ↓</a>
               </Button>
             </div>
 

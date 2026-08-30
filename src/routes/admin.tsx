@@ -510,8 +510,8 @@ function AdminDashboard() {
           ...adminMpesaForm,
         },
       }),
-    onSuccess: (res) => {
-      toast.success(res.message || "Landlord M-Pesa configuration updated successfully!");
+    onSuccess: (res: any) => {
+      toast.success(res?.message || "Landlord M-Pesa configuration updated successfully!");
       setAdminMpesaModalOpen(false);
       qc.invalidateQueries({ queryKey: ["admin_mpesa_transactions"] });
       qc.invalidateQueries({ queryKey: ["admin-overview"] });
@@ -528,11 +528,9 @@ function AdminDashboard() {
           environment: adminMpesaForm.environment,
         },
       }),
-    onSuccess: (res) => toast.success(res.message),
+    onSuccess: (res: any) => toast.success(res?.message || "Connection successful"),
     onError: (err: any) => toast.error(err?.message || "Test connection failed"),
   });
-
-  // Mutations
   const create = useMutation({
     mutationFn: () =>
       addVoucher({
@@ -1013,18 +1011,6 @@ function AdminDashboard() {
                               size="sm"
                               variant="outline"
                               className="rounded-full h-8 px-2.5 text-xs gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 font-semibold"
-                              onClick={() => {
-                                setSelectedLandlord(l);
-                                setAdminMpesaModalOpen(true);
-                              }}
-                            >
-                              <Smartphone className="size-3.5 text-emerald-600" /> M-Pesa
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full h-8 px-2.5 text-xs gap-1"
                               onClick={() => {
                                 setSelectedLandlord(l);
                                 setCustomPlan((l.plan as any) || "monthly");

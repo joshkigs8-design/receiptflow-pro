@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, MessageCircle, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
+import { BookOpen, Building2, Download, MessageCircle, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 
 export function SiteFooter() {
   return (
@@ -49,6 +50,15 @@ export function SiteFooter() {
               <a href="/#how-it-works" className="hover:text-[#087443] transition-colors">
                 How It Works
               </a>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => downloadLandlordManualPdf()}
+                className="hover:text-[#087443] transition-colors flex items-center gap-1.5 text-[#087443] dark:text-[#52B788] font-bold text-left"
+              >
+                <Download className="size-3 text-[#C9A227]" /> User Manual (PDF)
+              </button>
             </li>
             <li>
               <Link to="/auth" search={{ mode: "signup" }} className="hover:text-[#087443] transition-colors font-bold text-[#087443] dark:text-[#52B788]">

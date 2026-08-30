@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   AlertCircle,
   ArrowRight,
+  BookOpen,
   Building2,
   Calendar,
   CheckCircle2,
@@ -43,6 +44,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { money, shortDate } from "@/lib/format";
 import { receiptUrl } from "@/lib/receipt-pdf";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -141,6 +143,14 @@ function DashboardPage() {
           >
             <Share2 className="size-3.5" /> Share Tenant Portal
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs h-9 gap-1.5 hidden md:inline-flex border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+            onClick={() => downloadLandlordManualPdf()}
+          >
+            <BookOpen className="size-3.5" /> Manual (PDF)
+          </Button>
           <Button asChild size="sm" className="rounded-full shadow-glow text-xs h-9 gap-1.5 font-semibold">
             <Link to="/payments">
               <Plus className="size-4" /> Record Payment
@@ -229,6 +239,15 @@ function DashboardPage() {
                 <Link to="/reports">
                   <Receipt className="size-3.5 mr-1.5 text-emerald-500" /> Full Reports
                 </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadLandlordManualPdf()}
+                className="rounded-xl h-10 text-xs justify-start px-3 col-span-2 text-primary border-primary/30 hover:bg-primary/10 font-semibold"
+              >
+                <Download className="size-3.5 mr-1.5 text-primary" /> Download Landlord Manual (PDF)
               </Button>
             </div>
           </div>

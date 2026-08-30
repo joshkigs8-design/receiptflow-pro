@@ -3,9 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bell,
+  BookOpen,
   Building2,
   CreditCard,
   DoorOpen,
+  Download,
   FileText,
   LayoutDashboard,
   Lock,
@@ -28,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
 import { getSubscription } from "@/lib/billing.functions";
 import { shortDate } from "@/lib/format";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -122,7 +125,16 @@ export function AppShell({
         </div>
 
         {/* Bottom User / Signout Footer */}
-        <div className="shrink-0 p-3 border-t border-border/40">
+        <div className="shrink-0 p-3 border-t border-border/40 space-y-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => downloadLandlordManualPdf()}
+            className="w-full justify-start text-xs font-semibold text-primary hover:bg-primary/10 rounded-xl"
+          >
+            <BookOpen className="mr-2 size-4 text-primary" />
+            <span>User Manual (PDF)</span>
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -156,6 +168,14 @@ export function AppShell({
 
           <div className="flex items-center gap-2">
             {actions}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadLandlordManualPdf()}
+              className="rounded-full text-xs h-9 gap-1.5 hidden md:inline-flex border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+            >
+              <BookOpen className="size-3.5" /> Manual (PDF)
+            </Button>
             <Link
               to="/requests"
               aria-label="Notifications"

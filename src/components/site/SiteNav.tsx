@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Building2, Menu, Receipt, ShieldCheck, Sparkles, UserCheck, X } from "lucide-react";
+import { ArrowRight, BookOpen, Building2, Download, Menu, Receipt, ShieldCheck, Sparkles, UserCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -82,6 +83,14 @@ export function SiteNav() {
             >
               Tenant Portal
             </Link>
+
+            <button
+              type="button"
+              onClick={() => downloadLandlordManualPdf()}
+              className="rounded-full px-3 py-1.5 text-xs font-semibold text-[#087443] dark:text-[#52B788] hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] transition-colors inline-flex items-center gap-1"
+            >
+              <Download className="size-3 text-[#C9A227]" /> Manual (PDF)
+            </button>
           </div>
 
           {/* Right Action Buttons */}
@@ -159,6 +168,20 @@ export function SiteNav() {
               <span>Caretaker Terminal</span>
               <UserCheck className="size-4 text-[#087443]" />
             </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                downloadLandlordManualPdf();
+              }}
+              className="rounded-2xl px-4 py-2.5 text-sm font-semibold hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] flex items-center justify-between text-[#087443] dark:text-[#52B788]"
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="size-4 text-[#C9A227]" />
+                <span>User Manual (PDF)</span>
+              </span>
+              <Download className="size-4" />
+            </button>
             <Link
               to="/auth"
               onClick={() => setOpen(false)}

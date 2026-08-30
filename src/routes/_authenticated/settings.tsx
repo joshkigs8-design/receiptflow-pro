@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Palette, Sparkles, Building2, Smartphone, ShieldCheck, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Palette, Sparkles, Building2, Smartphone, ShieldCheck, CheckCircle2, AlertCircle, Loader2, RefreshCw, BookOpen, Download } from "lucide-react";
 import { toast } from "sonner";
 import { getSettings, saveSettings } from "@/lib/app.functions";
 import {
@@ -10,6 +10,7 @@ import {
   saveLandlordMpesaSettings,
   testLandlordMpesaConnection,
 } from "@/lib/mpesa.functions";
+import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 import { AppShell } from "@/components/app/AppShell";
 import { Field } from "@/components/app/Field";
 import { Button } from "@/components/ui/button";
@@ -464,6 +465,30 @@ function SettingsPage() {
             </Button>
           </div>
         </form>
+
+        {/* Documentation & Landlord Operations Manual Section */}
+        <div className="surface-card p-6 sm:p-7 rounded-3xl border border-border/80 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary inline-flex items-center gap-1.5">
+                <BookOpen className="size-4" /> Platform Documentation
+              </span>
+              <h3 className="font-display text-lg font-bold">Landlord &amp; Operations Manual (2026 Edition)</h3>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Download the complete step-by-step PDF manual covering property setup, AI bulk imports, tenant onboarding, automated M-Pesa Daraja STK Push, caretaker delegation, and KRA 7.5% MRI tax compliance.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => downloadLandlordManualPdf()}
+              className="rounded-full border-primary/30 text-primary hover:bg-primary/10 font-bold text-xs h-10 px-5 gap-2 shrink-0"
+            >
+              <Download className="size-4 text-primary" /> Download User Manual (PDF)
+            </Button>
+          </div>
+        </div>
       </div>
     </AppShell>
   );
