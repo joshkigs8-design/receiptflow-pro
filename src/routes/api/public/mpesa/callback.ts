@@ -53,14 +53,13 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
             .maybeSingle();
 
           if (findError || !transaction) {
-            console.warn(`[M-Pesa Webhook] Transaction not found for CheckoutRequestID: ${CheckoutRequestID}`);
-            return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
+            return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Transaction not found" }), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             });
           }
 
-          // 2. IDEMPOTENCY GUARD: Do not re-process already successful transactions
+          // 2. IDEMPOTENCY & STATE GUARD: Do not re-process completed transactions
           if (transaction.status === "success") {
             return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Already processed" }), {
               status: 200,
@@ -68,7 +67,19 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
             });
           }
 
-          // 3. Handle Failed / Cancelled STK Push
+          // 3. CORRELATION GUARD: Verify MerchantRequestID if present
+          if (
+            transaction.merchant_request_id &&
+            MerchantRequestID &&
+            transaction.merchant_request_id !== MerchantRequestID
+          ) {
+            return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Merchant ID mismatch" }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+
+          // 4. Handle Failed / Cancelled STK Push
           if (ResultCode !== 0) {
             const status = ResultCode === 1032 ? "cancelled" : ResultCode === 1037 ? "timeout" : "failed";
 
@@ -77,7 +88,7 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
               .update({
                 status,
                 result_code: ResultCode,
-                result_desc: ResultDesc,
+                result_desc: ResultDesc || "Payment cancelled or failed",
                 raw_callback: callbackData as never,
                 updated_at: new Date().toISOString(),
               })
@@ -89,10 +100,10 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
             });
           }
 
-          // 4. Handle Successful Payment (ResultCode === 0)
+          // 5. Handle Successful Payment (ResultCode === 0)
           const items = CallbackMetadata?.Item || [];
           let mpesaReceiptNumber = "";
-          let amount = transaction.amount;
+          let callbackAmount = transaction.amount;
           let phoneNumber = transaction.phone_number;
 
           for (const item of items) {
@@ -100,10 +111,13 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
               mpesaReceiptNumber = String(item.Value).trim().toUpperCase();
             }
             if (item.Name === "Amount" && item.Value) {
-              amount = Number(item.Value);
+              const parsed = Number(item.Value);
+              if (!isNaN(parsed) && parsed > 0) {
+                callbackAmount = parsed;
+              }
             }
             if (item.Name === "PhoneNumber" && item.Value) {
-              phoneNumber = String(item.Value);
+              phoneNumber = String(item.Value).trim();
             }
           }
 
@@ -111,128 +125,155 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
             mpesaReceiptNumber = `MPESA_${Date.now()}`;
           }
 
-          // Check if payment with this M-Pesa receipt already recorded
-          const { data: existingPayment } = await supabaseAdmin
-            .from("payments")
-            .select("id")
-            .eq("reference", mpesaReceiptNumber)
-            .maybeSingle();
+          const paidAtIso = new Date().toISOString();
+          const period = paidAtIso.slice(0, 7);
 
-          // Update mpesa_transactions
-          await supabaseAdmin
+          // 6. ATOMIC CONCURRENCY LOCK: Transition status from pending/initiated -> success
+          const { data: lockedTx, error: lockErr } = await supabaseAdmin
             .from("mpesa_transactions")
             .update({
               status: "success",
               result_code: 0,
-              result_desc: ResultDesc,
+              result_desc: ResultDesc || "Payment processed successfully",
               mpesa_receipt_number: mpesaReceiptNumber,
-              amount,
+              amount: callbackAmount,
               phone_number: phoneNumber,
-              paid_at: new Date().toISOString(),
+              paid_at: paidAtIso,
               raw_callback: callbackData as never,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", transaction.id);
+            .eq("id", transaction.id)
+            .in("status", ["pending", "initiated"])
+            .select("id")
+            .maybeSingle();
 
-          if (!existingPayment && transaction.tenant_id) {
-            // Fetch Tenant and Property details
-            const { data: tenant } = await supabaseAdmin
-              .from("tenants")
-              .select("*, properties(name,code), units(unit_number,room_number)")
-              .eq("id", transaction.tenant_id)
-              .maybeSingle();
+          if (lockErr || !lockedTx) {
+            // Transaction was already claimed and processed concurrently
+            return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Concurrent update ignored" }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
 
-            const { data: profile } = await supabaseAdmin
-              .from("profiles")
-              .select("company_name,currency,logo_url,phone")
-              .eq("id", transaction.landlord_id)
-              .maybeSingle();
-
-            const paidAtIso = new Date().toISOString();
-            const period = paidAtIso.slice(0, 7);
-
-            // Calculate updated balance
-            const { data: priorPayments } = await supabaseAdmin
+          // 7. FINANCIAL ATOMIC SETTLEMENT & RECOVERY
+          try {
+            // Check if payment with this M-Pesa receipt already exists
+            const { data: existingPayment } = await supabaseAdmin
               .from("payments")
-              .select("amount")
-              .eq("tenant_id", transaction.tenant_id)
-              .eq("landlord_id", transaction.landlord_id)
-              .eq("period_label", period);
-
-            const priorTotal = (priorPayments ?? []).reduce((s, p) => s + Number(p.amount), 0);
-            const monthlyRent = Number(tenant?.rent_amount || amount);
-            const newBalance = Math.max(monthlyRent - (priorTotal + amount), 0);
-
-            // Insert into payments table
-            const { data: newPayment } = await supabaseAdmin
-              .from("payments")
-              .insert({
-                landlord_id: transaction.landlord_id,
-                tenant_id: transaction.tenant_id,
-                property_id: transaction.property_id,
-                unit_id: transaction.unit_id,
-                amount,
-                method: "mpesa",
-                reference: mpesaReceiptNumber,
-                paid_at: paidAtIso,
-                period_label: period,
-                status: newBalance > 0 ? "partial" : "paid",
-                notes: `Instant M-Pesa STK (${mpesaReceiptNumber})`,
-              })
               .select("id")
-              .single();
+              .eq("reference", mpesaReceiptNumber)
+              .maybeSingle();
 
-            // Generate official digital receipt
-            if (newPayment && tenant) {
-              const receiptNumber = `RCP-${paidAtIso.replaceAll("-", "").slice(0, 6)}-${Math.random()
-                .toString(36)
-                .slice(2, 7)
-                .toUpperCase()}`;
+            if (!existingPayment && transaction.tenant_id) {
+              // Fetch Tenant and Property details
+              const { data: tenant } = await supabaseAdmin
+                .from("tenants")
+                .select("*, properties(name,code), units(unit_number,room_number)")
+                .eq("id", transaction.tenant_id)
+                .maybeSingle();
 
-              await supabaseAdmin.from("receipts").insert({
-                landlord_id: transaction.landlord_id,
-                payment_id: newPayment.id,
-                tenant_id: tenant.id,
-                receipt_number: receiptNumber,
-                amount,
-                balance: newBalance,
-                issued_by: profile?.company_name || "RentReceipt Pro",
-                snapshot: {
-                  company: profile?.company_name || "RentReceipt Pro",
-                  currency: profile?.currency || "KSh",
-                  logo_url: profile?.logo_url || null,
-                  company_phone: profile?.phone || null,
-                  tenant_name: tenant.full_name,
-                  tenant_phone: tenant.phone,
-                  property: tenant.properties?.name || null,
-                  property_code: tenant.properties?.code || null,
-                  unit: tenant.units?.unit_number || null,
-                  room: tenant.units?.room_number || null,
+              const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("company_name,currency,logo_url,phone")
+                .eq("id", transaction.landlord_id)
+                .maybeSingle();
+
+              // Calculate updated balance
+              const { data: priorPayments } = await supabaseAdmin
+                .from("payments")
+                .select("amount")
+                .eq("tenant_id", transaction.tenant_id)
+                .eq("landlord_id", transaction.landlord_id)
+                .eq("period_label", period);
+
+              const priorTotal = (priorPayments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+              const monthlyRent = Number(tenant?.rent_amount || callbackAmount);
+              const newBalance = Math.max(monthlyRent - (priorTotal + callbackAmount), 0);
+
+              // Insert payment record
+              const { data: newPayment, error: paymentInsertErr } = await supabaseAdmin
+                .from("payments")
+                .insert({
+                  landlord_id: transaction.landlord_id,
+                  tenant_id: transaction.tenant_id,
+                  property_id: transaction.property_id,
+                  unit_id: transaction.unit_id,
+                  amount: callbackAmount,
                   method: "mpesa",
                   reference: mpesaReceiptNumber,
-                  period,
                   paid_at: paidAtIso,
-                  rent_amount: monthlyRent,
-                },
-              });
+                  period_label: period,
+                  status: newBalance > 0 ? "partial" : "paid",
+                  notes: `Instant M-Pesa STK (${mpesaReceiptNumber})`,
+                })
+                .select("id")
+                .single();
 
-              // Notify Landlord
-              await supabaseAdmin.from("notifications").insert({
-                landlord_id: transaction.landlord_id,
-                title: "M-Pesa Rent Payment Received",
-                body: `KSh ${amount.toLocaleString()} received from ${tenant.full_name} (${mpesaReceiptNumber}) for Unit ${tenant.units?.unit_number || tenant.units?.room_number || ""}`,
-                type: "payment",
-              });
+              if (paymentInsertErr) {
+                throw new Error(`Payment record insertion failed: ${paymentInsertErr.message}`);
+              }
+
+              // Generate official digital receipt
+              if (newPayment && tenant) {
+                const receiptNumber = `RCP-${paidAtIso.replaceAll("-", "").slice(0, 6)}-${Math.random()
+                  .toString(36)
+                  .slice(2, 7)
+                  .toUpperCase()}`;
+
+                await supabaseAdmin.from("receipts").insert({
+                  landlord_id: transaction.landlord_id,
+                  payment_id: newPayment.id,
+                  tenant_id: tenant.id,
+                  receipt_number: receiptNumber,
+                  amount: callbackAmount,
+                  balance: newBalance,
+                  issued_by: profile?.company_name || "RentReceipt Pro",
+                  snapshot: {
+                    company: profile?.company_name || "RentReceipt Pro",
+                    currency: profile?.currency || "KSh",
+                    logo_url: profile?.logo_url || null,
+                    company_phone: profile?.phone || null,
+                    tenant_name: tenant.full_name,
+                    tenant_phone: tenant.phone,
+                    property: tenant.properties?.name || null,
+                    property_code: tenant.properties?.code || null,
+                    unit: tenant.units?.unit_number || null,
+                    room: tenant.units?.room_number || null,
+                    method: "mpesa",
+                    reference: mpesaReceiptNumber,
+                    period,
+                    paid_at: paidAtIso,
+                    rent_amount: monthlyRent,
+                  },
+                });
+
+                // Notify Landlord
+                await supabaseAdmin.from("notifications").insert({
+                  landlord_id: transaction.landlord_id,
+                  title: "M-Pesa Rent Payment Received",
+                  body: `KSh ${callbackAmount.toLocaleString()} received from ${tenant.full_name} (${mpesaReceiptNumber}) for Unit ${tenant.units?.unit_number || tenant.units?.room_number || ""}`,
+                  type: "payment",
+                });
+              }
             }
+          } catch (settlementError) {
+            // Failure recovery: mark transaction as pending_reconciliation so it's not lost
+            await supabaseAdmin
+              .from("mpesa_transactions")
+              .update({
+                status: "pending_reconciliation",
+                result_desc: `M-Pesa success (${mpesaReceiptNumber}) but financial settlement error: ${settlementError instanceof Error ? settlementError.message : "Unknown error"}`,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", transaction.id);
           }
 
           return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Payment processed successfully" }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });
-        } catch (err) {
-          console.error("[M-Pesa Callback Error]:", err);
-          return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Exception caught" }), {
+        } catch {
+          return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Callback accepted" }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });

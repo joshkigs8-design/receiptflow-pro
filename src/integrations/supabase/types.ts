@@ -69,7 +69,7 @@ export type Database = {
           raw_callback: Json | null;
           result_code: number | null;
           result_desc: string | null;
-          status: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          status: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout" | "pending_reconciliation";
           tenant_id: string | null;
           transaction_description: string | null;
           unit_id: string | null;
@@ -90,7 +90,7 @@ export type Database = {
           raw_callback?: Json | null;
           result_code?: number | null;
           result_desc?: string | null;
-          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout" | "pending_reconciliation";
           tenant_id?: string | null;
           transaction_description?: string | null;
           unit_id?: string | null;
@@ -111,7 +111,7 @@ export type Database = {
           raw_callback?: Json | null;
           result_code?: number | null;
           result_desc?: string | null;
-          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout" | "pending_reconciliation";
           tenant_id?: string | null;
           transaction_description?: string | null;
           unit_id?: string | null;

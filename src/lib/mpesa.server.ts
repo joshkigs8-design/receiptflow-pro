@@ -154,7 +154,6 @@ export async function sendDarajaStkPush(params: {
   const responseJson = await res.json();
 
   if (!res.ok || responseJson.ResponseCode !== "0") {
-    console.error("Daraja STK Push Error:", responseJson);
     const msg = responseJson.errorMessage || responseJson.ResponseDescription || "Could not initiate M-Pesa STK Push.";
     throw new Error(`M-Pesa STK Push Error: ${msg}`);
   }
@@ -166,60 +165,22 @@ export async function sendDarajaStkPush(params: {
  * Retrieves the active M-Pesa configuration for a landlord
  */
 export async function getLandlordMpesaConfig(landlordId: string): Promise<LandlordMpesaConfig | null> {
-  try {
-    const { data: config, error } = await supabaseAdmin
-      .from("landlord_mpesa_configs")
-      .select("*")
-      .eq("landlord_id", landlordId)
-      .eq("is_active", true)
-      .maybeSingle();
+  const { data: config, error } = await supabaseAdmin
+    .from("landlord_mpesa_configs")
+    .select("*")
+    .eq("landlord_id", landlordId)
+    .eq("is_active", true)
+    .maybeSingle();
 
-    if (!error && config) {
-      return config as LandlordMpesaConfig;
-    }
-  } catch (e) {
-    console.warn("landlord_mpesa_configs query fallback:", e);
-  }
-
-  // Fallback: check profile metadata
-  try {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("metadata" as never)
-      .eq("id", landlordId)
-      .maybeSingle();
-
-    const profileObj = profile as unknown as { metadata?: { mpesa_config?: LandlordMpesaConfig } } | null;
-    if (profileObj?.metadata?.mpesa_config?.is_active) {
-      return profileObj.metadata.mpesa_config;
-    }
-  } catch {}
-
-  // Platform fallback if configured in environment
-  const envShortcode = process.env["MPESA_SHORTCODE"] || process.env["VITE_MPESA_SHORTCODE"];
-  const envKey = process.env["MPESA_CONSUMER_KEY"] || process.env["VITE_MPESA_CONSUMER_KEY"];
-  const envSecret = process.env["MPESA_CONSUMER_SECRET"] || process.env["VITE_MPESA_CONSUMER_SECRET"];
-  const envPasskey = process.env["MPESA_PASSKEY"] || process.env["VITE_MPESA_PASSKEY"];
-
-  if (envShortcode && envKey && envSecret && envPasskey) {
-    return {
-      landlord_id: landlordId,
-      shortcode: envShortcode,
-      consumer_key: envKey,
-      consumer_secret: envSecret,
-      passkey: envPasskey,
-      transaction_type: "CustomerPayBillOnline",
-      environment: (process.env["MPESA_ENVIRONMENT"] as "sandbox" | "production") || "sandbox",
-      account_reference_prefix: "RRP",
-      is_active: true,
-    };
+  if (!error && config) {
+    return config as LandlordMpesaConfig;
   }
 
   return null;
 }
 
 /**
- * Saves or updates landlord M-Pesa configuration
+ * Saves or updates landlord M-Pesa configuration in the secure landlord_mpesa_configs table
  */
 export async function saveLandlordMpesaConfig(
   landlordId: string,
@@ -238,38 +199,12 @@ export async function saveLandlordMpesaConfig(
     updated_at: new Date().toISOString(),
   };
 
-  try {
-    const { error } = await supabaseAdmin.from("landlord_mpesa_configs").upsert(payload, {
-      onConflict: "landlord_id",
-    });
+  const { error } = await supabaseAdmin.from("landlord_mpesa_configs").upsert(payload, {
+    onConflict: "landlord_id",
+  });
 
-    if (error) throw error;
-  } catch (err) {
-    console.warn("landlord_mpesa_configs upsert fallback to profile metadata:", err);
-  }
-
-  // Backup sync to profile metadata
-  try {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("metadata" as never)
-      .eq("id", landlordId)
-      .maybeSingle();
-
-    const profileObj = profile as unknown as { metadata?: Record<string, unknown> } | null;
-    const meta = profileObj?.metadata || {};
-
-    await supabaseAdmin
-      .from("profiles")
-      .update({
-        metadata: {
-          ...meta,
-          mpesa_config: payload,
-        },
-      } as never)
-      .eq("id", landlordId);
-  } catch (e) {
-    console.error("Profile metadata update failed:", e);
+  if (error) {
+    throw new Error(`Failed to save M-Pesa credentials: ${error.message}`);
   }
 }
 
