@@ -31,7 +31,7 @@ export const verifyTenant = createServerFn({ method: "POST" })
         error: "We could not match that room number and phone number for this property.",
       };
 
-    const [payments, receipts, announcements, requests, leases, landlordProfile] = await Promise.all([
+    const [payments, receipts, announcements, requests, leases, landlordProfile, mpesaConfig] = await Promise.all([
       supabaseAdmin
         .from("payments")
         .select("id,amount,method,reference,paid_at,period_label,status,notes")
@@ -62,6 +62,11 @@ export const verifyTenant = createServerFn({ method: "POST" })
         .select("company_name,full_name,phone,business_details,logo_url")
         .eq("id", property.landlord_id)
         .maybeSingle(),
+      supabaseAdmin
+        .from("landlord_mpesa_configs")
+        .select("is_active,shortcode")
+        .eq("landlord_id", property.landlord_id)
+        .maybeSingle(),
     ]);
 
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -86,8 +91,13 @@ export const verifyTenant = createServerFn({ method: "POST" })
 
     const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
+    // M-Pesa is only enabled if the landlord actively turned it ON
+    const mpesaConfigRes = (mpesaConfig as { data?: { is_active?: boolean; shortcode?: string } | null })?.data;
+    const mpesaEnabled = Boolean(mpesaConfigRes?.is_active && mpesaConfigRes?.shortcode);
+
     return {
       ok: true as const,
+      mpesaEnabled,
       tenant: {
         id: tenant.id,
         full_name: tenant.full_name,

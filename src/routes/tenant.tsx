@@ -467,35 +467,37 @@ function TenantPortal() {
               </div>
             </div>
 
-            {/* M-Pesa STK Push Instant Payment Hero Banner */}
-            <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-xl shadow-emerald-950/20 border border-emerald-500/40 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="space-y-1.5 max-w-xl">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-emerald-100 backdrop-blur-sm border border-white/20">
-                    <Smartphone className="size-3.5" /> Instant Safaricom Daraja STK Push
+            {/* M-Pesa STK Push Instant Payment Hero Banner (Only shown if Landlord enabled M-Pesa) */}
+            {portal.mpesaEnabled ? (
+              <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-xl shadow-emerald-950/20 border border-emerald-500/40 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div className="space-y-1.5 max-w-xl">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-emerald-100 backdrop-blur-sm border border-white/20">
+                      <Smartphone className="size-3.5" /> Instant Safaricom Daraja STK Push
+                    </div>
+                    <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
+                      Pay Rent with M-Pesa
+                    </h2>
+                    <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
+                      Send rent securely to {portal.landlord.company_name}’s registered M-Pesa account. Receive an instant PIN prompt on your phone and get an official QR-verified PDF receipt immediately.
+                    </p>
                   </div>
-                  <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
-                    Pay Rent with M-Pesa
-                  </h2>
-                  <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                    Send rent securely to {portal.landlord.company_name}’s registered M-Pesa account. Receive an instant PIN prompt on your phone and get an official QR-verified PDF receipt immediately.
-                  </p>
-                </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <Button
-                    size="lg"
-                    onClick={openPayModal}
-                    className="rounded-full bg-white text-emerald-900 hover:bg-emerald-50 font-bold px-6 shadow-lg hover:shadow-xl transition-all gap-2 h-12 text-sm sm:text-base shrink-0 border-0"
-                  >
-                    <Smartphone className="size-4 text-emerald-600" />
-                    Pay with M-Pesa ({portal.totals.rentBalance > 0 ? money(portal.totals.rentBalance) : money(portal.tenant.rent_amount)})
-                    <ArrowRight className="size-4 ml-0.5" />
-                  </Button>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <Button
+                      size="lg"
+                      onClick={openPayModal}
+                      className="rounded-full bg-white text-emerald-900 hover:bg-emerald-50 font-bold px-6 shadow-lg hover:shadow-xl transition-all gap-2 h-12 text-sm sm:text-base shrink-0 border-0"
+                    >
+                      <Smartphone className="size-4 text-emerald-600" />
+                      Pay with M-Pesa ({portal.totals.rentBalance > 0 ? money(portal.totals.rentBalance) : money(portal.tenant.rent_amount)})
+                      <ArrowRight className="size-4 ml-0.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Landlord Payment & Contact Instructions */}
             <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
