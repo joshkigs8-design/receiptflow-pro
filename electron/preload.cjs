@@ -7,3 +7,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
   printPage: (options) => ipcRenderer.invoke("print-page", options),
   platform: process.platform,
 });
+
