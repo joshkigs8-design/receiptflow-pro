@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
+  ArrowRight,
   Building2,
   Calendar,
   CheckCircle2,
@@ -16,6 +17,7 @@ import {
   KeyRound,
   Layers,
   Loader2,
+  Lock,
   LogOut,
   Megaphone,
   MessageCircle,
@@ -25,14 +27,18 @@ import {
   RefreshCw,
   Share2,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   UserCheck,
   Wallet,
   Wrench,
+  X,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { submitTenantRequest, verifyTenant } from "@/lib/portal.functions";
+import { initiateTenantMpesaPayment, getMpesaPaymentStatus } from "@/lib/mpesa.functions";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +87,8 @@ const LOCAL_STORAGE_KEY = "rrp_tenant_creds";
 function TenantPortal() {
   const verify = useServerFn(verifyTenant);
   const submit = useServerFn(submitTenantRequest);
+  const initiateMpesa = useServerFn(initiateTenantMpesaPayment);
+  const checkMpesaStatus = useServerFn(getMpesaPaymentStatus);
 
   const [creds, setCreds] = useState({ code: "", room: "", phone: "" });
   const [portal, setPortal] = useState<PortalData | null>(null);
@@ -89,6 +97,123 @@ function TenantPortal() {
     priority: "normal",
     description: "",
   });
+
+  // M-Pesa Payment Dialog & Flow State
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState<number>(0);
+  const [payPhone, setPayPhone] = useState<string>("");
+  const [payStep, setPayStep] = useState<"form" | "sending" | "waiting_pin" | "success" | "failed">("form");
+  const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null);
+  const [stkCustomerMessage, setStkCustomerMessage] = useState<string>("");
+  const [confirmedMpesaReceipt, setConfirmedMpesaReceipt] = useState<string | null>(null);
+  const [confirmedPublicId, setConfirmedPublicId] = useState<string | null>(null);
+  const [confirmedReceiptNumber, setConfirmedReceiptNumber] = useState<string | null>(null);
+  const [confirmedNewBalance, setConfirmedNewBalance] = useState<number | null>(null);
+  const [payErrorMessage, setPayErrorMessage] = useState<string | null>(null);
+  const [stkTimer, setStkTimer] = useState<number>(60);
+
+  // Initialize pay fields when portal loads or modal opens
+  const openPayModal = () => {
+    if (!portal) return;
+    const defaultAmount = portal.totals.rentBalance > 0 ? portal.totals.rentBalance : portal.tenant.rent_amount;
+    setPayAmount(defaultAmount);
+    setPayPhone(portal.tenant.phone || creds.phone || "");
+    setPayStep("form");
+    setPayErrorMessage(null);
+    setConfirmedMpesaReceipt(null);
+    setConfirmedPublicId(null);
+    setIsPayModalOpen(true);
+  };
+
+  // M-Pesa STK Push Initiation Mutation
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      if (!portal) throw new Error("Tenant session not loaded");
+      if (payAmount <= 0) throw new Error("Please enter a valid amount greater than zero.");
+      if (!payPhone.trim()) throw new Error("Please enter your M-Pesa phone number.");
+
+      setPayStep("sending");
+      setPayErrorMessage(null);
+
+      const res = await initiateMpesa({
+        data: {
+          tenantId: portal.tenant.id,
+          propertyCode: portal.property.code,
+          room: creds.room,
+          verifiedPhone: creds.phone,
+          amount: payAmount,
+          paymentPhone: payPhone.trim(),
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+
+      return res;
+    },
+    onSuccess: (res) => {
+      setCurrentTransactionId(res.transactionId);
+      setStkCustomerMessage(res.customerMessage || "Check your phone for the M-Pesa PIN prompt.");
+      setStkTimer(60);
+      setPayStep("waiting_pin");
+      toast.success("M-Pesa STK Push sent! Please check your phone.");
+    },
+    onError: (err: any) => {
+      setPayStep("form");
+      const msg = err?.message || "Could not send STK Push. Please verify details.";
+      setPayErrorMessage(msg);
+      toast.error(msg);
+    },
+  });
+
+  // Polling Effect while waiting for M-Pesa PIN / Callback
+  useEffect(() => {
+    if (payStep !== "waiting_pin" || !currentTransactionId) return;
+
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setStkTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Status polling interval every 2500ms
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await checkMpesaStatus({
+          data: { transactionId: currentTransactionId },
+        });
+
+        if (res.status === "success") {
+          clearInterval(pollInterval);
+          clearInterval(countdownInterval);
+          setConfirmedMpesaReceipt(res.mpesaReceiptNumber || "CONFIRMED");
+          setConfirmedPublicId(res.publicReceiptId || null);
+          setConfirmedReceiptNumber(res.receiptNumber || null);
+          setConfirmedNewBalance(res.balance ?? 0);
+          setPayStep("success");
+          toast.success("🎉 Payment received & verified! Digital receipt ready.");
+          // Refresh portal data
+          login.mutate(creds);
+        } else if (res.status === "failed" || res.status === "cancelled" || res.status === "timeout") {
+          clearInterval(pollInterval);
+          clearInterval(countdownInterval);
+          setPayStep("failed");
+          setPayErrorMessage(res.resultDesc || "Payment was not completed on your phone.");
+          toast.error(res.resultDesc || "M-Pesa payment failed or was cancelled.");
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(countdownInterval);
+    };
+  }, [payStep, currentTransactionId]);
 
   const login = useMutation({
     mutationFn: (overrideCreds?: { code: string; room: string; phone: string }) =>
@@ -339,6 +464,36 @@ function TenantPortal() {
                   {money(portal.tenant.deposit_paid)}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">Security deposit held</p>
+              </div>
+            </div>
+
+            {/* M-Pesa STK Push Instant Payment Hero Banner */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-xl shadow-emerald-950/20 border border-emerald-500/40 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-emerald-100 backdrop-blur-sm border border-white/20">
+                    <Smartphone className="size-3.5" /> Instant Safaricom Daraja STK Push
+                  </div>
+                  <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
+                    Pay Rent with M-Pesa
+                  </h2>
+                  <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
+                    Send rent securely to {portal.landlord.company_name}’s registered M-Pesa account. Receive an instant PIN prompt on your phone and get an official QR-verified PDF receipt immediately.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <Button
+                    size="lg"
+                    onClick={openPayModal}
+                    className="rounded-full bg-white text-emerald-900 hover:bg-emerald-50 font-bold px-6 shadow-lg hover:shadow-xl transition-all gap-2 h-12 text-sm sm:text-base shrink-0 border-0"
+                  >
+                    <Smartphone className="size-4 text-emerald-600" />
+                    Pay with M-Pesa ({portal.totals.rentBalance > 0 ? money(portal.totals.rentBalance) : money(portal.tenant.rent_amount)})
+                    <ArrowRight className="size-4 ml-0.5" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -634,6 +789,289 @@ function TenantPortal() {
             </section>
           </div>
         )}
+
+        {/* Interactive M-Pesa STK Push Payment Modal */}
+        <Dialog open={isPayModalOpen} onOpenChange={(open) => {
+          if (payStep === "waiting_pin") {
+            toast.info("Payment request is still processing on your phone...");
+          }
+          setIsPayModalOpen(open);
+        }}>
+          <DialogContent className="sm:max-w-md rounded-3xl p-6 sm:p-7 border-border/80">
+            {payStep === "form" && portal && (
+              <div className="space-y-5">
+                <DialogHeader className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      <Smartphone className="size-3.5" /> Lipa Na M-Pesa Online
+                    </div>
+                    <Badge variant="outline" className="font-mono text-[11px]">
+                      {portal.property.code}
+                    </Badge>
+                  </div>
+                  <DialogTitle className="font-display text-xl font-bold">
+                    Pay Rent with M-Pesa
+                  </DialogTitle>
+                  <DialogDescription className="text-xs leading-relaxed">
+                    Payment will be credited directly to <strong>{portal.landlord.company_name}</strong> for <strong>Unit {portal.tenant.unit || portal.tenant.room}</strong>.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 pt-1">
+                  {/* Current Balance / Due Pill */}
+                  <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        Outstanding Rent Due
+                      </span>
+                      <p className="font-display text-lg font-bold text-foreground">
+                        {money(portal.totals.rentBalance > 0 ? portal.totals.rentBalance : portal.tenant.rent_amount)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="rounded-full text-xs h-7 px-2.5 font-semibold"
+                        onClick={() => setPayAmount(portal.totals.rentBalance > 0 ? portal.totals.rentBalance : portal.tenant.rent_amount)}
+                      >
+                        Full Due
+                      </Button>
+                      {portal.totals.rentBalance > 1000 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full text-xs h-7 px-2.5"
+                          onClick={() => setPayAmount(Math.round(portal.totals.rentBalance / 2))}
+                        >
+                          50%
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Amount Input */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="payAmount" className="text-xs font-semibold">
+                      Amount to Pay (KSh) *
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                        KSh
+                      </span>
+                      <Input
+                        id="payAmount"
+                        type="number"
+                        min={1}
+                        max={300000}
+                        step={1}
+                        value={payAmount || ""}
+                        onChange={(e) => setPayAmount(Math.max(0, Number(e.target.value)))}
+                        className="pl-14 h-11 rounded-2xl font-display text-lg font-bold"
+                        placeholder="10000"
+                        required
+                      />
+                    </div>
+                    {payAmount > portal.totals.rentBalance && portal.totals.rentBalance > 0 && (
+                      <p className="text-[11px] text-amber-500 flex items-center gap-1">
+                        <AlertCircle className="size-3" /> Note: This amount exceeds your current monthly balance.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* M-Pesa Phone Input */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="payPhone" className="text-xs font-semibold">
+                      M-Pesa Phone Number *
+                    </Label>
+                    <Input
+                      id="payPhone"
+                      type="tel"
+                      placeholder="e.g. 0712345678 or 0112345678"
+                      value={payPhone}
+                      onChange={(e) => setPayPhone(e.target.value)}
+                      className="font-mono h-11 rounded-2xl font-semibold"
+                      required
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      You will receive an official Safaricom PIN prompt on this mobile line.
+                    </p>
+                  </div>
+
+                  {payErrorMessage && (
+                    <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs flex items-start gap-2">
+                      <XCircle className="size-4 shrink-0 mt-0.5" />
+                      <span>{payErrorMessage}</span>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="pt-2 sm:justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="rounded-full text-xs"
+                    onClick={() => setIsPayModalOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => payMutation.mutate()}
+                    disabled={payMutation.isPending || payAmount <= 0 || !payPhone.trim()}
+                    className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 h-11 gap-2 shadow-glow text-xs sm:text-sm"
+                  >
+                    <Smartphone className="size-4" /> Pay with M-Pesa ({money(payAmount)})
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+
+            {payStep === "sending" && (
+              <div className="py-10 text-center space-y-4">
+                <div className="size-16 rounded-full bg-emerald-500/15 text-emerald-600 mx-auto flex items-center justify-center animate-pulse">
+                  <Loader2 className="size-8 animate-spin" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-display text-lg font-bold">Contacting Safaricom Daraja...</h3>
+                  <p className="text-xs text-muted-foreground">Generating secure Lipa Na M-Pesa STK Push request</p>
+                </div>
+              </div>
+            )}
+
+            {payStep === "waiting_pin" && (
+              <div className="py-6 text-center space-y-5">
+                <div className="relative size-20 mx-auto">
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                  <div className="relative size-20 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                    <Smartphone className="size-9 animate-bounce" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-w-xs mx-auto">
+                  <h3 className="font-display text-xl font-bold">Check Your Phone!</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Safaricom has sent an STK prompt of <strong>{money(payAmount)}</strong> to <strong>{payPhone}</strong>.
+                  </p>
+                  <div className="p-3 rounded-2xl bg-muted/50 border border-border/60 text-xs font-semibold text-foreground flex items-center justify-center gap-1.5 mt-2">
+                    <Lock className="size-3.5 text-emerald-600" /> Enter your M-Pesa PIN on your phone to approve.
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground pt-1">
+                  <Clock className="size-3.5" /> Waiting for confirmation ({stkTimer}s)...
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs"
+                    onClick={() => {
+                      setPayStep("form");
+                    }}
+                  >
+                    Cancel / Modify
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {payStep === "success" && (
+              <div className="py-6 text-center space-y-5">
+                <div className="size-16 rounded-full bg-emerald-500/20 text-emerald-600 mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="size-10" />
+                </div>
+
+                <div className="space-y-1">
+                  <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-xs mb-1">
+                    ✓ Verified by Safaricom
+                  </Badge>
+                  <h3 className="font-display text-2xl font-bold text-foreground">
+                    {money(payAmount)} Paid!
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Your rent payment has been recorded &amp; balance updated.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-2 text-left text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">M-Pesa Receipt:</span>
+                    <span className="font-mono font-bold text-foreground">{confirmedMpesaReceipt}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Receipt Number:</span>
+                    <span className="font-mono text-foreground">{confirmedReceiptNumber || "Generated"}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/60 pt-2 font-semibold">
+                    <span className="text-muted-foreground">Remaining Balance:</span>
+                    <span className="text-emerald-600">{money(confirmedNewBalance ?? 0)}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  {confirmedPublicId && (
+                    <a
+                      href={receiptUrl(confirmedPublicId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full"
+                    >
+                      <Button className="w-full rounded-full gap-1.5 text-xs font-bold h-10 shadow-glow">
+                        <Download className="size-3.5" /> View Official PDF Receipt
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full rounded-full text-xs h-10"
+                    onClick={() => setIsPayModalOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {payStep === "failed" && (
+              <div className="py-6 text-center space-y-5">
+                <div className="size-16 rounded-full bg-rose-500/15 text-rose-600 mx-auto flex items-center justify-center">
+                  <XCircle className="size-10" />
+                </div>
+
+                <div className="space-y-1 max-w-xs mx-auto">
+                  <h3 className="font-display text-xl font-bold text-foreground">Payment Not Completed</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {payErrorMessage || "The payment could not be confirmed. No money was deducted from your account."}
+                  </p>
+                </div>
+
+                <div className="pt-2 flex gap-2 justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full text-xs h-10 px-4"
+                    onClick={() => setIsPayModalOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="rounded-full text-xs font-bold h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => setPayStep("form")}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

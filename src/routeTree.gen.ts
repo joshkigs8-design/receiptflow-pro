@@ -38,6 +38,7 @@ import { Route as AffiliateIndexRouteImport } from './routes/affiliate.index'
 import { Route as AffiliateAuthRouteImport } from './routes/affiliate.auth'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
+import { Route as ApiPublicMpesaCallbackRouteImport } from './routes/api/public/mpesa/callback'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -185,6 +186,11 @@ const ReceiptPublicIdRoute = ReceiptPublicIdRouteImport.update({
   path: '/receipt/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMpesaCallbackRoute = ApiPublicMpesaCallbackRouteImport.update({
+  id: '/api/public/mpesa/callback',
+  path: '/api/public/mpesa/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaystackWebhookRoute =
   ApiPublicPaystackWebhookRouteImport.update({
     id: '/api/public/paystack/webhook',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate/': typeof AffiliateIndexRoute
+  '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate': typeof AffiliateIndexRoute
+  '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesById {
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate/': typeof AffiliateIndexRoute
+  '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRouteTypes {
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate/'
+    | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate'
+    | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   id:
     | '__root__'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate/'
+    | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyRoute: typeof VerifyRoute
   ReceiptPublicIdRoute: typeof ReceiptPublicIdRoute
+  ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
 
@@ -605,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReceiptPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mpesa/callback': {
+      id: '/api/public/mpesa/callback'
+      path: '/api/public/mpesa/callback'
+      fullPath: '/api/public/mpesa/callback'
+      preLoaderRoute: typeof ApiPublicMpesaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/paystack/webhook': {
       id: '/api/public/paystack/webhook'
       path: '/api/public/paystack/webhook'
@@ -687,6 +707,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyRoute: VerifyRoute,
   ReceiptPublicIdRoute: ReceiptPublicIdRoute,
+  ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport

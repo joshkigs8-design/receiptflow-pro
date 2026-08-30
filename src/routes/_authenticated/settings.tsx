@@ -2,14 +2,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Palette, Sparkles, Building2 } from "lucide-react";
+import { Palette, Sparkles, Building2, Smartphone, ShieldCheck, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getSettings, saveSettings } from "@/lib/app.functions";
+import {
+  getLandlordMpesaSettings,
+  saveLandlordMpesaSettings,
+  testLandlordMpesaConnection,
+} from "@/lib/mpesa.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { Field } from "@/components/app/Field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ThemePicker, useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -31,7 +46,16 @@ function SettingsPage() {
   const qc = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
   const save = useServerFn(saveSettings);
+  const fetchMpesaSettings = useServerFn(getLandlordMpesaSettings);
+  const saveMpesa = useServerFn(saveLandlordMpesaSettings);
+  const testMpesa = useServerFn(testLandlordMpesaConnection);
+
   const { data } = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings() });
+  const { data: mpesaData, isLoading: isMpesaLoading } = useQuery({
+    queryKey: ["landlord_mpesa_settings"],
+    queryFn: () => fetchMpesaSettings(),
+  });
+
   const { mode, accent, setMode, setAccent } = useTheme();
 
   const [form, setForm] = useState({
@@ -41,6 +65,17 @@ function SettingsPage() {
     phone: "",
     currency: "KSh",
     business_details: "",
+  });
+
+  const [mpesaForm, setMpesaForm] = useState({
+    shortcode: "",
+    consumer_key: "",
+    consumer_secret: "",
+    passkey: "",
+    environment: "sandbox" as "sandbox" | "production",
+    transaction_type: "CustomerPayBillOnline" as "CustomerPayBillOnline" | "CustomerBuyGoodsOnline",
+    account_reference_prefix: "RRP",
+    is_active: true,
   });
 
   useEffect(() => {
@@ -55,6 +90,20 @@ function SettingsPage() {
     });
   }, [data]);
 
+  useEffect(() => {
+    if (!mpesaData) return;
+    setMpesaForm({
+      shortcode: mpesaData.shortcode || "",
+      consumer_key: mpesaData.consumer_key || "",
+      consumer_secret: mpesaData.consumer_secret_masked || "",
+      passkey: mpesaData.passkey_masked || "",
+      environment: mpesaData.environment || "sandbox",
+      transaction_type: mpesaData.transaction_type || "CustomerPayBillOnline",
+      account_reference_prefix: mpesaData.account_reference_prefix || "RRP",
+      is_active: mpesaData.is_active ?? true,
+    });
+  }, [mpesaData]);
+
   const mutation = useMutation({
     mutationFn: () => save({ data: form }),
     onSuccess: () => {
@@ -62,6 +111,30 @@ function SettingsPage() {
       qc.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (e: Error) => toast.error(e.message || "Could not save settings"),
+  });
+
+  const mpesaMutation = useMutation({
+    mutationFn: () => saveMpesa({ data: mpesaForm }),
+    onSuccess: () => {
+      toast.success("M-Pesa Daraja configuration saved!");
+      qc.invalidateQueries({ queryKey: ["landlord_mpesa_settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not save M-Pesa settings"),
+  });
+
+  const testConnectionMutation = useMutation({
+    mutationFn: () =>
+      testMpesa({
+        data: {
+          consumer_key: mpesaForm.consumer_key,
+          consumer_secret: mpesaForm.consumer_secret,
+          environment: mpesaForm.environment,
+        },
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message);
+    },
+    onError: (e: Error) => toast.error(e.message || "Daraja connection test failed."),
   });
 
   return (
@@ -171,6 +244,188 @@ function SettingsPage() {
           <div className="sm:col-span-2 pt-2">
             <Button type="submit" className="rounded-full shadow-glow" disabled={mutation.isPending}>
               Save Branding Settings
+            </Button>
+          </div>
+        </form>
+
+        {/* 3. M-PESA DARAJA STK PUSH COLLECTION SETTINGS */}
+        <form
+          className="surface-card grid gap-4 p-6 rounded-3xl sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            mpesaMutation.mutate();
+          }}
+        >
+          <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 font-bold">
+                <Smartphone className="size-5" />
+              </span>
+              <div>
+                <h3 className="font-display font-bold text-base flex items-center gap-2">
+                  M-Pesa Online Collection (Daraja STK Push)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Receive rent directly into your Safaricom Paybill or Till Number via instant STK Push
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {mpesaData?.configured && mpesaForm.is_active ? (
+                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-xs font-semibold">
+                  <CheckCircle2 className="size-3.5 mr-1" /> Active &amp; Connected
+                </Badge>
+              ) : mpesaData?.configured && !mpesaForm.is_active ? (
+                <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-xs">
+                  <AlertCircle className="size-3.5 mr-1" /> Configured (Paused)
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-xs">
+                  Not Configured
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-2xl bg-muted/40 border border-border/60">
+            <div className="space-y-0.5">
+              <Label htmlFor="mpesa_active" className="font-semibold text-sm cursor-pointer">
+                Enable Automated Online STK Push
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                When enabled, tenants on your portal can click "Pay with M-Pesa" to receive instant PIN prompts
+              </p>
+            </div>
+            <Switch
+              id="mpesa_active"
+              checked={mpesaForm.is_active}
+              onCheckedChange={(checked) => setMpesaForm({ ...mpesaForm, is_active: checked })}
+            />
+          </div>
+
+          <Field label="Business Shortcode / Paybill / Till" htmlFor="shortcode">
+            <Input
+              id="shortcode"
+              required
+              placeholder="e.g. 174379 (Sandbox) or Paybill"
+              maxLength={10}
+              value={mpesaForm.shortcode}
+              onChange={(e) => setMpesaForm({ ...mpesaForm, shortcode: e.target.value.trim() })}
+              className="font-mono font-semibold"
+            />
+          </Field>
+
+          <Field label="Transaction Type" htmlFor="tx_type">
+            <Select
+              value={mpesaForm.transaction_type}
+              onValueChange={(v: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline") =>
+                setMpesaForm({ ...mpesaForm, transaction_type: v })
+              }
+            >
+              <SelectTrigger id="tx_type" className="font-semibold">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CustomerPayBillOnline">Paybill (CustomerPayBillOnline)</SelectItem>
+                <SelectItem value="CustomerBuyGoodsOnline">Buy Goods / Till (CustomerBuyGoodsOnline)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Environment" htmlFor="env">
+            <Select
+              value={mpesaForm.environment}
+              onValueChange={(v: "sandbox" | "production") =>
+                setMpesaForm({ ...mpesaForm, environment: v })
+              }
+            >
+              <SelectTrigger id="env" className="font-semibold">
+                <SelectValue placeholder="Select environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sandbox">Sandbox (Testing / Development)</SelectItem>
+                <SelectItem value="production">Production (Live Real Payments)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Account Reference Prefix" htmlFor="ref_prefix">
+            <Input
+              id="ref_prefix"
+              placeholder="e.g. RRP or Estate Name"
+              maxLength={10}
+              value={mpesaForm.account_reference_prefix}
+              onChange={(e) => setMpesaForm({ ...mpesaForm, account_reference_prefix: e.target.value.trim() })}
+              className="font-mono uppercase font-semibold"
+            />
+          </Field>
+
+          <Field label="Daraja Consumer Key" htmlFor="ck" className="sm:col-span-2">
+            <Input
+              id="ck"
+              required
+              placeholder="Daraja app consumer key"
+              value={mpesaForm.consumer_key}
+              onChange={(e) => setMpesaForm({ ...mpesaForm, consumer_key: e.target.value.trim() })}
+              className="font-mono text-xs"
+            />
+          </Field>
+
+          <Field label="Daraja Consumer Secret" htmlFor="cs">
+            <Input
+              id="cs"
+              required
+              placeholder="••••••••••••"
+              value={mpesaForm.consumer_secret}
+              onChange={(e) => setMpesaForm({ ...mpesaForm, consumer_secret: e.target.value.trim() })}
+              className="font-mono text-xs"
+            />
+          </Field>
+
+          <Field label="Lipa Na M-Pesa Online Passkey" htmlFor="pk">
+            <Input
+              id="pk"
+              required
+              placeholder="••••••••••••"
+              value={mpesaForm.passkey}
+              onChange={(e) => setMpesaForm({ ...mpesaForm, passkey: e.target.value.trim() })}
+              className="font-mono text-xs"
+            />
+          </Field>
+
+          <div className="sm:col-span-2 pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-border/60 mt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full text-xs gap-1.5 h-10"
+              disabled={
+                testConnectionMutation.isPending ||
+                !mpesaForm.consumer_key ||
+                !mpesaForm.consumer_secret
+              }
+              onClick={() => testConnectionMutation.mutate()}
+            >
+              {testConnectionMutation.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <ShieldCheck className="size-3.5 text-emerald-600" />
+              )}
+              Test Daraja Connection
+            </Button>
+
+            <Button
+              type="submit"
+              className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-6 shadow-glow"
+              disabled={mpesaMutation.isPending}
+            >
+              {mpesaMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Smartphone className="size-4 mr-1.5" />
+              )}
+              Save M-Pesa Settings
             </Button>
           </div>
         </form>

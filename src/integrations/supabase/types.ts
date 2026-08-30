@@ -8,6 +8,117 @@ export type Database = {
   };
   public: {
     Tables: {
+      landlord_mpesa_configs: {
+        Row: {
+          account_reference_prefix: string | null;
+          consumer_key: string;
+          consumer_secret: string;
+          created_at: string;
+          environment: "sandbox" | "production";
+          id: string;
+          is_active: boolean;
+          landlord_id: string;
+          passkey: string;
+          shortcode: string;
+          transaction_type: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline";
+          updated_at: string;
+        };
+        Insert: {
+          account_reference_prefix?: string | null;
+          consumer_key: string;
+          consumer_secret: string;
+          created_at?: string;
+          environment?: "sandbox" | "production";
+          id?: string;
+          is_active?: boolean;
+          landlord_id: string;
+          passkey: string;
+          shortcode: string;
+          transaction_type?: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline";
+          updated_at?: string;
+        };
+        Update: {
+          account_reference_prefix?: string | null;
+          consumer_key?: string;
+          consumer_secret?: string;
+          created_at?: string;
+          environment?: "sandbox" | "production";
+          id?: string;
+          is_active?: boolean;
+          landlord_id?: string;
+          passkey?: string;
+          shortcode?: string;
+          transaction_type?: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      mpesa_transactions: {
+        Row: {
+          account_reference: string;
+          amount: number;
+          checkout_request_id: string | null;
+          created_at: string;
+          id: string;
+          landlord_id: string;
+          merchant_request_id: string | null;
+          mpesa_receipt_number: string | null;
+          paid_at: string | null;
+          phone_number: string;
+          property_id: string | null;
+          raw_callback: Json | null;
+          result_code: number | null;
+          result_desc: string | null;
+          status: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          tenant_id: string | null;
+          transaction_description: string | null;
+          unit_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          account_reference: string;
+          amount: number;
+          checkout_request_id?: string | null;
+          created_at?: string;
+          id?: string;
+          landlord_id: string;
+          merchant_request_id?: string | null;
+          mpesa_receipt_number?: string | null;
+          paid_at?: string | null;
+          phone_number: string;
+          property_id?: string | null;
+          raw_callback?: Json | null;
+          result_code?: number | null;
+          result_desc?: string | null;
+          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          tenant_id?: string | null;
+          transaction_description?: string | null;
+          unit_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          account_reference?: string;
+          amount?: number;
+          checkout_request_id?: string | null;
+          created_at?: string;
+          id?: string;
+          landlord_id?: string;
+          merchant_request_id?: string | null;
+          mpesa_receipt_number?: string | null;
+          paid_at?: string | null;
+          phone_number?: string;
+          property_id?: string | null;
+          raw_callback?: Json | null;
+          result_code?: number | null;
+          result_desc?: string | null;
+          status?: "initiated" | "pending" | "success" | "failed" | "cancelled" | "timeout";
+          tenant_id?: string | null;
+          transaction_description?: string | null;
+          unit_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       affiliates: {
         Row: {
           created_at: string;

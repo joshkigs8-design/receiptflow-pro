@@ -36,6 +36,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   Sparkles,
   Ticket,
   Trash2,
@@ -76,6 +77,7 @@ import {
   startProcessingWithdrawal,
   updateLandlordSubscription,
 } from "@/lib/admin.functions";
+import { listAdminMpesaTransactions } from "@/lib/mpesa.functions";
 import { money, shortDate } from "@/lib/format";
 
 const title = "Owner Admin Portal — Rent Receipt Pro";
@@ -404,6 +406,7 @@ function AdminDashboard() {
   const updateSub = useServerFn(updateLandlordSubscription);
   const fetchLandlordPortfolio = useServerFn(getLandlordPortfolio);
   const fetchPlatformPayments = useServerFn(listPlatformPayments);
+  const fetchAdminMpesa = useServerFn(listAdminMpesaTransactions);
 
   // Queries
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -418,6 +421,10 @@ function AdminDashboard() {
     queryKey: ["platform-payments"],
     queryFn: () => fetchPlatformPayments(),
   });
+  const { data: mpesaTransactions = [], isLoading: mpesaLoading, refetch: refetchMpesa } = useQuery({
+    queryKey: ["admin_mpesa_transactions"],
+    queryFn: () => fetchAdminMpesa(),
+  });
 
   // State: Global Filters & Search
   const [activeTab, setActiveTab] = useState("overview");
@@ -426,6 +433,10 @@ function AdminDashboard() {
   const [subPaymentSearch, setSubPaymentSearch] = useState("");
   const [subPlanFilter, setSubPlanFilter] = useState<string>("all");
   const [platformPaymentSearch, setPlatformPaymentSearch] = useState("");
+  const [mpesaSearch, setMpesaSearch] = useState("");
+  const [mpesaStatusFilter, setMpesaStatusFilter] = useState<string>("all");
+  const [selectedMpesaTx, setSelectedMpesaTx] = useState<any | null>(null);
+  const [mpesaPayloadModalOpen, setMpesaPayloadModalOpen] = useState(false);
 
   // Modals state
   const [selectedLandlord, setSelectedLandlord] = useState<any | null>(null);
@@ -558,6 +569,43 @@ function AdminDashboard() {
     );
   }, [platformPayments, platformPaymentSearch]);
 
+  // Filtered M-Pesa STK Transactions
+  const filteredMpesaTx = useMemo(() => {
+    const list = mpesaTransactions || [];
+    const q = mpesaSearch.toLowerCase().trim();
+    return list.filter((t: any) => {
+      const matchesStatus = mpesaStatusFilter === "all" || t.status === mpesaStatusFilter;
+      const matchesSearch =
+        !q ||
+        (t.tenant_name && t.tenant_name.toLowerCase().includes(q)) ||
+        (t.landlord_name && t.landlord_name.toLowerCase().includes(q)) ||
+        (t.property_name && t.property_name.toLowerCase().includes(q)) ||
+        (t.phone_number && t.phone_number.includes(q)) ||
+        (t.mpesa_receipt_number && t.mpesa_receipt_number.toLowerCase().includes(q)) ||
+        (t.account_reference && t.account_reference.toLowerCase().includes(q)) ||
+        (t.checkout_request_id && t.checkout_request_id.toLowerCase().includes(q));
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [mpesaTransactions, mpesaSearch, mpesaStatusFilter]);
+
+  // M-Pesa Statistics
+  const mpesaStats = useMemo(() => {
+    const list = mpesaTransactions || [];
+    const successful = list.filter((t) => t.status === "success");
+    const pending = list.filter((t) => t.status === "pending" || t.status === "initiated");
+    const failed = list.filter((t) => t.status === "failed" || t.status === "cancelled" || t.status === "timeout");
+    const totalVolume = successful.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    return {
+      totalCount: list.length,
+      successCount: successful.length,
+      pendingCount: pending.length,
+      failedCount: failed.length,
+      totalVolume,
+    };
+  }, [mpesaTransactions]);
+
   const cards = [
     { label: "Total Landlords", value: stats?.landlords ?? 0, icon: Users, color: "text-blue-500" },
     { label: "Paying Subscribers", value: stats?.paying ?? 0, icon: BadgeCheck, color: "text-emerald-500" },
@@ -604,6 +652,9 @@ function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="platform-payments" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
               <Receipt className="size-4 mr-1.5" /> Platform Receipts ({platformPayments?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="mpesa-center" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              <Smartphone className="size-4 mr-1.5 text-emerald-600" /> M-Pesa STK ({mpesaTransactions.length})
             </TabsTrigger>
             <TabsTrigger value="affiliates" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
               <Wallet className="size-4 mr-1.5 text-amber-500" /> Affiliate Hub
@@ -1290,7 +1341,274 @@ function AdminDashboard() {
             initialLandlordId={selectedLandlord?.id}
           />
         </TabsContent>
+
+        {/* TAB: M-PESA STK CENTER */}
+        <TabsContent value="mpesa-center" className="space-y-6">
+          {/* 1. M-Pesa Metrics */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-medium">Total Volume Settled</span>
+                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                  <Smartphone className="size-4" />
+                </span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-emerald-600">
+                {money(mpesaStats.totalVolume)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Successful Daraja STK collections</p>
+            </div>
+
+            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-medium">Successful Payments</span>
+                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                  <CheckCircle className="size-4" />
+                </span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold">{mpesaStats.successCount}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Received &amp; verified receipts</p>
+            </div>
+
+            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-medium">Pending STK Requests</span>
+                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                  <Clock className="size-4" />
+                </span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-amber-500">{mpesaStats.pendingCount}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Awaiting PIN prompt completion</p>
+            </div>
+
+            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-medium">Failed / Cancelled</span>
+                <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                  <XCircle className="size-4" />
+                </span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-rose-500">{mpesaStats.failedCount}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Cancelled or timed out attempts</p>
+            </div>
+          </div>
+
+          {/* 2. M-Pesa Live Transactions Table Card */}
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <Smartphone className="size-5 text-emerald-600" /> Real-Time M-Pesa Daraja Transactions
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Complete multi-landlord STK Push payment lifecycle audit log
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search tenant, phone, receipt..."
+                    value={mpesaSearch}
+                    onChange={(e) => setMpesaSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                </div>
+
+                <Select value={mpesaStatusFilter} onValueChange={setMpesaStatusFilter}>
+                  <SelectTrigger className="h-9 w-32 rounded-full text-xs font-semibold">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="success">Successful</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full h-9 text-xs gap-1.5"
+                  onClick={() => exportToCsv("rentreceipt_mpesa_transactions", filteredMpesaTx)}
+                  disabled={!filteredMpesaTx.length}
+                >
+                  <Download className="size-3.5" /> CSV
+                </Button>
+              </div>
+            </div>
+
+            {filteredMpesaTx.length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date / Time</TableHead>
+                      <TableHead>Tenant &amp; Property</TableHead>
+                      <TableHead>Landlord</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>M-Pesa Phone</TableHead>
+                      <TableHead>Receipt / Ref</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMpesaTx.map((tx: any) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {shortDate(tx.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-xs text-foreground">{tx.tenant_name || "Tenant"}</p>
+                            <p className="text-[11px] text-muted-foreground">{tx.property_name || "—"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-muted-foreground">
+                          {tx.landlord_name}
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-foreground font-mono">
+                          {money(tx.amount)}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {tx.phone_number}
+                        </TableCell>
+                        <TableCell>
+                          {tx.mpesa_receipt_number ? (
+                            <Badge variant="outline" className="font-mono font-bold text-xs text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
+                              {tx.mpesa_receipt_number}
+                            </Badge>
+                          ) : (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {tx.account_reference || "—"}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] font-semibold uppercase ${
+                              tx.status === "success"
+                                ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                                : tx.status === "pending" || tx.status === "initiated"
+                                ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                                : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                            }`}
+                          >
+                            {tx.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full h-8 text-xs gap-1 text-primary"
+                            onClick={() => {
+                              setSelectedMpesaTx(tx);
+                              setMpesaPayloadModalOpen(true);
+                            }}
+                          >
+                            <Eye className="size-3.5" /> Inspect
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <EmptyState title="No M-Pesa STK transactions match your filters." />
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {/* DIALOG: M-PESA TRANSACTION PAYLOAD INSPECTOR */}
+      <Dialog open={mpesaPayloadModalOpen} onOpenChange={setMpesaPayloadModalOpen}>
+        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-7">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <div className="space-y-1">
+                <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+                  <Smartphone className="size-5 text-emerald-600" /> M-Pesa Transaction Inspector
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  ID: <span className="font-mono">{selectedMpesaTx?.id}</span>
+                </DialogDescription>
+              </div>
+              <Badge
+                variant="secondary"
+                className={`text-[10px] font-semibold uppercase ${
+                  selectedMpesaTx?.status === "success"
+                    ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                    : selectedMpesaTx?.status === "pending"
+                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                    : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                }`}
+              >
+                {selectedMpesaTx?.status}
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          {selectedMpesaTx && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Tenant / Property</span>
+                  <p className="font-bold text-foreground mt-0.5">{selectedMpesaTx.tenant_name}</p>
+                  <p className="text-muted-foreground">{selectedMpesaTx.property_name}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Landlord Account</span>
+                  <p className="font-bold text-foreground mt-0.5">{selectedMpesaTx.landlord_name}</p>
+                  <p className="text-muted-foreground">{selectedMpesaTx.phone_number}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Amount &amp; Ref</span>
+                  <p className="font-bold text-foreground mt-0.5">{money(selectedMpesaTx.amount)}</p>
+                  <p className="font-mono text-muted-foreground">{selectedMpesaTx.account_reference}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">M-Pesa Receipt</span>
+                  <p className="font-mono font-bold text-emerald-600 mt-0.5">
+                    {selectedMpesaTx.mpesa_receipt_number || "—"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{shortDate(selectedMpesaTx.created_at)}</p>
+                </div>
+              </div>
+
+              {selectedMpesaTx.result_desc && (
+                <div className="p-3 rounded-2xl bg-muted/30 border border-border/60 text-xs">
+                  <span className="text-muted-foreground font-semibold block text-[11px]">Result Description</span>
+                  <p className="mt-0.5 text-foreground">{selectedMpesaTx.result_desc}</p>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Raw Daraja Webhook Callback</Label>
+                <div className="p-3 rounded-2xl bg-muted/60 border border-border/80 max-h-48 overflow-y-auto font-mono text-[11px] text-muted-foreground whitespace-pre-wrap">
+                  {JSON.stringify(selectedMpesaTx.raw_callback || { checkout_request_id: selectedMpesaTx.checkout_request_id, merchant_request_id: selectedMpesaTx.merchant_request_id }, null, 2)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="rounded-full text-xs"
+              onClick={() => setMpesaPayloadModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DIALOG 1: LANDLORD PORTFOLIO INSPECTOR */}
       <Dialog open={portfolioModalOpen} onOpenChange={setPortfolioModalOpen}>
