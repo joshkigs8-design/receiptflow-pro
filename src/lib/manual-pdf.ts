@@ -359,3 +359,4 @@ export async function downloadLandlordManualPdf(): Promise<void> {
   // Save / Trigger Download
   doc.save("RentReceipt_Pro_Landlord_Operations_Manual_2026.pdf");
 }
+

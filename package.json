@@ -1,8 +1,10 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "rentreceipt-pro",
+  "version": "1.0.0",
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -12,7 +14,12 @@
     "format": "prettier --write .",
     "mobile:sync": "cap sync android",
     "mobile:open": "cap open android",
-    "mobile:build": "vite build && cap sync android"
+    "mobile:build": "vite build && cap sync android",
+    "electron:dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "electron:start": "electron .",
+    "electron:build": "electron-builder --config electron-builder.json",
+    "electron:build:win": "electron-builder --win --config electron-builder.json",
+    "electron:build:portable": "electron-builder --win portable --config electron-builder.json"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
@@ -89,6 +96,10 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
