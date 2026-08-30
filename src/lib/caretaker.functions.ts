@@ -85,8 +85,8 @@ export const listCaretakers = createServerFn({ method: "GET" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const caretakersList = (meta["caretakers"] as CaretakerRecord[]) || [];
+      const profileObj = profile as unknown as { metadata?: { caretakers?: CaretakerRecord[] } } | null;
+      const caretakersList = profileObj?.metadata?.caretakers || [];
       return caretakersList;
     }
   });
@@ -145,8 +145,9 @@ export const saveCaretaker = createServerFn({ method: "POST" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      let caretakersList = ((meta["caretakers"] as CaretakerRecord[]) || []).slice();
+      const profileObj = profile as unknown as { metadata?: { caretakers?: CaretakerRecord[] } & Record<string, unknown> } | null;
+      const meta = profileObj?.metadata || {};
+      let caretakersList = (meta.caretakers || []).slice();
 
       if (data.id) {
         caretakersList = caretakersList.map((c) =>
@@ -210,8 +211,9 @@ export const deleteCaretaker = createServerFn({ method: "POST" })
         .eq("id", context.userId)
         .maybeSingle();
 
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const caretakersList = ((meta["caretakers"] as CaretakerRecord[]) || []).filter((c) => c.id !== data.id);
+      const profileObj = profile as unknown as { metadata?: { caretakers?: CaretakerRecord[] } & Record<string, unknown> } | null;
+      const meta = profileObj?.metadata || {};
+      const caretakersList = (meta.caretakers || []).filter((c) => c.id !== data.id);
 
       await supabaseAdmin
         .from("profiles")
@@ -264,8 +266,8 @@ export const caretakerLogin = createServerFn({ method: "POST" })
         .not("metadata" as never, "is", null);
 
       for (const p of profiles || []) {
-        const meta = (p as unknown as Record<string, any>)?.["metadata"] as Record<string, any> | undefined;
-        const list = (meta?.["caretakers"] as CaretakerRecord[]) || [];
+        const profileObj = p as unknown as { metadata?: { caretakers?: CaretakerRecord[] } };
+        const list = profileObj?.metadata?.caretakers || [];
         const match = list.find(
           (c) =>
             c.phone.replace(/\s+/g, "") === cleanPhone &&
@@ -514,7 +516,8 @@ export const caretakerUpdateMaintenance = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {    const { error } = await supabaseAdmin
+  .handler(async ({ data }) => {
+    const { error } = await supabaseAdmin
       .from("maintenance_requests")
       .update({
         status: data.status,
@@ -523,428 +526,5 @@ export const caretakerUpdateMaintenance = createServerFn({ method: "POST" })
 
     if (error) throw error;
     return { ok: true };
-  });
-
-export type CaretakerTenantRequest = {
-  id: string;
-  landlord_id: string;
-  caretaker_id: string;
-  caretaker_name: string;
-  property_id: string | null;
-  unit_id: string | null;
-  tenant_id: string | null;
-  request_type: "add_tenant" | "vacate_tenant";
-  status: "pending" | "approved" | "rejected";
-  data: {
-    full_name?: string;
-    phone?: string;
-    email?: string | null;
-    rent_amount?: number;
-    deposit_paid?: number;
-    emergency_contact?: string | null;
-    lease_start?: string | null;
-    notes?: string | null;
-    reason?: string | null;
-    departure_date?: string | null;
-    [key: string]: any;
-  };
-  created_at: string;
-  resolved_at?: string | null;
-  properties?: { name: string; code: string } | null;
-  units?: { unit_number: string; room_number?: string | null } | null;
-  tenants?: { full_name: string; phone?: string | null } | null;
-};
-
-/**
- * 8. Caretaker: Submit Tenant Onboarding Request (Add Tenant)
- */
-export const caretakerRequestAddTenant = createServerFn({ method: "POST" })
-  .validator((d: unknown) =>
-    z
-      .object({
-        caretaker_id: z.string(),
-        landlord_id: z.string(),
-        caretaker_name: z.string(),
-        property_id: z.string(),
-        unit_id: z.string(),
-        full_name: z.string().min(2),
-        phone: z.string().min(9),
-        email: z.string().email().optional(),
-        rent_amount: z.number().min(0),
-        deposit_paid: z.number().min(0).default(0),
-        lease_start: z.string(),
-        notes: z.string().optional(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
-    const requestPayload = {
-      landlord_id: data.landlord_id,
-      caretaker_id: data.caretaker_id,
-      caretaker_name: data.caretaker_name,
-      property_id: data.property_id,
-      unit_id: data.unit_id,
-      tenant_id: null,
-      request_type: "add_tenant" as const,
-      status: "pending" as const,
-      data: {
-        full_name: data.full_name,
-        phone: data.phone,
-        email: data.email || null,
-        rent_amount: data.rent_amount,
-        deposit_paid: data.deposit_paid,
-        lease_start: data.lease_start,
-        notes: data.notes || null,
-      },
-      created_at: new Date().toISOString(),
-      resolved_at: null,
-    };
-
-    try {
-      const { error } = await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .insert(requestPayload as never);
-
-      if (error) throw error;
-    } catch (e) {
-      console.warn("Table insert fallback for caretaker_tenant_requests:", e);
-      // Fallback: Store in landlord profile metadata
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("metadata" as never)
-        .eq("id", data.landlord_id)
-        .maybeSingle();
-
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const reqList = ((meta["caretaker_requests"] as CaretakerTenantRequest[]) || []).slice();
-      reqList.unshift({
-        id: `ctreq_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        ...requestPayload,
-      });
-
-      await supabaseAdmin
-        .from("profiles")
-        .update({ metadata: { ...meta, caretaker_requests: reqList } } as never)
-        .eq("id", data.landlord_id);
-    }
-
-    // Notify Landlord
-    await supabaseAdmin.from("notifications").insert({
-      landlord_id: data.landlord_id,
-      title: "Pending Tenant Onboarding Request",
-      body: `Caretaker ${data.caretaker_name} requested to add tenant ${data.full_name} (${data.phone}). Requires your confirmation.`,
-      type: "tenant",
-    });
-
-    return { ok: true };
-  });
-
-/**
- * 9. Caretaker: Submit Request to Vacate / Move-Out Tenant
- */
-export const caretakerRequestVacateTenant = createServerFn({ method: "POST" })
-  .validator((d: unknown) =>
-    z
-      .object({
-        caretaker_id: z.string(),
-        landlord_id: z.string(),
-        caretaker_name: z.string(),
-        tenant_id: z.string().uuid(),
-        reason: z.string().min(2),
-        departure_date: z.string().default(() => new Date().toISOString().slice(0, 10)),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
-    // 1. Fetch tenant & property
-    const { data: tenant } = await supabaseAdmin
-      .from("tenants")
-      .select("id, full_name, phone, unit_id, property_id, properties(name), units(unit_number)")
-      .eq("id", data.tenant_id)
-      .eq("landlord_id", data.landlord_id)
-      .single();
-
-    if (!tenant) throw new Error("Tenant record not found.");
-
-    const unitNumber = tenant.units?.unit_number || "Unit";
-    const propName = tenant.properties?.name || "Property";
-
-    const requestPayload = {
-      landlord_id: data.landlord_id,
-      caretaker_id: data.caretaker_id,
-      caretaker_name: data.caretaker_name,
-      property_id: tenant.property_id,
-      unit_id: tenant.unit_id,
-      tenant_id: tenant.id,
-      request_type: "vacate_tenant" as const,
-      status: "pending" as const,
-      data: {
-        full_name: tenant.full_name,
-        phone: tenant.phone,
-        reason: data.reason.trim(),
-        departure_date: data.departure_date,
-      },
-      created_at: new Date().toISOString(),
-      resolved_at: null,
-    };
-
-    try {
-      const { error } = await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .insert(requestPayload as never);
-
-      if (error) throw error;
-    } catch (e) {
-      console.warn("Table insert fallback for vacate tenant request:", e);
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("metadata" as never)
-        .eq("id", data.landlord_id)
-        .maybeSingle();
-
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const reqList = ((meta["caretaker_requests"] as CaretakerTenantRequest[]) || []).slice();
-      reqList.unshift({
-        id: `ctreq_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        ...requestPayload,
-      });
-
-      await supabaseAdmin
-        .from("profiles")
-        .update({ metadata: { ...meta, caretaker_requests: reqList } } as never)
-        .eq("id", data.landlord_id);
-    }
-
-    // Notify Landlord
-    await supabaseAdmin.from("notifications").insert({
-      landlord_id: data.landlord_id,
-      title: "Pending Tenant Move-Out Request",
-      body: `Caretaker ${data.caretaker_name} requested move-out for ${tenant.full_name} (Room ${unitNumber} at ${propName}). Reason: ${data.reason}. Requires your confirmation.`,
-      type: "tenant",
-    });
-
-    return { ok: true };
-  });
-
-/**
- * 10. Landlord: List Pending Caretaker Requests
- */
-export const listPendingCaretakerRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    let requests: CaretakerTenantRequest[] = [];
-
-    try {
-      const { data, error } = await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .select(
-          "*, properties:property_id(name, code), units:unit_id(unit_number, room_number), tenants:tenant_id(full_name, phone)",
-        )
-        .eq("landlord_id", context.userId)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        requests = data as unknown as CaretakerTenantRequest[];
-      }
-    } catch {
-      // Fallback
-    }
-
-    if (!requests.length) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("metadata" as never)
-        .eq("id", context.userId)
-        .maybeSingle();
-
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const allReqs = (meta["caretaker_requests"] as CaretakerTenantRequest[]) || [];
-      requests = allReqs.filter((r) => r.status === "pending");
-    }
-
-    return requests;
-  });
-
-/**
- * 11. Landlord: Resolve (Approve / Reject) Caretaker Request
- */
-export const resolveCaretakerRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((d: unknown) =>
-    z
-      .object({
-        request_id: z.string(),
-        action: z.enum(["approve", "reject"]),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    // 1. Find request
-    let request: CaretakerTenantRequest | null = null;
-
-    try {
-      const { data: req } = await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .select("*")
-        .eq("id", data.request_id)
-        .eq("landlord_id", context.userId)
-        .maybeSingle();
-
-      if (req) request = req as unknown as CaretakerTenantRequest;
-    } catch {
-      // Fallback
-    }
-
-    let isFromMetadata = false;
-    let metaHolder: Record<string, any> = {};
-
-    if (!request) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("metadata" as never)
-        .eq("id", context.userId)
-        .maybeSingle();
-
-      metaHolder = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const allReqs = (metaHolder["caretaker_requests"] as CaretakerTenantRequest[]) || [];
-      request = allReqs.find((r) => r.id === data.request_id) || null;
-      isFromMetadata = true;
-    }
-
-    if (!request) throw new Error("Caretaker request not found.");
-
-    if (data.action === "approve") {
-      if (request.request_type === "add_tenant") {
-        // Create Tenant in tenants table
-        const { error: insErr } = await supabaseAdmin.from("tenants").insert({
-          landlord_id: context.userId,
-          property_id: request.property_id,
-          unit_id: request.unit_id,
-          full_name: request.data.full_name || "New Tenant",
-          phone: request.data.phone || "",
-          email: request.data.email || null,
-          rent_amount: request.data.rent_amount || 0,
-          deposit_paid: request.data.deposit_paid || 0,
-          emergency_contact: request.data.emergency_contact || null,
-          lease_start: request.data.lease_start || new Date().toISOString().slice(0, 10),
-          status: "active",
-        });
-
-        if (insErr) throw insErr;
-
-        // Mark unit occupied
-        if (request.unit_id) {
-          await supabaseAdmin
-            .from("units")
-            .update({ status: "occupied" })
-            .eq("id", request.unit_id)
-            .eq("landlord_id", context.userId);
-        }
-      } else if (request.request_type === "vacate_tenant" && request.tenant_id) {
-        // Free unit
-        if (request.unit_id) {
-          await supabaseAdmin
-            .from("units")
-            .update({ status: "vacant" })
-            .eq("id", request.unit_id)
-            .eq("landlord_id", context.userId);
-        }
-
-        // Delete the tenant record (or set status: vacated and unit_id: null if foreign key exists)
-        const { error: delErr } = await supabaseAdmin
-          .from("tenants")
-          .delete()
-          .eq("id", request.tenant_id)
-          .eq("landlord_id", context.userId);
-
-        if (delErr) {
-          await supabaseAdmin
-            .from("tenants")
-            .update({
-              status: "vacated",
-              unit_id: null,
-              lease_end: request.data.departure_date || new Date().toISOString().slice(0, 10),
-            })
-            .eq("id", request.tenant_id)
-            .eq("landlord_id", context.userId);
-        }
-      }
-    }
-
-    // Update status of request
-    if (!isFromMetadata) {
-      await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .update({
-          status: data.action === "approve" ? "approved" : "rejected",
-          resolved_at: new Date().toISOString(),
-        } as never)
-        .eq("id", data.request_id);
-    } else {
-      const allReqs = (metaHolder["caretaker_requests"] as CaretakerTenantRequest[]) || [];
-      const updatedReqs = allReqs.map((r) =>
-        r.id === data.request_id
-          ? {
-              ...r,
-              status: (data.action === "approve" ? "approved" : "rejected") as "approved" | "rejected",
-              resolved_at: new Date().toISOString(),
-            }
-          : r,
-      );
-      await supabaseAdmin
-        .from("profiles")
-        .update({ metadata: { ...metaHolder, caretaker_requests: updatedReqs } } as never)
-        .eq("id", context.userId);
-    }
-
-    return { ok: true };
-  });
-
-/**
- * 12. Caretaker: List Own Submitted Requests
- */
-export const listCaretakerOwnRequests = createServerFn({ method: "POST" })
-  .validator((d: unknown) =>
-    z
-      .object({
-        caretaker_id: z.string(),
-        landlord_id: z.string(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
-    let requests: CaretakerTenantRequest[] = [];
-
-    try {
-      const { data: reqs, error } = await supabaseAdmin
-        .from("caretaker_tenant_requests" as never)
-        .select(
-          "*, properties:property_id(name, code), units:unit_id(unit_number, room_number), tenants:tenant_id(full_name, phone)",
-        )
-        .eq("caretaker_id", data.caretaker_id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (!error && reqs) {
-        requests = reqs as unknown as CaretakerTenantRequest[];
-      }
-    } catch {
-      // Fallback
-    }
-
-    if (!requests.length) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("metadata" as never)
-        .eq("id", data.landlord_id)
-        .maybeSingle();
-
-      const meta = ((profile as unknown as Record<string, any>)?.["metadata"] as Record<string, any>) || {};
-      const allReqs = (meta["caretaker_requests"] as CaretakerTenantRequest[]) || [];
-      requests = allReqs.filter((r) => r.caretaker_id === data.caretaker_id).slice(0, 20);
-    }
-
-    return requests;
   });
 

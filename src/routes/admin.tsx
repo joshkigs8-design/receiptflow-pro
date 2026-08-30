@@ -57,6 +57,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeToggle } from "@/lib/theme";
+import { AiBulkImporter } from "@/components/admin/AiBulkImporter";
 import {
   createVoucher,
   deleteVoucher,
@@ -592,6 +593,9 @@ function AdminDashboard() {
             <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
               <Sparkles className="size-4 mr-1.5 text-primary" /> Overview &amp; Analytics
             </TabsTrigger>
+            <TabsTrigger value="ai-importer" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold bg-[#E8F2ED] dark:bg-[#0D3528] text-[#087443] dark:text-[#52B788] border border-[#087443]/30">
+              <Sparkles className="size-4 mr-1.5 text-[#C9A227]" /> ✨ AI Bulk Import
+            </TabsTrigger>
             <TabsTrigger value="landlords" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
               <Users className="size-4 mr-1.5" /> Landlords ({overview?.landlords.length ?? 0})
             </TabsTrigger>
@@ -679,6 +683,13 @@ function AdminDashboard() {
                 <KeyRound className="size-4 text-primary" /> Quick Owner Actions
               </h3>
               <div className="space-y-2 pt-2">
+                <Button
+                  className="w-full justify-start rounded-2xl h-11 bg-[#087443]/10 text-[#087443] dark:text-[#52B788] hover:bg-[#087443]/20 border border-[#087443]/30 font-bold"
+                  variant="outline"
+                  onClick={() => setActiveTab("ai-importer")}
+                >
+                  <Sparkles className="size-4 mr-2 text-[#C9A227]" /> ✨ AI Bulk Unit Importer
+                </Button>
                 <Button
                   className="w-full justify-start rounded-2xl h-11"
                   variant="outline"
@@ -851,6 +862,18 @@ function AdminDashboard() {
                         <TableCell className="text-xs font-semibold">{money(l.rentCollected)}</TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2.5 text-xs gap-1 text-[#087443] dark:text-[#52B788] hover:bg-[#087443]/10 font-bold border-[#087443]/30"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setActiveTab("ai-importer");
+                              }}
+                            >
+                              <Sparkles className="size-3 text-[#C9A227]" /> AI Import
+                            </Button>
+
                             <Button
                               size="sm"
                               variant="outline"
@@ -1259,19 +1282,42 @@ function AdminDashboard() {
             </div>
           </div>
         </TabsContent>
+
+        {/* TAB: AI BULK UNIT IMPORTER */}
+        <TabsContent value="ai-importer" className="space-y-6">
+          <AiBulkImporter
+            landlords={overview?.landlords ?? []}
+            initialLandlordId={selectedLandlord?.id}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* DIALOG 1: LANDLORD PORTFOLIO INSPECTOR */}
       <Dialog open={portfolioModalOpen} onOpenChange={setPortfolioModalOpen}>
         <DialogContent className="max-w-3xl rounded-3xl p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
-              <Building2 className="size-5 text-primary" /> Landlord Portfolio: {selectedLandlord?.full_name || selectedLandlord?.email}
-            </DialogTitle>
-            <DialogDescription>
-              Account Email: <strong className="text-foreground">{selectedLandlord?.email}</strong> · Company:{" "}
-              <strong className="text-foreground">{selectedLandlord?.company_name || "—"}</strong>
-            </DialogDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
+              <div>
+                <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+                  <Building2 className="size-5 text-primary" /> Landlord Portfolio: {selectedLandlord?.full_name || selectedLandlord?.email}
+                </DialogTitle>
+                <DialogDescription>
+                  Account Email: <strong className="text-foreground">{selectedLandlord?.email}</strong> · Company:{" "}
+                  <strong className="text-foreground">{selectedLandlord?.company_name || "—"}</strong>
+                </DialogDescription>
+              </div>
+
+              <Button
+                size="sm"
+                className="rounded-full bg-[#087443] hover:bg-[#063B2A] text-white text-xs font-bold gap-1.5 shadow-sm self-start sm:self-auto shrink-0"
+                onClick={() => {
+                  setPortfolioModalOpen(false);
+                  setActiveTab("ai-importer");
+                }}
+              >
+                <Sparkles className="size-3.5 text-[#C9A227]" /> ✨ AI Bulk Import Units
+              </Button>
+            </div>
           </DialogHeader>
 
           {portfolioLoading ? (

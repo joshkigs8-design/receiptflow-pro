@@ -604,3 +604,468 @@ export const verifyAdmin2FAPin = createServerFn({ method: "POST" })
     return { verified: true };
   });
 
+/**
+ * -----------------------------------------------------------------------------
+ * AI BULK UNIT IMPORTER SERVER FUNCTIONS
+ * -----------------------------------------------------------------------------
+ */
+
+export interface ExtractedUnitItem {
+  unit_number: string;
+  rent: number;
+  deposit?: number;
+  floor?: string | null;
+  status: "occupied" | "vacant";
+  tenant_name?: string | null;
+  tenant_phone?: string | null;
+  notes?: string | null;
+  confidence: "high" | "medium" | "low";
+  validation_flags: string[];
+  is_duplicate?: boolean;
+}
+
+export const getLandlordPropertiesForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({ landlordId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: properties, error } = await supabaseAdmin
+      .from("properties")
+      .select("id, name, code, property_type, units_count, address, status")
+      .eq("landlord_id", data.landlordId)
+      .order("name");
+
+    if (error) throw new Error(error.message);
+    return properties ?? [];
+  });
+
+export const extractUnitsWithAi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        textContent: z.string().optional(),
+        imageBase64: z.string().optional(),
+        mimeType: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+
+    const apiKey =
+      process.env["GEMINI_API_KEY"] ||
+      process.env["VITE_GEMINI_API_KEY"] ||
+      process.env["GOOGLE_API_KEY"] ||
+      "";
+
+    if (!data.textContent && !data.imageBase64) {
+      throw new Error("Please provide either text content or an image/document file.");
+    }
+
+    const systemPrompt = `You are a specialized Kenyan real estate AI bulk unit parser.
+Extract every single rental unit/room, rent amount, tenant name, tenant phone, deposit, floor, and occupancy status from the supplied unit list document, table, image, or text.
+
+STRICT PARSING RULES:
+1. Extract ONLY information explicitly present in the input. Never invent units or tenants.
+2. NORMALIZE CURRENCY: Convert all Kenyan currency formats into clean positive numbers (e.g., "10k" -> 10000, "10,000" -> 10000, "KSh 8,500" -> 8500, "KES 12000" -> 12000, "35k" -> 35000).
+3. OCCUPANCY STATUS:
+   - If marked "Vacant", "Empty", "Available", or if there is no tenant, set status to "vacant".
+   - If a tenant name or phone is present, set status to "occupied".
+4. UNIT IDENTIFIER: Preserve original unit labels (e.g. "Room 1", "A01", "Shop 4B", "House 12", "Studio 3").
+5. PHONE NUMBERS: Normalize Kenyan phone numbers where possible (e.g. "0712345678" or "+254712345678").
+6. CONFIDENCE & FLAGS:
+   - Set confidence to "high" if unit and rent are unambiguous.
+   - Set confidence to "medium" or "low" if rent is missing, 0, or ambiguous.
+   - Add clear warning strings in "validation_flags" (e.g. "Missing rent amount", "Ambiguous tenant name", "Unclear unit number").
+7. Output MUST be valid JSON conforming strictly to the requested schema. No markdown formatting outside JSON.`;
+
+    if (!apiKey) {
+      // Graceful fallback parser for plain text / CSV when API key is not yet set in environment
+      const text = data.textContent || "";
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const units: ExtractedUnitItem[] = [];
+
+      for (const line of lines) {
+        if (/^(unit|room|house|name|rent|tenant|status|phone)/i.test(line) && line.includes(",")) {
+          continue; // skip header
+        }
+
+        // Match patterns like: "A01, 8000, John Mwangi, 0712345678" or "Room 1 - 10000 - Mary"
+        const parts = line.split(/[,\t|—–-]+/).map((p) => p.trim()).filter(Boolean);
+        if (parts.length >= 1) {
+          const unitNumber = parts[0] || `Unit ${units.length + 1}`;
+          let rent = 0;
+          let tenantName: string | null = null;
+          let tenantPhone: string | null = null;
+          let status: "occupied" | "vacant" = "vacant";
+
+          for (let i = 1; i < parts.length; i++) {
+            const p = parts[i];
+            if (!p) continue;
+            const numMatch = p.replace(/[^\d.kK]/g, "");
+            if (/\b(vacant|empty)\b/i.test(p)) {
+              status = "vacant";
+            } else if (/\b(occupied|taken)\b/i.test(p)) {
+              status = "occupied";
+            } else if (/(?:254|07|01)\d{8}/.test(p.replace(/\s+/g, ""))) {
+              tenantPhone = p.replace(/\s+/g, "");
+              status = "occupied";
+            } else if (numMatch && !rent && (/\d+k/i.test(p) || parseInt(numMatch, 10) >= 500)) {
+              if (/k$/i.test(numMatch)) {
+                rent = parseFloat(numMatch.replace(/k$/i, "")) * 1000;
+              } else {
+                rent = parseInt(numMatch, 10);
+              }
+            } else if (!tenantName && isNaN(Number(p)) && p.length > 2) {
+              tenantName = p;
+              status = "occupied";
+            }
+          }
+
+          units.push({
+            unit_number: unitNumber,
+            rent: rent || 0,
+            deposit: rent || 0,
+            status,
+            tenant_name: tenantName || null,
+            tenant_phone: tenantPhone || null,
+            confidence: rent > 0 ? "high" : "medium",
+            validation_flags: rent === 0 ? ["Missing rent amount"] : [],
+          });
+        }
+      }
+
+      return {
+        units,
+        detected_count: units.length,
+        note: "Extracted via smart pattern parser (Configure GEMINI_API_KEY for advanced multimodal vision).",
+      };
+    }
+
+    try {
+      // Call Google Gemini API (gemini-2.0-flash or gemini-1.5-flash)
+      const contents: any[] = [];
+      const parts: any[] = [{ text: systemPrompt }];
+
+      if (data.textContent) {
+        parts.push({ text: `RAW UNIT LIST DATA TO EXTRACT:\n\n${data.textContent}` });
+      }
+
+      if (data.imageBase64) {
+        // Strip data URL header if included
+        const cleanBase64 = data.imageBase64.includes(",")
+          ? data.imageBase64.split(",")[1]
+          : data.imageBase64;
+
+        parts.push({
+          inlineData: {
+            mimeType: data.mimeType || "image/jpeg",
+            data: cleanBase64,
+          },
+        });
+      }
+
+      contents.push({ role: "user", parts });
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  units: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        unit_number: { type: "STRING" },
+                        rent: { type: "NUMBER" },
+                        deposit: { type: "NUMBER" },
+                        floor: { type: "STRING" },
+                        status: { type: "STRING", enum: ["occupied", "vacant"] },
+                        tenant_name: { type: "STRING" },
+                        tenant_phone: { type: "STRING" },
+                        notes: { type: "STRING" },
+                        confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+                        validation_flags: { type: "ARRAY", items: { type: "STRING" } },
+                      },
+                      required: ["unit_number", "rent", "status", "confidence", "validation_flags"],
+                    },
+                  },
+                  detected_count: { type: "INTEGER" },
+                },
+                required: ["units"],
+              },
+            },
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Gemini API Error:", errText);
+        throw new Error(`Gemini Extraction Error (${res.status}): ${errText}`);
+      }
+
+      const jsonRes = await res.json();
+      const rawOutput = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!rawOutput) {
+        throw new Error("No structured data returned by Gemini.");
+      }
+
+      const parsed = JSON.parse(rawOutput);
+      const units: ExtractedUnitItem[] = (parsed.units ?? []).map((u: any) => ({
+        unit_number: String(u.unit_number || "").trim(),
+        rent: Number(u.rent || 0),
+        deposit: u.deposit ? Number(u.deposit) : Number(u.rent || 0),
+        floor: u.floor || null,
+        status: u.status === "occupied" ? "occupied" : "vacant",
+        tenant_name: u.tenant_name ? String(u.tenant_name).trim() : null,
+        tenant_phone: u.tenant_phone ? String(u.tenant_phone).trim() : null,
+        notes: u.notes || null,
+        confidence: u.confidence || (Number(u.rent) > 0 ? "high" : "medium"),
+        validation_flags: Array.isArray(u.validation_flags)
+          ? u.validation_flags
+          : Number(u.rent) <= 0
+            ? ["Missing rent amount"]
+            : [],
+      }));
+
+      return {
+        units,
+        detected_count: units.length,
+      };
+    } catch (err: any) {
+      console.error("AI Extraction Exception:", err);
+      throw new Error(err?.message || "Failed to extract units with AI.");
+    }
+  });
+
+export const checkPropertyUnitsDuplicate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        propertyId: z.string().uuid(),
+        unitNumbers: z.array(z.string()),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existingUnits, error } = await supabaseAdmin
+      .from("units")
+      .select("id, unit_number, rent, status")
+      .eq("property_id", data.propertyId);
+
+    if (error) throw new Error(error.message);
+
+    const existingMap = new Map((existingUnits ?? []).map((u) => [u.unit_number.toLowerCase().trim(), u]));
+    const duplicates: string[] = [];
+
+    for (const num of data.unitNumbers) {
+      if (existingMap.has(num.toLowerCase().trim())) {
+        duplicates.push(num);
+      }
+    }
+
+    return {
+      existing_units_count: (existingUnits ?? []).length,
+      duplicates,
+      duplicate_count: duplicates.length,
+    };
+  });
+
+const unitImportItemSchema = z.object({
+  unit_number: z.string().min(1).max(50),
+  rent: z.number().min(0),
+  deposit: z.number().optional().default(0),
+  floor: z.string().optional().nullable(),
+  status: z.enum(["occupied", "vacant"]).default("vacant"),
+  tenant_name: z.string().optional().nullable(),
+  tenant_phone: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const importBulkUnits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        landlordId: z.string().uuid(),
+        propertyId: z.string().uuid(),
+        units: z.array(unitImportItemSchema),
+        duplicateStrategy: z.enum(["skip", "update"]).default("skip"),
+        sourceFilename: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Verify that property belongs to the chosen landlord
+    const { data: property, error: propError } = await supabaseAdmin
+      .from("properties")
+      .select("id, landlord_id, name, units_count")
+      .eq("id", data.propertyId)
+      .eq("landlord_id", data.landlordId)
+      .single();
+
+    if (propError || !property) {
+      throw new Error("Target property not found or does not belong to the selected landlord.");
+    }
+
+    // 2. Fetch existing units for duplicate resolution
+    const { data: existingUnits } = await supabaseAdmin
+      .from("units")
+      .select("id, unit_number")
+      .eq("property_id", data.propertyId);
+
+    const existingMap = new Map((existingUnits ?? []).map((u) => [u.unit_number.toLowerCase().trim(), u]));
+
+    let importedCount = 0;
+    let updatedCount = 0;
+    let skippedDuplicates = 0;
+    let tenantsCreated = 0;
+
+    for (const item of data.units) {
+      const normalizedKey = item.unit_number.toLowerCase().trim();
+      const existing = existingMap.get(normalizedKey);
+
+      if (existing) {
+        if (data.duplicateStrategy === "skip") {
+          skippedDuplicates++;
+          continue;
+        } else {
+          // Update existing unit
+          const { error: updErr } = await supabaseAdmin
+            .from("units")
+            .update({
+              rent: item.rent,
+              deposit: item.deposit || 0,
+              floor: item.floor || null,
+              status: item.status,
+              notes: item.notes || null,
+            })
+            .eq("id", existing.id);
+
+          if (!updErr) updatedCount++;
+          continue;
+        }
+      }
+
+      // Insert new unit
+      const { data: newUnit, error: insertErr } = await supabaseAdmin
+        .from("units")
+        .insert({
+          landlord_id: data.landlordId,
+          property_id: data.propertyId,
+          unit_number: item.unit_number,
+          rent: item.rent,
+          deposit: item.deposit || 0,
+          floor: item.floor || null,
+          status: item.status,
+          notes: item.notes || null,
+        })
+        .select("id")
+        .single();
+
+      if (insertErr || !newUnit) {
+        console.error("Unit insertion failed:", insertErr);
+        continue;
+      }
+
+      importedCount++;
+
+      // If tenant details provided & status is occupied, link/create tenant
+      if (item.status === "occupied" && item.tenant_name && item.tenant_name.trim().length > 1) {
+        const { error: tenantErr } = await supabaseAdmin.from("tenants").insert({
+          landlord_id: data.landlordId,
+          property_id: data.propertyId,
+          unit_id: newUnit.id,
+          full_name: item.tenant_name.trim(),
+          phone: item.tenant_phone?.trim() || "0700000000",
+          rent_amount: item.rent,
+          deposit_paid: item.deposit || 0,
+          status: "active",
+        });
+
+        if (!tenantErr) {
+          tenantsCreated++;
+        }
+      }
+    }
+
+    // 3. Recalculate and update units_count on properties table
+    const { count: finalUnitsCount } = await supabaseAdmin
+      .from("units")
+      .select("id", { count: "exact", head: true })
+      .eq("property_id", data.propertyId);
+
+    await supabaseAdmin
+      .from("properties")
+      .update({ units_count: finalUnitsCount ?? 0 })
+      .eq("id", data.propertyId);
+
+    // 4. Log to audit_logs
+    await supabaseAdmin.from("audit_logs").insert({
+      landlord_id: data.landlordId,
+      action: `ai_bulk_import_units: ${importedCount} added, ${updatedCount} updated, ${skippedDuplicates} skipped (Property: ${property.name})`,
+      entity: "property",
+      entity_id: data.propertyId,
+    });
+
+    return {
+      ok: true,
+      property_name: property.name,
+      total_submitted: data.units.length,
+      imported_count: importedCount,
+      updated_count: updatedCount,
+      skipped_duplicates: skippedDuplicates,
+      tenants_created: tenantsCreated,
+      total_units_now: finalUnitsCount ?? 0,
+      timestamp: new Date().toISOString(),
+    };
+  });
+
+export const getImportAuditHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [logsRes, profilesRes] = await Promise.all([
+      supabaseAdmin
+        .from("audit_logs")
+        .select("*")
+        .like("action", "ai_bulk_import_units%")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin.from("profiles").select("id, full_name, company_name"),
+    ]);
+
+    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
+
+    return (logsRes.data ?? []).map((log) => {
+      const p = profileMap.get(log.landlord_id);
+      return {
+        ...log,
+        landlord_name: p?.full_name || p?.company_name || "—",
+      };
+    });
+  });
+
+

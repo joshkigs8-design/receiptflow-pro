@@ -55,14 +55,7 @@ export const startCheckout = createServerFn({ method: "POST" })
   .validator((d: unknown) =>
     z
       .object({
-        plan: z.enum([
-          "monthly",
-          "quarterly",
-          "semiannual",
-          "yearly",
-          "concierge_setup",
-          "concierge_annual",
-        ]),
+        plan: z.enum(["monthly", "quarterly", "semiannual", "yearly", "concierge_setup", "concierge_annual"]),
         origin: z.string().url(),
       })
       .parse(d),
