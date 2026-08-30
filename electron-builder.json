@@ -1,7 +1,6 @@
 {
   "appId": "ke.co.rentreceipt.desktop",
   "productName": "RentReceipt Pro",
-  "copyright": "Copyright © 2026 Codevanta Ventures",
   "directories": {
     "output": "dist-electron"
   },
@@ -10,45 +9,15 @@
     "public/**/*",
     "package.json"
   ],
-  "extraResources": [
-    {
-      "from": "public",
-      "to": "public"
-    }
-  ],
   "win": {
-    "target": [
-      {
-        "target": "nsis",
-        "arch": ["x64"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
-      }
-    ],
-    "icon": "public/favicon.ico",
-    "publisherName": "Codevanta Ventures",
-    "artifactName": "${productName}-Setup-${version}.${ext}"
+    "target": "nsis",
+    "icon": "public/favicon.ico"
   },
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "RentReceipt Pro",
-    "installerIcon": "public/favicon.ico",
-    "uninstallerIcon": "public/favicon.ico"
-  },
-  "mac": {
-    "target": ["dmg"],
-    "icon": "public/apple-touch-icon.png",
-    "category": "public.app-category.business"
-  },
-  "linux": {
-    "target": ["AppImage"],
-    "icon": "public/favicon.png",
-    "category": "Office"
+    "shortcutName": "RentReceipt Pro"
   }
 }
-

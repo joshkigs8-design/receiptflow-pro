@@ -112,6 +112,7 @@ node_modules
 .output/
 .wrangler/
 dist/
+dist-electron/
 .nitro/
 .cache/
 android/.idea/

@@ -1,6 +1,8 @@
 {
   "name": "rentreceipt-pro",
   "version": "1.0.0",
+  "description": "RentReceipt Pro — Smart Rental Management Software for Kenyan Real Estate",
+  "author": "Codevanta Ventures <support@rentreceipt.co.ke>",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -19,7 +21,8 @@
     "electron:start": "electron .",
     "electron:build": "electron-builder --config electron-builder.json",
     "electron:build:win": "electron-builder --win --config electron-builder.json",
-    "electron:build:portable": "electron-builder --win portable --config electron-builder.json"
+    "electron:build:portable": "electron-builder --win portable --config electron-builder.json",
+    "electron:package": "node scripts/package-desktop.cjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
@@ -89,6 +92,7 @@
   "devDependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
+    "@electron/packager": "^20.3.0",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.12.0",
     "@types/node": "^22.16.5",
