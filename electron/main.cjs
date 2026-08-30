@@ -1,8 +1,12 @@
-const { app, BrowserWindow, shell, ipcMain, Menu, dialog } = require("electron");
+// Set environment flag to silence non-critical development warnings in Electron
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
+
+const { app, BrowserWindow, shell, ipcMain, Menu, dialog, session } = require("electron");
 const path = require("path");
 
 let mainWindow = null;
-const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+const isDev = process.env.NODE_ENV === "development";
+const openDevTools = process.env.ELECTRON_DEVTOOLS === "true" || process.env.ELECTRON_DEVTOOLS === "1";
 
 function getIconPath() {
   if (process.platform === "win32") {
@@ -13,6 +17,18 @@ function getIconPath() {
 
 function createMainWindow() {
   const iconPath = getIconPath();
+
+  // Set CSP headers for security and clean renderer behavior
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: data: blob:;"
+        ],
+      },
+    });
+  });
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -35,7 +51,7 @@ function createMainWindow() {
   // Gracefully show when rendered
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
-    if (isDev) {
+    if (openDevTools) {
       mainWindow.webContents.openDevTools({ mode: "detach" });
     }
   });
@@ -95,7 +111,22 @@ function setupAppMenu() {
           label: "Reload Window",
           accelerator: "CmdOrCtrl+R",
           click: () => {
-            if (mainWindow) mainWindow.reload();
+            if (mainWindow) {
+              mainWindow.webContents.session.clearCache().then(() => {
+                mainWindow.reload();
+              });
+            }
+          },
+        },
+        {
+          label: "Clear Cache & Hard Refresh",
+          accelerator: "CmdOrCtrl+Shift+R",
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.session.clearCache().then(() => {
+                mainWindow.webContents.reloadIgnoringCache();
+              });
+            }
           },
         },
         { type: "separator" },
@@ -216,6 +247,9 @@ ipcMain.handle("print-page", async (event, options = {}) => {
 
 // App Lifecycle
 app.whenReady().then(() => {
+  // Clear any stale HTTP cache on app startup
+  session.defaultSession.clearCache().catch(() => {});
+
   createMainWindow();
 
   app.on("activate", () => {
@@ -230,4 +264,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-
