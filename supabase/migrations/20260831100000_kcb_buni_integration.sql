@@ -78,3 +78,4 @@ ALTER TABLE public.kcb_transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "landlord own kcb transactions read" ON public.kcb_transactions
   FOR SELECT TO authenticated
   USING (landlord_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+

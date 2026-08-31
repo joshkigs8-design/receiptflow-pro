@@ -115,11 +115,13 @@ export function parseKcbPaymentReference(raw: string): ParsedPaymentReference {
   const parts = cleaned.split(/[-_]/);
 
   if (parts.length >= 3) {
+    const unit = parts.slice(2).join("-");
     return {
       raw: cleaned,
       prefix: parts[0],
       propertyCode: parts[1],
-      unitOrRoom: parts.slice(2).join("-"),
+      unitOrRoom: unit,
+      unitIdentifier: unit,
       isValid: true,
     };
   }
@@ -129,6 +131,7 @@ export function parseKcbPaymentReference(raw: string): ParsedPaymentReference {
       raw: cleaned,
       propertyCode: parts[0],
       unitOrRoom: parts[1],
+      unitIdentifier: parts[1],
       isValid: true,
     };
   }
@@ -136,6 +139,7 @@ export function parseKcbPaymentReference(raw: string): ParsedPaymentReference {
   return {
     raw: cleaned,
     unitOrRoom: cleaned,
+    unitIdentifier: cleaned,
     isValid: true,
   };
 }

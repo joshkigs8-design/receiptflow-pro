@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { parseKcbPaymentReference } from "../src/lib/payments/kcb.server";
-import { maskSecret } from "../src/lib/mpesa.server";
+
+function maskSecret(val: string): string {
+  if (!val) return "";
+  if (val.length <= 6) return "••••••••";
+  return val.slice(0, 4) + "••••••••" + val.slice(-2);
+}
 
 async function runTests() {
   console.log("🚀 Running KCB BUNI Integration & Payment Reference Test Suite...\n");

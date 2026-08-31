@@ -1,11 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Building,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  Loader2,
+  Pencil,
+  Plus,
+  Receipt,
+  Search,
+  Smartphone,
+  Trash2,
+  Wallet,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   deletePayment,
+  getSettings,
   listPayments,
   listReceipts,
   listTenants,
@@ -34,17 +55,18 @@ import {
 } from "@/components/ui/select";
 import { PAYMENT_METHODS, money, shortDate } from "@/lib/format";
 import { downloadReceiptPdf, type ReceiptRecord } from "@/lib/receipt-pdf";
+import { downloadLandlordPaymentsPdf } from "@/lib/payments-report-pdf";
 
 export const Route = createFileRoute("/_authenticated/payments")({
   head: () => ({
     meta: [
-      { title: "Payments — Rent Receipt Pro" },
+      { title: "Payments & Collections — Rent Receipt Pro" },
       {
         name: "description",
-        content: "Record rent payments and instantly issue digital receipts.",
+        content: "Track every rent payment, generate PDF reports, and issue verified digital receipts.",
       },
-      { property: "og:title", content: "Payments — Rent Receipt Pro" },
-      { property: "og:description", content: "Record payments and generate receipts instantly." },
+      { property: "og:title", content: "Payments & Collections — Rent Receipt Pro" },
+      { property: "og:description", content: "Track rent payments and generate official PDF statements." },
     ],
   }),
   component: PaymentsPage,
@@ -52,16 +74,73 @@ export const Route = createFileRoute("/_authenticated/payments")({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+function exportPaymentsToCsv(rows: any[]) {
+  if (!rows.length) {
+    toast.error("No payments to export");
+    return;
+  }
+  const headers = [
+    "Date",
+    "Tenant Name",
+    "Tenant Phone",
+    "Property",
+    "Unit",
+    "Payment Method",
+    "Reference",
+    "Period",
+    "Amount",
+    "Status",
+    "Notes",
+  ];
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((p) => {
+      const tenant = p.tenants?.full_name || p.tenant_name || "";
+      const phone = p.tenants?.phone || p.tenant_phone || "";
+      const prop = p.properties?.name || p.property_name || "";
+      const unit = p.units?.unit_number || p.units?.room_number || p.unit_name || "";
+      return [
+        `"${p.paid_at ? new Date(p.paid_at).toISOString().slice(0, 10) : ""}"`,
+        `"${tenant.replace(/"/g, '""')}"`,
+        `"${phone.replace(/"/g, '""')}"`,
+        `"${prop.replace(/"/g, '""')}"`,
+        `"${unit.replace(/"/g, '""')}"`,
+        `"${p.method || ""}"`,
+        `"${(p.reference || "").replace(/"/g, '""')}"`,
+        `"${p.period_label || ""}"`,
+        p.amount || 0,
+        `"${p.status || "paid"}"`,
+        `"${(p.notes || "").replace(/"/g, '""')}"`,
+      ].join(",");
+    }),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `RentReceipt_Payments_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Payments CSV exported successfully");
+}
+
 function PaymentsPage() {
   const qc = useQueryClient();
   const fetchPayments = useServerFn(listPayments);
   const fetchTenants = useServerFn(listTenants);
   const fetchReceipts = useServerFn(listReceipts);
+  const fetchSettings = useServerFn(getSettings);
   const record = useServerFn(recordPayment);
   const update = useServerFn(updatePayment);
   const remove = useServerFn(deletePayment);
+
   const [open, setOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
   const [editing, setEditing] = useState<null | { id: string }>(null);
+
   const [editDraft, setEditDraft] = useState({
     amount: 0,
     method: "mpesa",
@@ -70,6 +149,7 @@ function PaymentsPage() {
     period_label: "",
     notes: "",
   });
+
   const [draft, setDraft] = useState({
     tenant_id: "",
     amount: 0,
@@ -82,6 +162,79 @@ function PaymentsPage() {
 
   const payments = useQuery({ queryKey: ["payments"], queryFn: () => fetchPayments() });
   const tenants = useQuery({ queryKey: ["tenants"], queryFn: () => fetchTenants() });
+  const settings = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings() });
+
+  const rawPayments = payments.data ?? [];
+
+  // Filtered Payments
+  const filteredPayments = useMemo(() => {
+    return rawPayments.filter((p: any) => {
+      const matchesMethod =
+        methodFilter === "all" ||
+        p.method === methodFilter ||
+        (methodFilter === "kcb" && (p.method === "kcb" || p.method === "kcb_buni"));
+
+      const q = searchQuery.toLowerCase().trim();
+      const tenantName = (p.tenants?.full_name || "").toLowerCase();
+      const tenantPhone = (p.tenants?.phone || "").toLowerCase();
+      const ref = (p.reference || "").toLowerCase();
+      const unit = (p.units?.unit_number || p.units?.room_number || "").toLowerCase();
+      const period = (p.period_label || "").toLowerCase();
+
+      const matchesSearch =
+        !q ||
+        tenantName.includes(q) ||
+        tenantPhone.includes(q) ||
+        ref.includes(q) ||
+        unit.includes(q) ||
+        period.includes(q);
+
+      return matchesMethod && matchesSearch;
+    });
+  }, [rawPayments, methodFilter, searchQuery]);
+
+  // Financial Metrics
+  const metrics = useMemo(() => {
+    const totalCollected = rawPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const mpesaVolume = rawPayments
+      .filter((p) => p.method === "mpesa")
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const kcbVolume = rawPayments
+      .filter((p) => p.method === "kcb" || p.method === "kcb_buni")
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const otherVolume = totalCollected - mpesaVolume - kcbVolume;
+
+    return {
+      totalCollected,
+      mpesaVolume,
+      kcbVolume,
+      otherVolume,
+      count: rawPayments.length,
+    };
+  }, [rawPayments]);
+
+  const handleExportPdf = async () => {
+    if (!filteredPayments.length) {
+      toast.error("No payments available to export");
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      await downloadLandlordPaymentsPdf(filteredPayments, {
+        company_name: settings.data?.company_name,
+        full_name: settings.data?.full_name,
+        email: settings.data?.email,
+        phone: settings.data?.phone,
+        currency: settings.data?.currency || "KSh",
+      });
+      toast.success("Landlord Payments PDF Statement generated & downloaded!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to generate PDF statement");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: () => record({ data: draft }),
@@ -131,97 +284,263 @@ function PaymentsPage() {
   return (
     <AppShell
       title="Payments"
-      description="Every shilling collected, with instant receipts"
+      description="Every shilling collected, with instant receipts &amp; PDF reports"
       actions={
-        <Button size="sm" className="rounded-full shadow-glow" onClick={() => setOpen(true)}>
-          <Plus className="size-4" /> Record payment
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full gap-1.5 text-xs font-semibold shadow-sm bg-background hover:bg-muted"
+            onClick={handleExportPdf}
+            disabled={exportingPdf || !filteredPayments.length}
+          >
+            {exportingPdf ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <FileText className="size-3.5 text-primary" />
+            )}
+            Export PDF Statement
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full gap-1.5 text-xs font-semibold shadow-sm bg-background hover:bg-muted"
+            onClick={() => exportPaymentsToCsv(filteredPayments)}
+            disabled={!filteredPayments.length}
+          >
+            <Download className="size-3.5 text-muted-foreground" /> CSV
+          </Button>
+
+          <Button size="sm" className="rounded-full shadow-glow font-bold text-xs" onClick={() => setOpen(true)}>
+            <Plus className="size-4 mr-1" /> Record payment
+          </Button>
+        </div>
       }
     >
-      {payments.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading payments…</p>
-      ) : (payments.data ?? []).length === 0 ? (
-        <EmptyState
-          title="No payments yet"
-          hint="Record a payment to generate the first receipt."
-        />
-      ) : (
-        <div className="surface-card overflow-x-auto p-2">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground uppercase">
-              <tr>
-                <th className="p-3">Date</th>
-                <th className="p-3">Tenant</th>
-                <th className="p-3">Unit</th>
-                <th className="p-3">Period</th>
-                <th className="p-3">Method</th>
-                <th className="p-3">Receipt</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Amount</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(payments.data ?? []).map((p) => (
-                <tr key={p.id} className="border-t border-border">
-                  <td className="p-3">{shortDate(p.paid_at)}</td>
-                  <td className="p-3 font-medium">{p.tenants?.full_name ?? "—"}</td>
-                  <td className="p-3">{p.units?.unit_number ?? "—"}</td>
-                  <td className="p-3">{p.period_label ?? "—"}</td>
-                  <td className="p-3 capitalize">{p.method}</td>
-                  <td className="p-3">{p.receipts?.[0]?.receipt_number ?? "—"}</td>
-                  <td className="p-3">
-                    <Badge
-                      variant={p.status === "paid" ? "default" : "secondary"}
-                      className="capitalize"
-                    >
-                      {p.status}
-                    </Badge>
-                  </td>
-                  <td className="p-3 text-right font-semibold">{money(p.amount)}</td>
-                  <td className="p-3">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="size-8 rounded-full"
-                        aria-label="Edit payment"
-                        onClick={() => {
-                          setEditing({ id: p.id });
-                          setEditDraft({
-                            amount: Number(p.amount),
-                            method: p.method,
-                            reference: p.reference ?? "",
-                            paid_at: String(p.paid_at).slice(0, 10),
-                            period_label: p.period_label ?? "",
-                            notes: p.notes ?? "",
-                          });
-                        }}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="size-8 rounded-full text-destructive"
-                        aria-label="Delete payment"
-                        onClick={() => {
-                          if (
-                            confirm("Delete this payment and its receipt? This cannot be undone.")
-                          )
-                            deleteMutation.mutate(p.id);
-                        }}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="space-y-6">
+        {/* 1. Financial Metrics Summary Cards */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">Total Collected</p>
+              <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                <Wallet className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold text-emerald-600">
+              {money(metrics.totalCollected)}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{metrics.count} total payment records</p>
+          </div>
+
+          <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">M-Pesa STK Push</p>
+              <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                <Smartphone className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{money(metrics.mpesaVolume)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Safaricom Daraja collections</p>
+          </div>
+
+          <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">KCB BUNI PayBill</p>
+              <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+                <Building className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold text-blue-600">{money(metrics.kcbVolume)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">KCB BUNI IPN collections</p>
+          </div>
+
+          <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">Bank &amp; Cash</p>
+              <span className="p-2 rounded-xl bg-muted text-muted-foreground">
+                <CreditCard className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{money(metrics.otherVolume)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Cash, cheque, and direct transfers</p>
+          </div>
         </div>
-      )}
+
+        {/* 2. Main Payments Table Card with Search & Filters */}
+        <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                <Receipt className="size-5 text-primary" /> Collections Ledger
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredPayments.length} of {rawPayments.length} recorded payments
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search tenant, ref, unit..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 rounded-full text-xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <Select value={methodFilter} onValueChange={setMethodFilter}>
+                <SelectTrigger className="h-9 w-36 rounded-full text-xs font-semibold">
+                  <SelectValue placeholder="Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="mpesa">Safaricom M-Pesa</SelectItem>
+                  <SelectItem value="kcb">KCB BUNI PayBill</SelectItem>
+                  <SelectItem value="bank">Bank Transfer</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {payments.isLoading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="size-6 animate-spin text-primary" />
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <EmptyState
+              title={searchQuery || methodFilter !== "all" ? "No payments match your filters" : "No payments yet"}
+              hint={searchQuery || methodFilter !== "all" ? "Try clearing search or filter criteria." : "Record a payment to generate the first receipt."}
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm min-w-[850px]">
+                <thead className="text-left text-xs text-muted-foreground uppercase bg-muted/30">
+                  <tr>
+                    <th className="p-3 rounded-l-xl">Date</th>
+                    <th className="p-3">Tenant &amp; Property</th>
+                    <th className="p-3">Unit</th>
+                    <th className="p-3">Method</th>
+                    <th className="p-3">Reference</th>
+                    <th className="p-3">Period</th>
+                    <th className="p-3">Receipt</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Amount</th>
+                    <th className="p-3 text-right rounded-r-xl">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {filteredPayments.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {shortDate(p.paid_at)}
+                      </td>
+                      <td className="p-3">
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-foreground">{p.tenants?.full_name ?? "—"}</p>
+                          <p className="text-[11px] text-muted-foreground">{p.properties?.name || "—"}</p>
+                        </div>
+                      </td>
+                      <td className="p-3 font-mono font-medium text-xs">
+                        {p.units?.unit_number || p.units?.room_number || "—"}
+                      </td>
+                      <td className="p-3">
+                        {p.method === "mpesa" ? (
+                          <Badge variant="outline" className="text-[10px] font-semibold text-emerald-600 border-emerald-500/30 bg-emerald-500/5 gap-1">
+                            <Smartphone className="size-3" /> M-Pesa
+                          </Badge>
+                        ) : p.method === "kcb" || p.method === "kcb_buni" ? (
+                          <Badge variant="outline" className="text-[10px] font-semibold text-blue-600 border-blue-500/30 bg-blue-500/5 gap-1">
+                            <Building className="size-3" /> KCB PayBill
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] font-semibold capitalize">
+                            {p.method}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-3 font-mono text-xs text-muted-foreground select-all">
+                        {p.reference || "—"}
+                      </td>
+                      <td className="p-3 text-xs font-medium">{p.period_label ?? "—"}</td>
+                      <td className="p-3">
+                        {p.receipts?.[0]?.receipt_number ? (
+                          <Badge variant="secondary" className="font-mono text-[10px] font-bold text-primary">
+                            {p.receipts[0].receipt_number}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <Badge
+                          variant={p.status === "paid" ? "default" : "secondary"}
+                          className="text-[10px] capitalize"
+                        >
+                          {p.status}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right font-bold text-foreground font-mono">
+                        {money(p.amount)}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 rounded-full"
+                            aria-label="Edit payment"
+                            onClick={() => {
+                              setEditing({ id: p.id });
+                              setEditDraft({
+                                amount: Number(p.amount),
+                                method: p.method,
+                                reference: p.reference ?? "",
+                                paid_at: String(p.paid_at).slice(0, 10),
+                                period_label: p.period_label ?? "",
+                                notes: p.notes ?? "",
+                              });
+                            }}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 rounded-full text-destructive"
+                            aria-label="Delete payment"
+                            onClick={() => {
+                              if (
+                                confirm("Delete this payment and its receipt? This cannot be undone.")
+                              )
+                                deleteMutation.mutate(p.id);
+                            }}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

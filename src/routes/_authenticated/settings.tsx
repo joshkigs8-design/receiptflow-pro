@@ -618,7 +618,7 @@ function SettingsPage() {
                   </span>
                 </div>
                 <div>
-                  {kcbData?.configured && kcbForm.is_active && kcbData.connection_status === "connection_successful" ? (
+                  {kcbData?.configured && kcbForm.is_active && (kcbData.connection_status === "connected" || kcbData.connection_status === "connection_successful") ? (
                     <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 text-xs font-semibold">
                       <CheckCircle2 className="size-3 mr-1" /> Active &amp; Connected
                     </Badge>
