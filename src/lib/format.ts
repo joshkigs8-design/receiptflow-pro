@@ -14,7 +14,7 @@ export function shortDate(value: string | Date | null | undefined) {
   });
 }
 
-export const PAYMENT_METHODS = ["cash", "mpesa", "bank", "card", "cheque"] as const;
+export const PAYMENT_METHODS = ["cash", "mpesa", "kcb", "bank", "card", "cheque"] as const;
 export const PROPERTY_TYPES = ["apartment", "hostel", "bedsitter", "house", "commercial"] as const;
 export const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export const REQUEST_CATEGORIES = [

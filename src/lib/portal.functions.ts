@@ -31,7 +31,7 @@ export const verifyTenant = createServerFn({ method: "POST" })
         error: "We could not match that room number and phone number for this property.",
       };
 
-    const [payments, receipts, announcements, requests, leases, landlordProfile, mpesaConfig] = await Promise.all([
+    const [payments, receipts, announcements, requests, leases, landlordProfile, mpesaConfig, kcbConfig] = await Promise.all([
       supabaseAdmin
         .from("payments")
         .select("id,amount,method,reference,paid_at,period_label,status,notes")
@@ -64,7 +64,12 @@ export const verifyTenant = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("landlord_mpesa_configs")
-        .select("is_active,shortcode")
+        .select("is_active,shortcode,account_reference_prefix")
+        .eq("landlord_id", property.landlord_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("landlord_kcb_configs")
+        .select("is_active,paybill_number,account_number,account_reference_prefix")
         .eq("landlord_id", property.landlord_id)
         .maybeSingle(),
     ]);
@@ -91,13 +96,25 @@ export const verifyTenant = createServerFn({ method: "POST" })
 
     const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
-    // M-Pesa is only enabled if the landlord actively turned it ON
-    const mpesaConfigRes = (mpesaConfig as { data?: { is_active?: boolean; shortcode?: string } | null })?.data;
+    // M-Pesa is enabled if active
+    const mpesaConfigRes = (mpesaConfig as { data?: { is_active?: boolean; shortcode?: string; account_reference_prefix?: string } | null })?.data;
     const mpesaEnabled = Boolean(mpesaConfigRes?.is_active && mpesaConfigRes?.shortcode);
+
+    // KCB BUNI is enabled if active
+    const kcbConfigRes = (kcbConfig as { data?: { is_active?: boolean; paybill_number?: string; account_number?: string; account_reference_prefix?: string } | null })?.data;
+    const kcbEnabled = Boolean(kcbConfigRes?.is_active && kcbConfigRes?.paybill_number);
+
+    const kcbDetails = kcbEnabled && kcbConfigRes?.paybill_number ? {
+      paybillNumber: kcbConfigRes.paybill_number,
+      accountNumber: kcbConfigRes.account_number || null,
+      reference: `${kcbConfigRes.account_reference_prefix || property.code}-${tenant.units?.unit_number || tenant.units?.room_number || "RENT"}`.replace(/[^a-zA-Z0-9_-]/g, ""),
+    } : null;
 
     return {
       ok: true as const,
       mpesaEnabled,
+      kcbEnabled,
+      kcbDetails,
       tenant: {
         id: tenant.id,
         full_name: tenant.full_name,

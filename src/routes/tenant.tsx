@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
+  Building,
   Building2,
   Calendar,
   CheckCircle2,
@@ -494,6 +495,59 @@ function TenantPortal() {
                       Pay with M-Pesa ({portal.totals.rentBalance > 0 ? money(portal.totals.rentBalance) : money(portal.tenant.rent_amount)})
                       <ArrowRight className="size-4 ml-0.5" />
                     </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* KCB BUNI Paybill & Bank Payment Card (Only shown if Landlord enabled KCB) */}
+            {portal.kcbEnabled && portal.kcbDetails ? (
+              <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 text-white shadow-xl shadow-blue-950/20 border border-blue-500/40 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-lg">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-blue-100 backdrop-blur-sm border border-white/20">
+                      <Building className="size-3.5" /> KCB BUNI Instant Bank &amp; Paybill Collection
+                    </div>
+                    <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
+                      Pay Rent via KCB PayBill
+                    </h2>
+                    <p className="text-xs sm:text-sm text-blue-100/90 leading-relaxed">
+                      Pay directly via KCB App, Vooma, or M-Pesa Paybill. Payments are automatically reconciled with an instant official digital receipt.
+                    </p>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 space-y-2.5 min-w-[260px] text-xs">
+                    <div className="flex items-center justify-between border-b border-white/15 pb-2">
+                      <span className="text-blue-200">KCB PayBill No:</span>
+                      <span className="font-mono font-bold text-sm tracking-wider">{portal.kcbDetails.paybillNumber}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-blue-200">Account / Ref:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-sm bg-white/15 px-2 py-0.5 rounded-lg tracking-wider">
+                          {portal.kcbDetails.reference}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-white/20 text-white rounded-md"
+                          onClick={() => {
+                            navigator.clipboard.writeText(portal.kcbDetails!.reference);
+                            toast.success(`Copied Account Reference: ${portal.kcbDetails!.reference}`);
+                          }}
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {portal.kcbDetails.accountNumber && (
+                      <div className="flex items-center justify-between border-t border-white/15 pt-2 text-[11px]">
+                        <span className="text-blue-200">KCB Account:</span>
+                        <span className="font-mono text-white/90">{portal.kcbDetails.accountNumber}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -38,6 +38,7 @@ import { Route as AffiliateIndexRouteImport } from './routes/affiliate.index'
 import { Route as AffiliateAuthRouteImport } from './routes/affiliate.auth'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReceiptPublicIdRouteImport } from './routes/receipt.$publicId'
+import { Route as ApiPublicKcbIpnRouteImport } from './routes/api/public/kcb/ipn'
 import { Route as ApiPublicMpesaCallbackRouteImport } from './routes/api/public/mpesa/callback'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack/webhook'
 
@@ -186,6 +187,11 @@ const ReceiptPublicIdRoute = ReceiptPublicIdRouteImport.update({
   path: '/receipt/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicKcbIpnRoute = ApiPublicKcbIpnRouteImport.update({
+  id: '/api/public/kcb/ipn',
+  path: '/api/public/kcb/ipn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMpesaCallbackRoute = ApiPublicMpesaCallbackRouteImport.update({
   id: '/api/public/mpesa/callback',
   path: '/api/public/mpesa/callback',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate/': typeof AffiliateIndexRoute
+  '/api/public/kcb/ipn': typeof ApiPublicKcbIpnRoute
   '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate': typeof AffiliateIndexRoute
+  '/api/public/kcb/ipn': typeof ApiPublicKcbIpnRoute
   '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/receipt/$publicId': typeof ReceiptPublicIdRoute
   '/affiliate/': typeof AffiliateIndexRoute
+  '/api/public/kcb/ipn': typeof ApiPublicKcbIpnRoute
   '/api/public/mpesa/callback': typeof ApiPublicMpesaCallbackRoute
   '/api/public/paystack/webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate/'
+    | '/api/public/kcb/ipn'
     | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate'
+    | '/api/public/kcb/ipn'
     | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   id:
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/receipt/$publicId'
     | '/affiliate/'
+    | '/api/public/kcb/ipn'
     | '/api/public/mpesa/callback'
     | '/api/public/paystack/webhook'
   fileRoutesById: FileRoutesById
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyRoute: typeof VerifyRoute
   ReceiptPublicIdRoute: typeof ReceiptPublicIdRoute
+  ApiPublicKcbIpnRoute: typeof ApiPublicKcbIpnRoute
   ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReceiptPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/kcb/ipn': {
+      id: '/api/public/kcb/ipn'
+      path: '/api/public/kcb/ipn'
+      fullPath: '/api/public/kcb/ipn'
+      preLoaderRoute: typeof ApiPublicKcbIpnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mpesa/callback': {
       id: '/api/public/mpesa/callback'
       path: '/api/public/mpesa/callback'
@@ -707,6 +727,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyRoute: VerifyRoute,
   ReceiptPublicIdRoute: ReceiptPublicIdRoute,
+  ApiPublicKcbIpnRoute: ApiPublicKcbIpnRoute,
   ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }

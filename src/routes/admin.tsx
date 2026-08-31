@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowUpDown,
   BadgeCheck,
+  Building,
   Building2,
   Calendar,
   CalendarClock,
@@ -83,6 +84,12 @@ import {
   saveAdminLandlordMpesaSettings,
   testLandlordMpesaConnection,
 } from "@/lib/mpesa.functions";
+import {
+  getAdminLandlordKcbSettings,
+  listAdminKcbTransactions,
+  saveAdminLandlordKcbSettings,
+  testLandlordKcbConnection,
+} from "@/lib/payments/kcb.functions";
 import { money, shortDate } from "@/lib/format";
 
 const title = "Owner Admin Portal — Rent Receipt Pro";
@@ -415,6 +422,10 @@ function AdminDashboard() {
   const fetchAdminLandlordMpesa = useServerFn(getAdminLandlordMpesaSettings);
   const saveAdminLandlordMpesa = useServerFn(saveAdminLandlordMpesaSettings);
   const testMpesa = useServerFn(testLandlordMpesaConnection);
+  const fetchAdminKcb = useServerFn(listAdminKcbTransactions);
+  const fetchAdminLandlordKcb = useServerFn(getAdminLandlordKcbSettings);
+  const saveAdminLandlordKcb = useServerFn(saveAdminLandlordKcbSettings);
+  const testKcb = useServerFn(testLandlordKcbConnection);
 
   // Queries
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -433,6 +444,10 @@ function AdminDashboard() {
     queryKey: ["admin_mpesa_transactions"],
     queryFn: () => fetchAdminMpesa(),
   });
+  const { data: kcbTransactions = [], isLoading: kcbLoading, refetch: refetchKcb } = useQuery({
+    queryKey: ["admin_kcb_transactions"],
+    queryFn: () => fetchAdminKcb(),
+  });
 
   // State: Global Filters & Search
   const [activeTab, setActiveTab] = useState("overview");
@@ -441,16 +456,22 @@ function AdminDashboard() {
   const [subPaymentSearch, setSubPaymentSearch] = useState("");
   const [subPlanFilter, setSubPlanFilter] = useState<string>("all");
   const [platformPaymentSearch, setPlatformPaymentSearch] = useState("");
+  const [paymentProviderTab, setPaymentProviderTab] = useState<"mpesa" | "kcb">("mpesa");
   const [mpesaSearch, setMpesaSearch] = useState("");
   const [mpesaStatusFilter, setMpesaStatusFilter] = useState<string>("all");
   const [selectedMpesaTx, setSelectedMpesaTx] = useState<any | null>(null);
   const [mpesaPayloadModalOpen, setMpesaPayloadModalOpen] = useState(false);
+  const [kcbSearch, setKcbSearch] = useState("");
+  const [kcbStatusFilter, setKcbStatusFilter] = useState<string>("all");
+  const [selectedKcbTx, setSelectedKcbTx] = useState<any | null>(null);
+  const [kcbPayloadModalOpen, setKcbPayloadModalOpen] = useState(false);
 
   // Modals state
   const [selectedLandlord, setSelectedLandlord] = useState<any | null>(null);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [editAccessModalOpen, setEditAccessModalOpen] = useState(false);
   const [adminMpesaModalOpen, setAdminMpesaModalOpen] = useState(false);
+  const [adminKcbModalOpen, setAdminKcbModalOpen] = useState(false);
   const [customPlan, setCustomPlan] = useState<"monthly" | "quarterly" | "semiannual" | "yearly">("monthly");
   const [customEndsAt, setCustomEndsAt] = useState("");
   const [customStatus, setCustomStatus] = useState<"active" | "trial" | "expired">("active");
@@ -463,6 +484,17 @@ function AdminDashboard() {
     environment: "sandbox" as "sandbox" | "production",
     transaction_type: "CustomerPayBillOnline" as "CustomerPayBillOnline" | "CustomerBuyGoodsOnline",
     account_reference_prefix: "RRP",
+    is_active: true,
+  });
+
+  const [adminKcbForm, setAdminKcbForm] = useState({
+    paybill_number: "",
+    account_number: "",
+    client_key: "",
+    client_secret: "",
+    ipn_secret_token: "",
+    environment: "sandbox" as "sandbox" | "production",
+    account_reference_prefix: "RR",
     is_active: true,
   });
 
@@ -530,6 +562,58 @@ function AdminDashboard() {
       }),
     onSuccess: (res: any) => toast.success(res?.message || "Connection successful"),
     onError: (err: any) => toast.error(err?.message || "Test connection failed"),
+  });
+
+  // Admin Landlord KCB Settings query
+  const { isLoading: landlordKcbLoading } = useQuery({
+    queryKey: ["admin-landlord-kcb", selectedLandlord?.id],
+    queryFn: async () => {
+      const res = await fetchAdminLandlordKcb({ data: { landlordId: selectedLandlord.id } });
+      if (res) {
+        setAdminKcbForm({
+          paybill_number: res.paybill_number || "",
+          account_number: res.account_number || "",
+          client_key: res.client_key || "",
+          client_secret: res.client_secret_masked || "",
+          ipn_secret_token: res.ipn_secret_token_masked || "",
+          environment: res.environment || "sandbox",
+          account_reference_prefix: res.account_reference_prefix || "RR",
+          is_active: res.is_active ?? true,
+        });
+      }
+      return res;
+    },
+    enabled: Boolean(selectedLandlord?.id) && adminKcbModalOpen,
+  });
+
+  const saveAdminKcbMut = useMutation({
+    mutationFn: () =>
+      saveAdminLandlordKcb({
+        data: {
+          landlordId: selectedLandlord.id,
+          ...adminKcbForm,
+        },
+      }),
+    onSuccess: (res: any) => {
+      toast.success(res?.message || "Landlord KCB configuration updated successfully!");
+      setAdminKcbModalOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin_kcb_transactions"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to save KCB configuration"),
+  });
+
+  const testAdminKcbMut = useMutation({
+    mutationFn: () =>
+      testKcb({
+        data: {
+          client_key: adminKcbForm.client_key,
+          client_secret: adminKcbForm.client_secret,
+          environment: adminKcbForm.environment,
+        },
+      }),
+    onSuccess: (res: any) => toast.success(res?.message || "KCB connection successful"),
+    onError: (err: any) => toast.error(err?.message || "KCB test connection failed"),
   });
   const create = useMutation({
     mutationFn: () =>
@@ -675,6 +759,43 @@ function AdminDashboard() {
       totalVolume,
     };
   }, [mpesaTransactions]);
+
+  // Filtered KCB BUNI IPN Transactions
+  const filteredKcbTx = useMemo(() => {
+    const list = kcbTransactions || [];
+    const q = kcbSearch.toLowerCase().trim();
+    return list.filter((t: any) => {
+      const matchesStatus = kcbStatusFilter === "all" || t.status === kcbStatusFilter;
+      const matchesSearch =
+        !q ||
+        (t.tenant_name && t.tenant_name.toLowerCase().includes(q)) ||
+        (t.landlord_name && t.landlord_name.toLowerCase().includes(q)) ||
+        (t.property_name && t.property_name.toLowerCase().includes(q)) ||
+        (t.phone_number && t.phone_number.includes(q)) ||
+        (t.kcb_transaction_id && t.kcb_transaction_id.toLowerCase().includes(q)) ||
+        (t.account_reference && t.account_reference.toLowerCase().includes(q)) ||
+        (t.customer_name && t.customer_name.toLowerCase().includes(q));
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [kcbTransactions, kcbSearch, kcbStatusFilter]);
+
+  // KCB Statistics
+  const kcbStats = useMemo(() => {
+    const list = kcbTransactions || [];
+    const successful = list.filter((t: any) => t.status === "success");
+    const pending = list.filter((t: any) => t.status === "pending" || t.status === "pending_reconciliation");
+    const failed = list.filter((t: any) => t.status === "failed" || t.status === "cancelled");
+    const totalVolume = successful.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+
+    return {
+      totalCount: list.length,
+      successCount: successful.length,
+      pendingCount: pending.length,
+      failedCount: failed.length,
+      totalVolume,
+    };
+  }, [kcbTransactions]);
 
   const cards = [
     { label: "Total Landlords", value: stats?.landlords ?? 0, icon: Users, color: "text-blue-500" },
@@ -1005,6 +1126,30 @@ function AdminDashboard() {
                               }}
                             >
                               <Eye className="size-3.5 text-primary" /> View
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2 text-xs gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 font-semibold"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setAdminMpesaModalOpen(true);
+                              }}
+                            >
+                              <Smartphone className="size-3 text-emerald-600" /> M-Pesa
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full h-8 px-2 text-xs gap-1 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10 font-semibold"
+                              onClick={() => {
+                                setSelectedLandlord(l);
+                                setAdminKcbModalOpen(true);
+                              }}
+                            >
+                              <Building className="size-3 text-blue-600" /> KCB
                             </Button>
 
                             <Button
@@ -1412,188 +1557,411 @@ function AdminDashboard() {
           />
         </TabsContent>
 
-        {/* TAB: M-PESA STK CENTER */}
+        {/* TAB: DIGITAL PAYMENTS CENTER (M-PESA & KCB) */}
         <TabsContent value="mpesa-center" className="space-y-6">
-          {/* 1. M-Pesa Metrics */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-medium">Total Volume Settled</span>
-                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
-                  <Smartphone className="size-4" />
-                </span>
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold text-emerald-600">
-                {money(mpesaStats.totalVolume)}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Successful Daraja STK collections</p>
-            </div>
-
-            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-medium">Successful Payments</span>
-                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
-                  <CheckCircle className="size-4" />
-                </span>
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold">{mpesaStats.successCount}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Received &amp; verified receipts</p>
-            </div>
-
-            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-medium">Pending STK Requests</span>
-                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
-                  <Clock className="size-4" />
-                </span>
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold text-amber-500">{mpesaStats.pendingCount}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Awaiting PIN prompt completion</p>
-            </div>
-
-            <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-medium">Failed / Cancelled</span>
-                <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-                  <XCircle className="size-4" />
-                </span>
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold text-rose-500">{mpesaStats.failedCount}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Cancelled or timed out attempts</p>
+          {/* Provider Switcher Tabs */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center bg-muted/60 p-1 rounded-2xl border border-border/60">
+              <button
+                type="button"
+                onClick={() => setPaymentProviderTab("mpesa")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  paymentProviderTab === "mpesa"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Smartphone className="size-3.5 text-emerald-600" />
+                Safaricom M-Pesa STK ({mpesaTransactions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentProviderTab("kcb")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  paymentProviderTab === "kcb"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Building className="size-3.5 text-blue-600" />
+                KCB BUNI IPN ({kcbTransactions.length})
+              </button>
             </div>
           </div>
 
-          {/* 2. M-Pesa Live Transactions Table Card */}
-          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h3 className="font-display text-lg font-bold flex items-center gap-2">
-                  <Smartphone className="size-5 text-emerald-600" /> Real-Time M-Pesa Daraja Transactions
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Complete multi-landlord STK Push payment lifecycle audit log
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search tenant, phone, receipt..."
-                    value={mpesaSearch}
-                    onChange={(e) => setMpesaSearch(e.target.value)}
-                    className="pl-9 h-9 rounded-full text-xs"
-                  />
+          {/* SAFARICOM M-PESA TRANSACTIONS VIEW */}
+          {paymentProviderTab === "mpesa" && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* 1. M-Pesa Metrics */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Total Volume Settled</span>
+                    <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                      <Smartphone className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-emerald-600">
+                    {money(mpesaStats.totalVolume)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Successful Daraja STK collections</p>
                 </div>
 
-                <Select value={mpesaStatusFilter} onValueChange={setMpesaStatusFilter}>
-                  <SelectTrigger className="h-9 w-32 rounded-full text-xs font-semibold">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="success">Successful</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Successful Payments</span>
+                    <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+                      <CheckCircle className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold">{mpesaStats.successCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Received &amp; verified receipts</p>
+                </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-full h-9 text-xs gap-1.5"
-                  onClick={() => exportToCsv("rentreceipt_mpesa_transactions", filteredMpesaTx)}
-                  disabled={!filteredMpesaTx.length}
-                >
-                  <Download className="size-3.5" /> CSV
-                </Button>
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Pending STK Requests</span>
+                    <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                      <Clock className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-amber-500">{mpesaStats.pendingCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Awaiting PIN prompt completion</p>
+                </div>
+
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Failed / Cancelled</span>
+                    <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                      <XCircle className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-rose-500">{mpesaStats.failedCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Cancelled or timed out attempts</p>
+                </div>
+              </div>
+
+              {/* 2. M-Pesa Live Transactions Table Card */}
+              <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                      <Smartphone className="size-5 text-emerald-600" /> Real-Time M-Pesa Daraja Transactions
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Complete multi-landlord STK Push payment lifecycle audit log
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search tenant, phone, receipt..."
+                        value={mpesaSearch}
+                        onChange={(e) => setMpesaSearch(e.target.value)}
+                        className="pl-9 h-9 rounded-full text-xs"
+                      />
+                    </div>
+
+                    <Select value={mpesaStatusFilter} onValueChange={setMpesaStatusFilter}>
+                      <SelectTrigger className="h-9 w-32 rounded-full text-xs font-semibold">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="success">Successful</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full h-9 text-xs gap-1.5"
+                      onClick={() => exportToCsv("rentreceipt_mpesa_transactions", filteredMpesaTx)}
+                      disabled={!filteredMpesaTx.length}
+                    >
+                      <Download className="size-3.5" /> CSV
+                    </Button>
+                  </div>
+                </div>
+
+                {filteredMpesaTx.length ? (
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[900px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date / Time</TableHead>
+                          <TableHead>Tenant &amp; Property</TableHead>
+                          <TableHead>Landlord</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>M-Pesa Phone</TableHead>
+                          <TableHead>Receipt / Ref</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredMpesaTx.map((tx: any) => (
+                          <TableRow key={tx.id}>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {shortDate(tx.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="font-semibold text-xs text-foreground">{tx.tenant_name || "Tenant"}</p>
+                                <p className="text-[11px] text-muted-foreground">{tx.property_name || "—"}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs font-medium text-muted-foreground">
+                              {tx.landlord_name}
+                            </TableCell>
+                            <TableCell className="font-bold text-xs text-foreground font-mono">
+                              {money(tx.amount)}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {tx.phone_number}
+                            </TableCell>
+                            <TableCell>
+                              {tx.mpesa_receipt_number ? (
+                                <Badge variant="outline" className="font-mono font-bold text-xs text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
+                                  {tx.mpesa_receipt_number}
+                                </Badge>
+                              ) : (
+                                <span className="font-mono text-xs text-muted-foreground">
+                                  {tx.account_reference || "—"}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={`text-[10px] font-semibold uppercase ${
+                                  tx.status === "success"
+                                    ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                                    : tx.status === "pending" || tx.status === "initiated"
+                                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                                    : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                                }`}
+                              >
+                                {tx.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="rounded-full h-8 text-xs gap-1 text-primary"
+                                onClick={() => {
+                                  setSelectedMpesaTx(tx);
+                                  setMpesaPayloadModalOpen(true);
+                                }}
+                              >
+                                <Eye className="size-3.5" /> Inspect
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <EmptyState title="No M-Pesa STK transactions match your filters." />
+                )}
               </div>
             </div>
+          )}
 
-            {filteredMpesaTx.length ? (
-              <div className="overflow-x-auto">
-                <Table className="min-w-[900px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date / Time</TableHead>
-                      <TableHead>Tenant &amp; Property</TableHead>
-                      <TableHead>Landlord</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>M-Pesa Phone</TableHead>
-                      <TableHead>Receipt / Ref</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMpesaTx.map((tx: any) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                          {shortDate(tx.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-0.5">
-                            <p className="font-semibold text-xs text-foreground">{tx.tenant_name || "Tenant"}</p>
-                            <p className="text-[11px] text-muted-foreground">{tx.property_name || "—"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs font-medium text-muted-foreground">
-                          {tx.landlord_name}
-                        </TableCell>
-                        <TableCell className="font-bold text-xs text-foreground font-mono">
-                          {money(tx.amount)}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {tx.phone_number}
-                        </TableCell>
-                        <TableCell>
-                          {tx.mpesa_receipt_number ? (
-                            <Badge variant="outline" className="font-mono font-bold text-xs text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
-                              {tx.mpesa_receipt_number}
-                            </Badge>
-                          ) : (
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {tx.account_reference || "—"}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`text-[10px] font-semibold uppercase ${
-                              tx.status === "success"
-                                ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
-                                : tx.status === "pending" || tx.status === "initiated"
-                                ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
-                                : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
-                            }`}
-                          >
-                            {tx.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="rounded-full h-8 text-xs gap-1 text-primary"
-                            onClick={() => {
-                              setSelectedMpesaTx(tx);
-                              setMpesaPayloadModalOpen(true);
-                            }}
-                          >
-                            <Eye className="size-3.5" /> Inspect
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+          {/* KCB BUNI NOTIFICATIONS VIEW */}
+          {paymentProviderTab === "kcb" && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* 1. KCB Metrics */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Total Volume Settled</span>
+                    <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+                      <Building className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-blue-600">
+                    {money(kcbStats.totalVolume)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Successful KCB BUNI collections</p>
+                </div>
+
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Successful Payments</span>
+                    <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+                      <CheckCircle className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold">{kcbStats.successCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Received &amp; reconciled receipts</p>
+                </div>
+
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Pending Reconciliation</span>
+                    <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                      <Clock className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-amber-500">{kcbStats.pendingCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Awaiting tenant unit match</p>
+                </div>
+
+                <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Failed / Cancelled</span>
+                    <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                      <XCircle className="size-4" />
+                    </span>
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-rose-500">{kcbStats.failedCount}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Failed or rejected IPN events</p>
+                </div>
               </div>
-            ) : (
-              <EmptyState title="No M-Pesa STK transactions match your filters." />
-            )}
-          </div>
+
+              {/* 2. KCB Live IPN Transactions Table Card */}
+              <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                      <Building className="size-5 text-blue-600" /> Real-Time KCB BUNI IPN Transactions
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Instant Payment Notification (IPN) audit trail for KCB Paybill and Bank collections
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search tenant, ref, tx ID..."
+                        value={kcbSearch}
+                        onChange={(e) => setKcbSearch(e.target.value)}
+                        className="pl-9 h-9 rounded-full text-xs"
+                      />
+                    </div>
+
+                    <Select value={kcbStatusFilter} onValueChange={setKcbStatusFilter}>
+                      <SelectTrigger className="h-9 w-36 rounded-full text-xs font-semibold">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="success">Successful</SelectItem>
+                        <SelectItem value="pending_reconciliation">Pending Match</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full h-9 text-xs gap-1.5"
+                      onClick={() => exportToCsv("rentreceipt_kcb_transactions", filteredKcbTx)}
+                      disabled={!filteredKcbTx.length}
+                    >
+                      <Download className="size-3.5" /> CSV
+                    </Button>
+                  </div>
+                </div>
+
+                {filteredKcbTx.length ? (
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[900px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date / Time</TableHead>
+                          <TableHead>Tenant &amp; Property</TableHead>
+                          <TableHead>Landlord</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Customer / Phone</TableHead>
+                          <TableHead>KCB Tx ID &amp; Ref</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredKcbTx.map((tx: any) => (
+                          <TableRow key={tx.id}>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {shortDate(tx.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="font-semibold text-xs text-foreground">{tx.tenant_name || "Tenant"}</p>
+                                <p className="text-[11px] text-muted-foreground">{tx.property_name || "—"}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs font-medium text-muted-foreground">
+                              {tx.landlord_name}
+                            </TableCell>
+                            <TableCell className="font-bold text-xs text-foreground font-mono">
+                              {money(tx.amount)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="text-xs font-semibold text-foreground">{tx.customer_name || "—"}</p>
+                                <p className="font-mono text-[11px] text-muted-foreground">{tx.phone_number || "—"}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <Badge variant="outline" className="font-mono font-bold text-xs text-blue-600 border-blue-500/30 bg-blue-500/5">
+                                  {tx.kcb_transaction_id}
+                                </Badge>
+                                <p className="font-mono text-[10px] text-muted-foreground">
+                                  Ref: {tx.account_reference}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={`text-[10px] font-semibold uppercase ${
+                                  tx.status === "success"
+                                    ? "bg-blue-500/15 text-blue-600 border border-blue-500/30"
+                                    : tx.status === "pending_reconciliation"
+                                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                                    : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                                }`}
+                              >
+                                {tx.status === "pending_reconciliation" ? "Pending Match" : tx.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="rounded-full h-8 text-xs gap-1 text-primary"
+                                onClick={() => {
+                                  setSelectedKcbTx(tx);
+                                  setKcbPayloadModalOpen(true);
+                                }}
+                              >
+                                <Eye className="size-3.5" /> Inspect
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <EmptyState title="No KCB BUNI transactions match your filters." />
+                )}
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -2048,6 +2416,218 @@ function AdminDashboard() {
               onClick={() => saveAdminMpesaMut.mutate()}
             >
               {saveAdminMpesaMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Save & Encrypt Configuration"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG: KCB TRANSACTION PAYLOAD INSPECTOR */}
+      <Dialog open={kcbPayloadModalOpen} onOpenChange={setKcbPayloadModalOpen}>
+        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-7">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <div className="space-y-1">
+                <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+                  <Building className="size-5 text-blue-600" /> KCB BUNI IPN Inspector
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  ID: <span className="font-mono">{selectedKcbTx?.id}</span>
+                </DialogDescription>
+              </div>
+              <Badge
+                variant="secondary"
+                className={`text-[10px] font-semibold uppercase ${
+                  selectedKcbTx?.status === "success"
+                    ? "bg-blue-500/15 text-blue-600 border border-blue-500/30"
+                    : selectedKcbTx?.status === "pending_reconciliation"
+                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                    : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                }`}
+              >
+                {selectedKcbTx?.status}
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          {selectedKcbTx && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Tenant / Unit</span>
+                  <p className="font-bold text-foreground mt-0.5">{selectedKcbTx.tenant_name || "Unmatched"}</p>
+                  <p className="text-muted-foreground">{selectedKcbTx.property_name || "—"}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Landlord Account</span>
+                  <p className="font-bold text-foreground mt-0.5">{selectedKcbTx.landlord_name}</p>
+                  <p className="text-muted-foreground">{selectedKcbTx.customer_name || selectedKcbTx.phone_number}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">Amount &amp; Ref</span>
+                  <p className="font-bold text-foreground mt-0.5">{money(selectedKcbTx.amount)}</p>
+                  <p className="font-mono text-muted-foreground">{selectedKcbTx.account_reference}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <span className="text-muted-foreground block text-[11px]">KCB Transaction ID</span>
+                  <p className="font-mono font-bold text-blue-600 mt-0.5">
+                    {selectedKcbTx.kcb_transaction_id}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{shortDate(selectedKcbTx.created_at)}</p>
+                </div>
+              </div>
+
+              {selectedKcbTx.raw_ipn && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Raw KCB IPN Webhook Payload</Label>
+                  <pre className="p-3 rounded-2xl bg-muted text-[11px] font-mono overflow-x-auto max-h-56 border border-border/60">
+                    {JSON.stringify(selectedKcbTx.raw_ipn, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-full text-xs" onClick={() => setKcbPayloadModalOpen(false)}>
+              Close Inspector
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG: ADMIN LANDLORD KCB BUNI CONFIGURATION */}
+      <Dialog open={adminKcbModalOpen} onOpenChange={setAdminKcbModalOpen}>
+        <DialogContent className="max-w-lg rounded-3xl p-6 sm:p-7">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Building className="size-5 text-blue-600" /> KCB BUNI Configuration
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Configure KCB BUNI Paybill, Account &amp; API credentials for{" "}
+              <strong className="text-foreground">{selectedLandlord?.full_name}</strong> ({selectedLandlord?.email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          {landlordKcbLoading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="size-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-3.5 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_kcb_paybill" className="text-xs">KCB PayBill Number *</Label>
+                  <Input
+                    id="admin_kcb_paybill"
+                    value={adminKcbForm.paybill_number}
+                    onChange={(e) => setAdminKcbForm({ ...adminKcbForm, paybill_number: e.target.value.trim() })}
+                    placeholder="e.g. 522522"
+                    className="font-mono text-xs h-9 rounded-2xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_kcb_acc" className="text-xs">KCB Account Number</Label>
+                  <Input
+                    id="admin_kcb_acc"
+                    value={adminKcbForm.account_number}
+                    onChange={(e) => setAdminKcbForm({ ...adminKcbForm, account_number: e.target.value.trim() })}
+                    placeholder="e.g. 1122334455"
+                    className="font-mono text-xs h-9 rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_kcb_env" className="text-xs">Environment</Label>
+                  <Select
+                    value={adminKcbForm.environment}
+                    onValueChange={(v: "sandbox" | "production") =>
+                      setAdminKcbForm({ ...adminKcbForm, environment: v })
+                    }
+                  >
+                    <SelectTrigger id="admin_kcb_env" className="h-9 rounded-2xl text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox">Sandbox / UAT</SelectItem>
+                      <SelectItem value="production">Production (Live)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_kcb_prefix" className="text-xs">Account Ref Prefix</Label>
+                  <Input
+                    id="admin_kcb_prefix"
+                    value={adminKcbForm.account_reference_prefix}
+                    onChange={(e) => setAdminKcbForm({ ...adminKcbForm, account_reference_prefix: e.target.value.trim().toUpperCase() })}
+                    placeholder="e.g. RR"
+                    className="font-mono text-xs h-9 rounded-2xl uppercase font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_kcb_key" className="text-xs">KCB BUNI Client Key / App ID</Label>
+                <Input
+                  id="admin_kcb_key"
+                  value={adminKcbForm.client_key}
+                  onChange={(e) => setAdminKcbForm({ ...adminKcbForm, client_key: e.target.value.trim() })}
+                  placeholder="Paste Consumer/Client Key from buni.kcbgroup.com"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_kcb_sec" className="text-xs">KCB BUNI Client Secret</Label>
+                <Input
+                  id="admin_kcb_sec"
+                  type="password"
+                  value={adminKcbForm.client_secret}
+                  onChange={(e) => setAdminKcbForm({ ...adminKcbForm, client_secret: e.target.value.trim() })}
+                  placeholder="••••••••••••"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin_kcb_token" className="text-xs">Webhook IPN Secret Token (Optional)</Label>
+                <Input
+                  id="admin_kcb_token"
+                  type="password"
+                  value={adminKcbForm.ipn_secret_token}
+                  onChange={(e) => setAdminKcbForm({ ...adminKcbForm, ipn_secret_token: e.target.value.trim() })}
+                  placeholder="Shared secret token for IPN verification"
+                  className="font-mono text-xs h-9 rounded-2xl"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-xs h-9 gap-1.5 font-semibold text-blue-600 border-blue-500/30"
+                  disabled={testAdminKcbMut.isPending || !adminKcbForm.client_key || !adminKcbForm.client_secret}
+                  onClick={() => testAdminKcbMut.mutate()}
+                >
+                  {testAdminKcbMut.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                  Test KCB OAuth Connection
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" className="rounded-full text-xs" onClick={() => setAdminKcbModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full shadow-glow text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={saveAdminKcbMut.isPending || !adminKcbForm.paybill_number}
+              onClick={() => saveAdminKcbMut.mutate()}
+            >
+              {saveAdminKcbMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Save & Encrypt Configuration"}
             </Button>
           </DialogFooter>
         </DialogContent>

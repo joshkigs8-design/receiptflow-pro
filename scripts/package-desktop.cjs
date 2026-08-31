@@ -65,3 +65,4 @@ fs.writeFileSync(path.join(rootDir, 'dist-electron', 'Open RentReceipt Pro.bat')
 console.log('Packaging complete!');
 console.log(`Application folder: ${outDir}`);
 console.log(`Executable: ${targetExe}`);
+
