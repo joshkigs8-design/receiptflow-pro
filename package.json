@@ -25,7 +25,8 @@
     "electron:build:win": "electron-builder --win --config electron-builder.json",
     "electron:build:portable": "electron-builder --win portable --config electron-builder.json",
     "electron:package": "node scripts/package-desktop.cjs",
-    "dist": "npm run build && electron-builder --win --config electron-builder.json"
+    "dist": "npm run build && electron-builder --win --config electron-builder.json",
+    "dist:win": "npm run build && electron-builder --win --config electron-builder.json"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
@@ -71,6 +72,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "electron-updater": "^6.8.9",
     "embla-carousel-react": "^8.6.0",
     "gsap": "^3.15.0",
     "input-otp": "^1.4.2",

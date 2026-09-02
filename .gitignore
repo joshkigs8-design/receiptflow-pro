@@ -114,6 +114,7 @@ node_modules
 dist/
 dist-electron/
 release/
+release
 .nitro/
 .cache/
 android/.idea/

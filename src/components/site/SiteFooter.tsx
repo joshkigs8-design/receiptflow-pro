@@ -61,6 +61,11 @@ export function SiteFooter() {
               </button>
             </li>
             <li>
+              <Link to="/download" className="hover:text-[#087443] transition-colors font-bold text-foreground">
+                Windows App (.exe)
+              </Link>
+            </li>
+            <li>
               <Link to="/auth" search={{ mode: "signup" }} className="hover:text-[#087443] transition-colors font-bold text-[#087443] dark:text-[#52B788]">
                 Get Started →
               </Link>

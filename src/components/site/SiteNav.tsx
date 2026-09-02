@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Pricing", href: "/#pricing" },
   { label: "Kenyan Context", href: "/#kenya" },
   { label: "Affiliate", to: "/affiliate-program" },
+  { label: "Windows App", to: "/download" },
 ];
 
 export function SiteNav() {

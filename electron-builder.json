@@ -3,10 +3,12 @@
   "productName": "RentReceipt Pro",
   "directories": {
     "output": "release"
+  },
   "files": [
     "electron/**/*",
     "public/**/*",
     ".output/**/*",
+    "package.json"
   ],
   "win": {
     "target": "nsis",
@@ -18,5 +20,10 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "RentReceipt Pro"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "joshkigs8-design",
+    "repo": "receiptflow-pro"
   }
 }

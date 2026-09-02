@@ -2,7 +2,12 @@
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
 
 const { app, BrowserWindow, shell, ipcMain, Menu, dialog, session, globalShortcut } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const path = require("path");
+
+// Configure autoUpdater defaults
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow = null;
 const isDev = process.env.NODE_ENV === "development";
@@ -262,6 +267,45 @@ function setupAppMenu() {
           label: "Technical Support on WhatsApp",
           click: () => shell.openExternal("https://wa.me/254742868209"),
         },
+        {
+          label: "Check for Updates...",
+          click: () => {
+            if (app.isPackaged) {
+              autoUpdater
+                .checkForUpdates()
+                .then((result) => {
+                  if (!result || !result.updateInfo) {
+                    dialog.showMessageBox(mainWindow, {
+                      type: "info",
+                      title: "RentReceipt Pro Update",
+                      message: "You are using the latest version of RentReceipt Pro.",
+                      buttons: ["OK"],
+                      icon: getIconPath(),
+                    });
+                  }
+                })
+                .catch((err) => {
+                  dialog.showMessageBox(mainWindow, {
+                    type: "warning",
+                    title: "Update Check",
+                    message: "Could not check for updates.",
+                    detail: err?.message || "Please check your internet connection.",
+                    buttons: ["OK"],
+                    icon: getIconPath(),
+                  });
+                });
+            } else {
+              dialog.showMessageBox(mainWindow, {
+                type: "info",
+                title: "Check for Updates",
+                message: "Running in Development Mode",
+                detail: "Automatic update checking is active when installed and running from the packaged Windows application.",
+                buttons: ["OK"],
+                icon: getIconPath(),
+              });
+            }
+          },
+        },
         { type: "separator" },
         {
           label: "About RentReceipt Pro",
@@ -283,6 +327,48 @@ function setupAppMenu() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
+
+// -------------------------------------------------------------
+// Auto-Updater Event Handlers (GitHub Releases Integration)
+// -------------------------------------------------------------
+autoUpdater.on("checking-for-update", () => {
+  console.log("Auto-updater: Checking for new releases on GitHub...");
+});
+
+autoUpdater.on("update-available", (info) => {
+  console.log(`Auto-updater: Update available: v${info.version}`);
+});
+
+autoUpdater.on("update-not-available", () => {
+  console.log("Auto-updater: RentReceipt Pro is up to date.");
+});
+
+autoUpdater.on("error", (err) => {
+  console.warn("Auto-updater error:", err?.message || err);
+});
+
+autoUpdater.on("update-downloaded", (info) => {
+  console.log(`Auto-updater: Update v${info.version} downloaded successfully.`);
+  if (mainWindow) {
+    dialog
+      .showMessageBox(mainWindow, {
+        type: "info",
+        title: "RentReceipt Pro Update Ready",
+        message: `Version ${info.version} has been downloaded.`,
+        detail:
+          "Restart RentReceipt Pro now to install the update, or it will be installed automatically the next time you launch the app.",
+        buttons: ["Restart & Update", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+        icon: getIconPath(),
+      })
+      .then((returnValue) => {
+        if (returnValue.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  }
+});
 
 // Register IPC handlers
 ipcMain.handle("app-info", () => ({
@@ -333,6 +419,13 @@ app.whenReady().then(() => {
       mainWindow.setFullScreen(false);
     }
   });
+
+  // Check for updates automatically in packaged application
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.warn("Initial update check error:", err?.message || err);
+    });
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
