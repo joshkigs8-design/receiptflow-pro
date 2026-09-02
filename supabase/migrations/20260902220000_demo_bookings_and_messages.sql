@@ -80,3 +80,4 @@ CREATE POLICY "Admins manage site messages" ON public.site_messages
   FOR ALL
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
