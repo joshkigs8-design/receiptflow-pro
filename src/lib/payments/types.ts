@@ -9,12 +9,6 @@ export type PaymentMethodType =
   | "card"
   | "cheque";
 
-export type ConnectionStatusType =
-  | "not_configured"
-  | "configured"
-  | "connection_successful"
-  | "connection_failed"
-  | "awaiting_approval";
 export type ConnectionStatusType = "untested" | "connected" | "failed" | null;
 
 export interface ParsedPaymentReference {
