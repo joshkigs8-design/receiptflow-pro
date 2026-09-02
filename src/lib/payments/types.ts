@@ -15,12 +15,14 @@ export type ConnectionStatusType =
   | "connection_successful"
   | "connection_failed"
   | "awaiting_approval";
+export type ConnectionStatusType = "untested" | "connected" | "failed" | null;
 
 export interface ParsedPaymentReference {
   raw: string;
   prefix?: string;
   propertyCode?: string;
   unitOrRoom?: string;
+  unitIdentifier?: string;
   isValid: boolean;
 }
 

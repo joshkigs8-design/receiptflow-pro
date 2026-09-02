@@ -31,8 +31,8 @@ function createMainWindow() {
   });
 
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: 1440,
+    height: 900,
     minWidth: 1024,
     minHeight: 700,
     icon: iconPath,
@@ -76,6 +76,36 @@ function createMainWindow() {
     }
   });
 
+  // Graceful offline recovery handler
+  mainWindow.webContents.on("did-fail-load", (event, errorCode) => {
+    if (errorCode === -3) return; // Ignore aborted requests
+    const offlineHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8"/>
+        <title>RentReceipt Pro</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #063B2A; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+          .card { background: #0b1220; padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+          h1 { font-size: 22px; margin-bottom: 12px; color: #10b981; }
+          p { font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 24px; }
+          button { background: #10b981; color: #fff; border: none; padding: 12px 28px; border-radius: 9999px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s; }
+          button:hover { opacity: 0.9; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>RentReceipt Pro</h1>
+          <p>Connecting to RentReceipt Pro server. Please check your internet connection and try again.</p>
+          <button onclick="window.location.reload()">Retry Connection</button>
+        </div>
+      </body>
+      </html>
+    `;
+    mainWindow.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(offlineHtml));
+  });
+
   // Build native application menu
   setupAppMenu();
 
@@ -83,7 +113,11 @@ function createMainWindow() {
   if (process.env.ELECTRON_START_URL) {
     mainWindow.loadURL(process.env.ELECTRON_START_URL);
   } else if (isDev) {
-    mainWindow.loadURL("http://localhost:3000");
+    mainWindow.loadURL("http://localhost:3000").catch(() => {
+      mainWindow.loadURL("http://localhost:5173").catch(() => {
+        mainWindow.loadURL("https://www.rentreceipt.co.ke");
+      });
+    });
   } else {
     // In production, connect to the live RentReceipt Pro cloud application
     mainWindow.loadURL("https://www.rentreceipt.co.ke");

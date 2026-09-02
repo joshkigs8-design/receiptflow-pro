@@ -1,7 +1,44 @@
 import crypto from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { decryptSecret, encryptSecret } from "@/lib/mpesa.server";
 import type { ConnectionStatusType, ParsedPaymentReference } from "./types";
+
+const ENCRYPTION_KEY = (
+  process.env["MPESA_ENCRYPTION_KEY"] ||
+  process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
+  "default-secret-key-rentreceipt-32b"
+)
+  .slice(0, 32)
+  .padEnd(32, "0");
+
+export function encryptSecret(plainText: string): string {
+  if (!plainText) return "";
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(ENCRYPTION_KEY, "utf-8"), iv);
+  let encrypted = cipher.update(plainText, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `${iv.toString("hex")}:${authTag}:${encrypted}`;
+}
+
+export function decryptSecret(cipherText: string): string {
+  if (!cipherText) return "";
+  const parts = cipherText.split(":");
+  if (parts.length !== 3) return cipherText;
+  const [ivHex, authTagHex, encrypted] = parts;
+  try {
+    const decipher = crypto.createDecipheriv(
+      "aes-256-gcm",
+      Buffer.from(ENCRYPTION_KEY, "utf-8"),
+      Buffer.from(ivHex, "hex")
+    );
+    decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch {
+    return cipherText;
+  }
+}
 
 export interface LandlordKcbConfig {
   id?: string;

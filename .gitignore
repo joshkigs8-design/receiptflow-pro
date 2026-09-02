@@ -113,6 +113,7 @@ node_modules
 .wrangler/
 dist/
 dist-electron/
+release/
 .nitro/
 .cache/
 android/.idea/

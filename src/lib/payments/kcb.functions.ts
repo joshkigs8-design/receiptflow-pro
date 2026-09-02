@@ -138,7 +138,7 @@ export const testLandlordKcbConnection = createServerFn({ method: "POST" })
         await supabaseAdmin
           .from("landlord_kcb_configs")
           .update({
-            connection_status: "connected",
+            connection_status: "connection_successful",
             last_tested_at: new Date().toISOString(),
           })
           .eq("landlord_id", context.userId);
@@ -152,7 +152,7 @@ export const testLandlordKcbConnection = createServerFn({ method: "POST" })
         await supabaseAdmin
           .from("landlord_kcb_configs")
           .update({
-            connection_status: "failed",
+            connection_status: "connection_failed",
             last_tested_at: new Date().toISOString(),
           })
           .eq("landlord_id", context.userId);
@@ -256,16 +256,13 @@ export const saveAdminLandlordKcbSettings = createServerFn({ method: "POST" })
         is_active: z.boolean().default(true),
         connection_status: z
           .enum([
-            "untested",
-            "connected",
-            "failed",
             "not_configured",
             "configured",
             "connection_successful",
             "connection_failed",
             "awaiting_approval",
           ])
-          .default("connected"),
+          .default("configured"),
       })
       .parse(d),
   )
@@ -297,3 +294,4 @@ export const saveAdminLandlordKcbSettings = createServerFn({ method: "POST" })
 
     return { ok: true, message: "Landlord KCB configuration updated successfully by admin." };
   });
+

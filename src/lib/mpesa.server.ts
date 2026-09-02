@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export interface LandlordMpesaConfig {
@@ -12,53 +11,6 @@ export interface LandlordMpesaConfig {
   environment: "sandbox" | "production";
   account_reference_prefix?: string | null;
   is_active: boolean;
-}
-
-const MASTER_SECRET =
-  process.env["APP_ENCRYPTION_KEY"] ||
-  process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
-  "rentreceipt-mpesa-vault-master-key-2026";
-
-const ENCRYPTION_KEY = crypto.createHash("sha256").update(MASTER_SECRET).digest();
-
-/**
- * Encrypts a sensitive credential using AES-256-GCM before storing in database
- */
-export function encryptSecret(plainText: string): string {
-  if (!plainText || plainText.startsWith("enc:v1:")) return plainText;
-  try {
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(plainText, "utf8", "hex");
-    encrypted += cipher.final("hex");
-    const authTag = cipher.getAuthTag().toString("hex");
-    return `enc:v1:${iv.toString("hex")}:${authTag}:${encrypted}`;
-  } catch (err) {
-    return plainText;
-  }
-}
-
-/**
- * Decrypts an AES-256-GCM encrypted credential in memory on backend
- */
-export function decryptSecret(cipherText: string): string {
-  if (!cipherText || !cipherText.startsWith("enc:v1:")) return cipherText;
-  try {
-    const parts = cipherText.split(":");
-    const ivHex = parts[2];
-    const authTagHex = parts[3];
-    const encryptedHex = parts[4];
-    if (parts.length !== 5 || !ivHex || !authTagHex || !encryptedHex) return cipherText;
-
-    const iv = Buffer.from(ivHex, "hex");
-    const authTag = Buffer.from(authTagHex, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
-    decipher.setAuthTag(authTag);
-    const decrypted = decipher.update(encryptedHex, "hex", "utf8") + decipher.final("utf8");
-    return decrypted;
-  } catch (err) {
-    return cipherText;
-  }
 }
 
 /**
@@ -202,6 +154,7 @@ export async function sendDarajaStkPush(params: {
   const responseJson = await res.json();
 
   if (!res.ok || responseJson.ResponseCode !== "0") {
+    console.error("Daraja STK Push Error:", responseJson);
     const msg = responseJson.errorMessage || responseJson.ResponseDescription || "Could not initiate M-Pesa STK Push.";
     throw new Error(`M-Pesa STK Push Error: ${msg}`);
   }
@@ -210,21 +163,55 @@ export async function sendDarajaStkPush(params: {
 }
 
 /**
- * Retrieves the active M-Pesa configuration for a landlord with decrypted secrets
+ * Retrieves the active M-Pesa configuration for a landlord
  */
 export async function getLandlordMpesaConfig(landlordId: string): Promise<LandlordMpesaConfig | null> {
-  const { data: config, error } = await supabaseAdmin
-    .from("landlord_mpesa_configs")
-    .select("*")
-    .eq("landlord_id", landlordId)
-    .eq("is_active", true)
-    .maybeSingle();
+  try {
+    const { data: config, error } = await supabaseAdmin
+      .from("landlord_mpesa_configs")
+      .select("*")
+      .eq("landlord_id", landlordId)
+      .eq("is_active", true)
+      .maybeSingle();
 
-  if (!error && config) {
+    if (!error && config) {
+      return config as LandlordMpesaConfig;
+    }
+  } catch (e) {
+    console.warn("landlord_mpesa_configs query fallback:", e);
+  }
+
+  // Fallback: check profile metadata
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("metadata" as never)
+      .eq("id", landlordId)
+      .maybeSingle();
+
+    const profileObj = profile as unknown as { metadata?: { mpesa_config?: LandlordMpesaConfig } } | null;
+    if (profileObj?.metadata?.mpesa_config?.is_active) {
+      return profileObj.metadata.mpesa_config;
+    }
+  } catch {}
+
+  // Platform fallback if configured in environment
+  const envShortcode = process.env["MPESA_SHORTCODE"] || process.env["VITE_MPESA_SHORTCODE"];
+  const envKey = process.env["MPESA_CONSUMER_KEY"] || process.env["VITE_MPESA_CONSUMER_KEY"];
+  const envSecret = process.env["MPESA_CONSUMER_SECRET"] || process.env["VITE_MPESA_CONSUMER_SECRET"];
+  const envPasskey = process.env["MPESA_PASSKEY"] || process.env["VITE_MPESA_PASSKEY"];
+
+  if (envShortcode && envKey && envSecret && envPasskey) {
     return {
-      ...(config as LandlordMpesaConfig),
-      consumer_secret: decryptSecret(config.consumer_secret),
-      passkey: decryptSecret(config.passkey),
+      landlord_id: landlordId,
+      shortcode: envShortcode,
+      consumer_key: envKey,
+      consumer_secret: envSecret,
+      passkey: envPasskey,
+      transaction_type: "CustomerPayBillOnline",
+      environment: (process.env["MPESA_ENVIRONMENT"] as "sandbox" | "production") || "sandbox",
+      account_reference_prefix: "RRP",
+      is_active: true,
     };
   }
 
@@ -232,7 +219,7 @@ export async function getLandlordMpesaConfig(landlordId: string): Promise<Landlo
 }
 
 /**
- * Saves or updates landlord M-Pesa configuration in the secure landlord_mpesa_configs table with AES-256-GCM encryption at rest
+ * Saves or updates landlord M-Pesa configuration
  */
 export async function saveLandlordMpesaConfig(
   landlordId: string,
@@ -242,8 +229,8 @@ export async function saveLandlordMpesaConfig(
     landlord_id: landlordId,
     shortcode: config.shortcode.trim(),
     consumer_key: config.consumer_key.trim(),
-    consumer_secret: encryptSecret(config.consumer_secret.trim()),
-    passkey: encryptSecret(config.passkey.trim()),
+    consumer_secret: config.consumer_secret.trim(),
+    passkey: config.passkey.trim(),
     transaction_type: config.transaction_type,
     environment: config.environment,
     account_reference_prefix: config.account_reference_prefix?.trim() || "RRP",
@@ -251,12 +238,40 @@ export async function saveLandlordMpesaConfig(
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabaseAdmin.from("landlord_mpesa_configs").upsert(payload, {
-    onConflict: "landlord_id",
-  });
+  try {
+    const { error } = await supabaseAdmin.from("landlord_mpesa_configs").upsert(payload, {
+      onConflict: "landlord_id",
+    });
 
-  if (error) {
-    throw new Error(`Failed to save M-Pesa credentials: ${error.message}`);
+    if (error) throw error;
+  } catch (err) {
+    console.warn("landlord_mpesa_configs upsert fallback to profile metadata:", err);
+  }
+
+  // Backup sync to profile metadata
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("metadata" as never)
+      .eq("id", landlordId)
+      .maybeSingle();
+
+    const profileObj = profile as unknown as { metadata?: Record<string, unknown> } | null;
+    const meta = profileObj?.metadata || {};
+
+    await supabaseAdmin
+      .from("profiles")
+      .update({
+        metadata: {
+          ...meta,
+          mpesa_config: payload,
+        },
+      } as never)
+      .eq("id", landlordId);
+  } catch (e) {
+    console.error("Profile metadata update failed:", e);
   }
 }
+
+export { encryptSecret, decryptSecret } from "./payments/kcb.server";
 

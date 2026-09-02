@@ -1,11 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-// Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld("electronAPI", {
   isDesktop: true,
   isElectron: true,
-  getAppInfo: () => ipcRenderer.invoke("app-info"),
-  printPage: (options) => ipcRenderer.invoke("print-page", options),
+  getAppInfo: () => ipcRenderer?.invoke?.("app-info"),
   platform: process.platform,
 });
 

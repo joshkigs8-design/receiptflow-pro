@@ -2,12 +2,11 @@
   "appId": "ke.co.rentreceipt.desktop",
   "productName": "RentReceipt Pro",
   "directories": {
-    "output": "dist-electron"
-  },
+    "output": "release"
   "files": [
     "electron/**/*",
     "public/**/*",
-    "package.json"
+    ".output/**/*",
   ],
   "win": {
     "target": "nsis",

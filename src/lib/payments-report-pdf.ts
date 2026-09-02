@@ -358,3 +358,4 @@ export async function downloadLandlordPaymentsPdf(
   const dateSlug = new Date().toISOString().slice(0, 10);
   doc.save(`RentReceipt_Payments_Statement_${dateSlug}.pdf`);
 }
+
