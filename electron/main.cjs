@@ -1,7 +1,7 @@
 // Set environment flag to silence non-critical development warnings in Electron
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
 
-const { app, BrowserWindow, shell, ipcMain, Menu, dialog, session } = require("electron");
+const { app, BrowserWindow, shell, ipcMain, Menu, dialog, session, globalShortcut } = require("electron");
 const path = require("path");
 
 let mainWindow = null;
@@ -33,8 +33,20 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
-    minWidth: 1024,
-    minHeight: 700,
+    minWidth: 900,
+    minHeight: 600,
+
+    // Normal Windows window with standard minimize, maximize, and close buttons
+    frame: true,
+
+    // Start normally, NOT fullscreen
+    fullscreen: false,
+
+    // Allow maximize, minimize, and close
+    maximizable: true,
+    minimizable: true,
+    closable: true,
+
     icon: iconPath,
     backgroundColor: "#063B2A",
     title: "RentReceipt Pro — Smart Rental Management",
@@ -46,6 +58,28 @@ function createMainWindow() {
       webSecurity: true,
     },
     show: false, // Wait until ready-to-show to prevent visual flash
+  });
+
+  // F11 & Escape fullscreen event handlers
+  mainWindow.on("enter-full-screen", () => {
+    console.log("Entered fullscreen mode");
+  });
+
+  mainWindow.on("leave-full-screen", () => {
+    console.log("Exited fullscreen mode");
+  });
+
+  // In-window hotkey listener: F11 toggles fullscreen, Escape exits fullscreen
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown") {
+      if (input.key === "F11") {
+        mainWindow.setFullScreen(!mainWindow.isFullScreen());
+        event.preventDefault();
+      } else if (input.key === "Escape" && mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(false);
+        event.preventDefault();
+      }
+    }
   });
 
   // Gracefully show when rendered
@@ -286,11 +320,30 @@ app.whenReady().then(() => {
 
   createMainWindow();
 
+  // F11 -> fullscreen / normal
+  globalShortcut.register("F11", () => {
+    if (mainWindow) {
+      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+    }
+  });
+
+  // Escape -> exit fullscreen
+  globalShortcut.register("Escape", () => {
+    if (mainWindow && mainWindow.isFullScreen()) {
+      mainWindow.setFullScreen(false);
+    }
+  });
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
     }
   });
+});
+
+// Clean up shortcuts
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on("window-all-closed", () => {
