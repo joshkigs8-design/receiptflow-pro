@@ -7,11 +7,11 @@ import { downloadLandlordManualPdf } from "@/lib/manual-pdf";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
-  { label: "How It Works", href: "/#how-it-works" },
   { label: "Pricing", href: "/#pricing" },
-  { label: "Kenyan Context", href: "/#kenya" },
-  { label: "Affiliate", to: "/affiliate-program" },
+  { label: "Book Demo", to: "/book-demo" },
+  { label: "Contact", to: "/contact" },
   { label: "Windows App", to: "/download" },
+  { label: "Affiliate", to: "/affiliate-program" },
 ];
 
 export function SiteNav() {

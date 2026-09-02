@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   BookOpen,
   Building2,
+  Calendar,
   Check,
   CheckCircle2,
   Clock,
@@ -68,12 +69,23 @@ export function Hero() {
               </Button>
 
               <Button
-                type="button"
+                asChild
+                size="lg"
                 variant="outline"
-                onClick={() => downloadLandlordManualPdf()}
                 className="rounded-full border-[#063B2A]/20 dark:border-white/20 bg-[#FFFFFF] dark:bg-[#0A261D] text-[#087443] dark:text-[#52B788] hover:bg-[#E8F2ED] dark:hover:bg-[#0D3528] h-13 px-6 text-sm font-bold shadow-sm gap-2"
               >
-                <BookOpen className="size-4 text-[#C9A227]" /> Download Manual (PDF)
+                <Link to="/book-demo">
+                  <Calendar className="size-4 text-[#C9A227]" /> Book a Live Demo
+                </Link>
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => downloadLandlordManualPdf()}
+                className="rounded-full text-[#4A5B53] dark:text-[#94A89E] hover:text-[#087443] dark:hover:text-[#52B788] h-13 px-4 text-xs font-semibold gap-1.5"
+              >
+                <BookOpen className="size-3.5 text-[#C9A227]" /> Manual (PDF)
               </Button>
             </div>
 

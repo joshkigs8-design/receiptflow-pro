@@ -16,7 +16,9 @@ import { Route as AdminPortalRouteImport } from './routes/admin-portal'
 import { Route as AffiliateRouteImport } from './routes/affiliate'
 import { Route as AffiliateProgramRouteImport } from './routes/affiliate-program'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BookDemoRouteImport } from './routes/book-demo'
 import { Route as CaretakerRouteImport } from './routes/caretaker'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TenantRouteImport } from './routes/tenant'
@@ -76,9 +78,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookDemoRoute = BookDemoRouteImport.update({
+  id: '/book-demo',
+  path: '/book-demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CaretakerRoute = CaretakerRouteImport.update({
   id: '/caretaker',
   path: '/caretaker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadRoute = DownloadRouteImport.update({
@@ -211,7 +223,9 @@ export interface FileRoutesByFullPath {
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/book-demo': typeof BookDemoRoute
   '/caretaker': typeof CaretakerRoute
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -243,7 +257,9 @@ export interface FileRoutesByTo {
   '/admin-portal': typeof AdminPortalRoute
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/book-demo': typeof BookDemoRoute
   '/caretaker': typeof CaretakerRoute
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -278,7 +294,9 @@ export interface FileRoutesById {
   '/affiliate': typeof AffiliateRouteWithChildren
   '/affiliate-program': typeof AffiliateProgramRoute
   '/auth': typeof AuthRouteWithChildren
+  '/book-demo': typeof BookDemoRoute
   '/caretaker': typeof CaretakerRoute
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/tenant': typeof TenantRoute
@@ -313,7 +331,9 @@ export interface FileRouteTypes {
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
+    | '/book-demo'
     | '/caretaker'
+    | '/contact'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -345,7 +365,9 @@ export interface FileRouteTypes {
     | '/admin-portal'
     | '/affiliate-program'
     | '/auth'
+    | '/book-demo'
     | '/caretaker'
+    | '/contact'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -379,7 +401,9 @@ export interface FileRouteTypes {
     | '/affiliate'
     | '/affiliate-program'
     | '/auth'
+    | '/book-demo'
     | '/caretaker'
+    | '/contact'
     | '/download'
     | '/privacy-policy'
     | '/tenant'
@@ -414,7 +438,9 @@ export interface RootRouteChildren {
   AffiliateRoute: typeof AffiliateRouteWithChildren
   AffiliateProgramRoute: typeof AffiliateProgramRoute
   AuthRoute: typeof AuthRouteWithChildren
+  BookDemoRoute: typeof BookDemoRoute
   CaretakerRoute: typeof CaretakerRoute
+  ContactRoute: typeof ContactRoute
   DownloadRoute: typeof DownloadRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TenantRoute: typeof TenantRoute
@@ -477,11 +503,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book-demo': {
+      id: '/book-demo'
+      path: '/book-demo'
+      fullPath: '/book-demo'
+      preLoaderRoute: typeof BookDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/caretaker': {
       id: '/caretaker'
       path: '/caretaker'
       fullPath: '/caretaker'
       preLoaderRoute: typeof CaretakerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/download': {
@@ -720,7 +760,9 @@ const rootRouteChildren: RootRouteChildren = {
   AffiliateRoute: AffiliateRouteWithChildren,
   AffiliateProgramRoute: AffiliateProgramRoute,
   AuthRoute: AuthRouteWithChildren,
+  BookDemoRoute: BookDemoRoute,
   CaretakerRoute: CaretakerRoute,
+  ContactRoute: ContactRoute,
   DownloadRoute: DownloadRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TenantRoute: TenantRoute,

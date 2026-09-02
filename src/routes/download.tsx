@@ -37,9 +37,9 @@ export const Route = createFileRoute("/download")({
 });
 
 const GITHUB_RELEASE_EXE =
-  "https://github.com/joshkigs8-design/receiptflow-pro/releases/latest/download/RentReceipt%20Pro%20Setup%201.0.0.exe";
+  "https://github.com/joshkigs8-design/receiptflow-pro/releases/download/V1.0/RentReceipt.Pro.Setup.1.0.0.exe";
 const GITHUB_RELEASES_PAGE =
-  "https://github.com/joshkigs8-design/receiptflow-pro/releases/latest";
+  "https://github.com/joshkigs8-design/receiptflow-pro/releases/tag/V1.0";
 
 function DownloadPage() {
   return (

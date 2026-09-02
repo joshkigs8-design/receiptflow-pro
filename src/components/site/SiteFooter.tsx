@@ -52,6 +52,11 @@ export function SiteFooter() {
               </a>
             </li>
             <li>
+              <Link to="/book-demo" className="hover:text-[#087443] transition-colors font-semibold text-[#087443] dark:text-[#52B788]">
+                Book a Live Demo
+              </Link>
+            </li>
+            <li>
               <button
                 type="button"
                 onClick={() => downloadLandlordManualPdf()}
@@ -78,9 +83,9 @@ export function SiteFooter() {
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#101714] dark:text-[#F7F8F5]">Company</h3>
           <ul className="mt-4 space-y-2.5 text-xs text-[#4A5B53] dark:text-[#94A89E] font-medium">
             <li>
-              <a href="#kenya" className="hover:text-[#087443] transition-colors">
-                About
-              </a>
+              <Link to="/contact" className="hover:text-[#087443] transition-colors font-semibold text-[#087443] dark:text-[#52B788]">
+                Contact &amp; Comments
+              </Link>
             </li>
             <li>
               <Link to="/affiliate-program" className="hover:text-[#087443] transition-colors">

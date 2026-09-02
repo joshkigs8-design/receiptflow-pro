@@ -27,6 +27,8 @@ import {
   Loader2,
   Lock,
   LogOut,
+  MessageCircle,
+  MessageSquare,
   MoreHorizontal,
   Phone,
   Plus,
@@ -39,6 +41,7 @@ import {
   SlidersHorizontal,
   Smartphone,
   Sparkles,
+  Star,
   Ticket,
   Trash2,
   TrendingUp,
@@ -90,6 +93,12 @@ import {
   saveAdminLandlordKcbSettings,
   testLandlordKcbConnection,
 } from "@/lib/payments/kcb.functions";
+import {
+  listDemoBookingsAdmin,
+  updateDemoBookingStatus,
+  listSiteMessagesAdmin,
+  updateSiteMessageAdmin,
+} from "@/lib/feedback.functions";
 import { money, shortDate } from "@/lib/format";
 
 const title = "Owner Admin Portal — Rent Receipt Pro";
@@ -615,6 +624,44 @@ function AdminDashboard() {
     onSuccess: (res: any) => toast.success(res?.message || "KCB connection successful"),
     onError: (err: any) => toast.error(err?.message || "KCB test connection failed"),
   });
+
+  // Demo Bookings & Site Messages States
+  const [demoSearch, setDemoSearch] = useState("");
+  const [demoStatusFilter, setDemoStatusFilter] = useState("all");
+  const [messageSearch, setMessageSearch] = useState("");
+  const [messageCategoryFilter, setMessageCategoryFilter] = useState("all");
+  const [messageStatusFilter, setMessageStatusFilter] = useState("all");
+
+  const { data: demoBookings = [], isLoading: demosLoading } = useQuery({
+    queryKey: ["admin-demos"],
+    queryFn: () => listDemoBookingsAdmin(),
+  });
+
+  const { data: siteMessages = [], isLoading: messagesLoading } = useQuery({
+    queryKey: ["admin-messages"],
+    queryFn: () => listSiteMessagesAdmin(),
+  });
+
+  const updateDemoStatusMut = useMutation({
+    mutationFn: (data: { id: string; status: any; adminNotes?: string }) =>
+      updateDemoBookingStatus({ data }),
+    onSuccess: () => {
+      toast.success("Demo booking status updated");
+      qc.invalidateQueries({ queryKey: ["admin-demos"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update demo booking"),
+  });
+
+  const updateMessageMut = useMutation({
+    mutationFn: (data: { id: string; status?: any; isPublicTestimonial?: boolean; adminReply?: string }) =>
+      updateSiteMessageAdmin({ data }),
+    onSuccess: () => {
+      toast.success("Message updated successfully");
+      qc.invalidateQueries({ queryKey: ["admin-messages"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update message"),
+  });
+
   const create = useMutation({
     mutationFn: () =>
       addVoucher({
@@ -797,6 +844,39 @@ function AdminDashboard() {
     };
   }, [kcbTransactions]);
 
+  // Filtered Demos
+  const filteredDemos = useMemo(() => {
+    const list = demoBookings || [];
+    const q = demoSearch.toLowerCase().trim();
+    return list.filter((d: any) => {
+      const matchesStatus = demoStatusFilter === "all" || d.status === demoStatusFilter;
+      const matchesSearch =
+        !q ||
+        d.full_name?.toLowerCase().includes(q) ||
+        d.email?.toLowerCase().includes(q) ||
+        d.phone?.includes(q) ||
+        d.property_name?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [demoBookings, demoSearch, demoStatusFilter]);
+
+  // Filtered Messages
+  const filteredMessages = useMemo(() => {
+    const list = siteMessages || [];
+    const q = messageSearch.toLowerCase().trim();
+    return list.filter((m: any) => {
+      const matchesCategory = messageCategoryFilter === "all" || m.category === messageCategoryFilter;
+      const matchesStatus = messageStatusFilter === "all" || m.status === messageStatusFilter;
+      const matchesSearch =
+        !q ||
+        m.sender_name?.toLowerCase().includes(q) ||
+        m.email?.toLowerCase().includes(q) ||
+        m.message?.toLowerCase().includes(q) ||
+        m.subject?.toLowerCase().includes(q);
+      return matchesCategory && matchesStatus && matchesSearch;
+    });
+  }, [siteMessages, messageSearch, messageCategoryFilter, messageStatusFilter]);
+
   const cards = [
     { label: "Total Landlords", value: stats?.landlords ?? 0, icon: Users, color: "text-blue-500" },
     { label: "Paying Subscribers", value: stats?.paying ?? 0, icon: BadgeCheck, color: "text-emerald-500" },
@@ -852,6 +932,12 @@ function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="vouchers" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold">
               <Ticket className="size-4 mr-1.5" /> Vouchers ({vouchers?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="demos" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+              <Calendar className="size-4 mr-1.5" /> Demos ({demoBookings?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+              <MessageSquare className="size-4 mr-1.5" /> Messages ({siteMessages?.length ?? 0})
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1962,6 +2048,328 @@ function AdminDashboard() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* TAB: DEMO BOOKINGS */}
+        <TabsContent value="demos" className="space-y-6">
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <Calendar className="size-5 text-blue-600" /> Prospective Landlord Demo Bookings
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Inbound demo requests from landlords and property managers seeking product walkthroughs
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search name, phone, email, estate..."
+                    value={demoSearch}
+                    onChange={(e) => setDemoSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                </div>
+
+                <Select value={demoStatusFilter} onValueChange={setDemoStatusFilter}>
+                  <SelectTrigger className="h-9 w-36 rounded-full text-xs font-semibold">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full h-9 gap-1.5 text-xs font-semibold"
+                  onClick={() => exportToCsv("demo_bookings", filteredDemos)}
+                >
+                  <Download className="size-3.5" /> Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {filteredDemos.length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[950px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Prospect</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Property / Units</TableHead>
+                      <TableHead>Requested Slot</TableHead>
+                      <TableHead>Notes / Challenges</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Quick Contact</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDemos.map((d: any) => {
+                      const cleanPhone = (d.phone || "").replace(/\D/g, "").replace(/^0/, "254");
+                      const whatsappUrl = `https://wa.me/${cleanPhone}?text=Hi%20${encodeURIComponent(
+                        d.full_name
+                      )}%2C%20following%20up%20on%20your%20RentReceipt%20Pro%20demo%20booking.`;
+
+                      return (
+                        <TableRow key={d.id} className="hover:bg-muted/30">
+                          <TableCell>
+                            <p className="font-semibold text-sm">{d.full_name}</p>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                              {shortDate(d.created_at)}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs font-medium">{d.email}</p>
+                            <p className="text-xs font-mono text-muted-foreground">{d.phone}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs font-semibold">{d.property_name || "—"}</p>
+                            <Badge variant="outline" className="text-[10px] mt-0.5">
+                              {d.units_count} Units
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs font-medium">
+                              {d.preferred_date ? shortDate(d.preferred_date) : "Flexible"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground capitalize">
+                              {d.preferred_time} slot
+                            </p>
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <p className="text-xs text-muted-foreground line-clamp-2" title={d.notes || ""}>
+                              {d.notes || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={d.status}
+                              onValueChange={(status) =>
+                                updateDemoStatusMut.mutate({ id: d.id, status })
+                              }
+                            >
+                              <SelectTrigger
+                                className={`h-7 px-2 text-[10px] font-bold rounded-full w-28 uppercase ${
+                                  d.status === "new"
+                                    ? "bg-blue-500/15 text-blue-600 border-blue-500/30"
+                                    : d.status === "contacted"
+                                    ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                                    : d.status === "scheduled"
+                                    ? "bg-purple-500/15 text-purple-600 border-purple-500/30"
+                                    : d.status === "completed"
+                                    ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                                    : "bg-rose-500/15 text-rose-600 border-rose-500/30"
+                                }`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="new">New</SelectItem>
+                                <SelectItem value="contacted">Contacted</SelectItem>
+                                <SelectItem value="scheduled">Scheduled</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full h-8 px-2.5 text-xs gap-1.5 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-bold"
+                              >
+                                <MessageCircle className="size-3.5" /> WhatsApp
+                              </Button>
+                            </a>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <EmptyState title="No demo bookings found matching your search." />
+            )}
+          </div>
+        </TabsContent>
+
+        {/* TAB: SITE MESSAGES & COMMENTS */}
+        <TabsContent value="messages" className="space-y-6">
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-lg font-bold flex items-center gap-2">
+                  <MessageSquare className="size-5 text-purple-600" /> Visitor Messages &amp; Comments
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Inbound feedback, customer support tickets, partner inquiries, and user reviews
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search sender, message, subject..."
+                    value={messageSearch}
+                    onChange={(e) => setMessageSearch(e.target.value)}
+                    className="pl-9 h-9 rounded-full text-xs"
+                  />
+                </div>
+
+                <Select value={messageCategoryFilter} onValueChange={setMessageCategoryFilter}>
+                  <SelectTrigger className="h-9 w-36 rounded-full text-xs font-semibold">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="comment">Comment</SelectItem>
+                    <SelectItem value="feedback">Feedback</SelectItem>
+                    <SelectItem value="feature_request">Feature Request</SelectItem>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="partnership">Partnership</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={messageStatusFilter} onValueChange={setMessageStatusFilter}>
+                  <SelectTrigger className="h-9 w-32 rounded-full text-xs font-semibold">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="unread">Unread</SelectItem>
+                    <SelectItem value="read">Read</SelectItem>
+                    <SelectItem value="replied">Replied</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {filteredMessages.length ? (
+              <div className="space-y-3">
+                {filteredMessages.map((m: any) => (
+                  <div
+                    key={m.id}
+                    className="p-5 rounded-2xl bg-card border border-border/80 space-y-3 transition-colors hover:border-primary/40 shadow-sm"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-bold text-sm text-foreground">{m.sender_name}</span>
+                        <span className="text-xs text-muted-foreground">({m.email})</span>
+                        {m.phone && (
+                          <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+                            <Phone className="size-3" /> {m.phone}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {m.category}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] uppercase font-bold ${
+                            m.status === "unread"
+                              ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                              : m.status === "replied"
+                              ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {m.status}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {shortDate(m.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {m.subject && (
+                      <p className="text-xs font-semibold text-foreground">
+                        Subject: {m.subject}
+                      </p>
+                    )}
+
+                    {m.rating && (
+                      <div className="flex items-center gap-1 text-amber-500">
+                        {Array.from({ length: m.rating }).map((_, i) => (
+                          <Star key={i} className="size-3.5 fill-amber-500 text-amber-500" />
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-xl border border-border/40">
+                      {m.message}
+                    </p>
+
+                    <div className="pt-2 border-t border-border/40 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(m.is_public_testimonial)}
+                          onChange={(e) =>
+                            updateMessageMut.mutate({
+                              id: m.id,
+                              isPublicTestimonial: e.target.checked,
+                            })
+                          }
+                          className="size-4 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <span className="font-semibold text-foreground">
+                          Feature as Public Testimonial on Website
+                        </span>
+                      </label>
+
+                      <div className="flex items-center gap-2">
+                        {m.status === "unread" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full h-8 text-xs font-semibold"
+                            onClick={() => updateMessageMut.mutate({ id: m.id, status: "read" })}
+                          >
+                            Mark Read
+                          </Button>
+                        )}
+                        {m.status !== "archived" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full h-8 text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => updateMessageMut.mutate({ id: m.id, status: "archived" })}
+                          >
+                            Archive
+                          </Button>
+                        )}
+                        <a href={`mailto:${m.email}?subject=Re:%20${encodeURIComponent(m.subject || "RentReceipt Pro Inquiry")}`}>
+                          <Button size="sm" className="rounded-full h-8 text-xs font-bold gap-1.5 shadow-sm">
+                            Reply via Email →
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No messages or comments found matching your filters." />
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
