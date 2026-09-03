@@ -221,10 +221,10 @@ function PaymentsPage() {
     setExportingPdf(true);
     try {
       await downloadLandlordPaymentsPdf(filteredPayments, {
-        company_name: settings.data?.company_name,
-        full_name: settings.data?.full_name,
-        email: settings.data?.email,
-        phone: settings.data?.phone,
+        company_name: settings.data?.company_name || null,
+        full_name: settings.data?.full_name || null,
+        email: null,
+        phone: settings.data?.phone || null,
         currency: settings.data?.currency || "KSh",
       });
       toast.success("Landlord Payments PDF Statement generated & downloaded!");

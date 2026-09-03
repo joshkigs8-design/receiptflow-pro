@@ -179,7 +179,7 @@ export const Route = createFileRoute("/api/public/kcb/ipn")({
                 .from("properties")
                 .select("id, name, code, landlord_id")
                 .eq("landlord_id", kcbConfig.landlord_id);
-              if (props && props.length === 1) {
+              if (props && props.length === 1 && props[0]) {
                 matchedProperty = props[0];
               }
             }
@@ -213,14 +213,17 @@ export const Route = createFileRoute("/api/public/kcb/ipn")({
             }
           }
 
-          const landlordId = kcbConfig?.landlord_id || matchedProperty?.landlord_id;
-          const status = matchedTenant && landlordId ? "success" : "pending_reconciliation";
+          const landlordId = kcbConfig?.landlord_id || matchedProperty?.landlord_id || "00000000-0000-0000-0000-000000000000";
+          const status: "success" | "pending_reconciliation" =
+            matchedTenant && landlordId !== "00000000-0000-0000-0000-000000000000"
+              ? "success"
+              : "pending_reconciliation";
           const paidAtIso = ipnData.paymentDate || ipnData.payment_date || new Date().toISOString();
           const period = paidAtIso.slice(0, 7);
 
           // 6. UPSERT / INSERT KCB TRANSACTION RECORD
-          const txPayload = {
-            landlord_id: landlordId || "00000000-0000-0000-0000-000000000000",
+          const txPayload: any = {
+            landlord_id: landlordId,
             property_id: matchedProperty?.id || null,
             unit_id: matchedUnit?.id || null,
             tenant_id: matchedTenant?.id || null,
@@ -338,9 +341,8 @@ export const Route = createFileRoute("/api/public/kcb/ipn")({
                 await supabaseAdmin.from("notifications").insert({
                   landlord_id: landlordId,
                   title: `KCB Rent Payment Received: KSh ${amount.toLocaleString("en-KE")}`,
-                  message: `${matchedTenant.full_name} paid KSh ${amount.toLocaleString("en-KE")} for Unit ${matchedUnit?.unit_number || matchedUnit?.room_number || "—"} (${matchedProperty?.name}) via KCB BUNI (Ref: ${transactionId}).`,
-                  category: "payment",
-                  link: "/payments",
+                  body: `${matchedTenant.full_name} paid KSh ${amount.toLocaleString("en-KE")} for Unit ${matchedUnit?.unit_number || matchedUnit?.room_number || "—"} (${matchedProperty?.name}) via KCB BUNI (Ref: ${transactionId}).`,
+                  type: "payment",
                 });
               }
             }

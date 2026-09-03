@@ -218,14 +218,14 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
     const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
-    if (data.status !== undefined) updatePayload.status = data.status;
+    if (data.status !== undefined) updatePayload["status"] = data.status;
     if (data.adminReply !== undefined) {
-      updatePayload.admin_reply = data.adminReply;
-      updatePayload.replied_at = new Date().toISOString();
-      updatePayload.status = "replied";
+      updatePayload["admin_reply"] = data.adminReply;
+      updatePayload["replied_at"] = new Date().toISOString();
+      updatePayload["status"] = "replied";
     }
     if (data.isPublicTestimonial !== undefined) {
-      updatePayload.is_public_testimonial = data.isPublicTestimonial;
+      updatePayload["is_public_testimonial"] = data.isPublicTestimonial;
     }
 
     const sb = await getDbClient();

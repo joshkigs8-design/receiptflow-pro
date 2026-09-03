@@ -520,7 +520,6 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
       balance: totalRemainingBalance,
     };
   });
-
 /**
  * 7. Caretaker Action: Update Maintenance Ticket
  */

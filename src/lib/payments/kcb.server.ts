@@ -24,7 +24,10 @@ export function decryptSecret(cipherText: string): string {
   if (!cipherText) return "";
   const parts = cipherText.split(":");
   if (parts.length !== 3) return cipherText;
-  const [ivHex, authTagHex, encrypted] = parts;
+  const ivHex = parts[0];
+  const authTagHex = parts[1];
+  const encrypted = parts[2];
+  if (!ivHex || !authTagHex || !encrypted) return cipherText;
   try {
     const decipher = crypto.createDecipheriv(
       "aes-256-gcm",
@@ -155,8 +158,8 @@ export function parseKcbPaymentReference(raw: string): ParsedPaymentReference {
     const unit = parts.slice(2).join("-");
     return {
       raw: cleaned,
-      prefix: parts[0],
-      propertyCode: parts[1],
+      prefix: parts[0] || "",
+      propertyCode: parts[1] || "",
       unitOrRoom: unit,
       unitIdentifier: unit,
       isValid: true,
@@ -166,9 +169,9 @@ export function parseKcbPaymentReference(raw: string): ParsedPaymentReference {
   if (parts.length === 2) {
     return {
       raw: cleaned,
-      propertyCode: parts[0],
-      unitOrRoom: parts[1],
-      unitIdentifier: parts[1],
+      propertyCode: parts[0] || "",
+      unitOrRoom: parts[1] || "",
+      unitIdentifier: parts[1] || "",
       isValid: true,
     };
   }
@@ -265,7 +268,7 @@ export async function saveLandlordKcbConfig(
     environment: config.environment,
     account_reference_prefix: config.account_reference_prefix?.trim() || "RR",
     is_active: config.is_active,
-    connection_status: config.connection_status || "configured",
+    connection_status: config.connection_status || "connected",
     last_tested_at: config.last_tested_at || null,
     updated_at: new Date().toISOString(),
   };

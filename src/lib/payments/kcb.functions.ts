@@ -102,7 +102,7 @@ export const saveLandlordKcbSettings = createServerFn({ method: "POST" })
       environment: data.environment,
       account_reference_prefix: data.account_reference_prefix || "RR",
       is_active: data.is_active,
-      connection_status: "configured",
+      connection_status: "connected",
     });
 
     return { ok: true, message: "KCB BUNI configuration saved successfully." };
@@ -138,7 +138,7 @@ export const testLandlordKcbConnection = createServerFn({ method: "POST" })
         await supabaseAdmin
           .from("landlord_kcb_configs")
           .update({
-            connection_status: "connection_successful",
+            connection_status: "connected",
             last_tested_at: new Date().toISOString(),
           })
           .eq("landlord_id", context.userId);
@@ -152,7 +152,7 @@ export const testLandlordKcbConnection = createServerFn({ method: "POST" })
         await supabaseAdmin
           .from("landlord_kcb_configs")
           .update({
-            connection_status: "connection_failed",
+            connection_status: "failed",
             last_tested_at: new Date().toISOString(),
           })
           .eq("landlord_id", context.userId);
@@ -255,14 +255,8 @@ export const saveAdminLandlordKcbSettings = createServerFn({ method: "POST" })
         account_reference_prefix: z.string().max(10).optional().nullable(),
         is_active: z.boolean().default(true),
         connection_status: z
-          .enum([
-            "not_configured",
-            "configured",
-            "connection_successful",
-            "connection_failed",
-            "awaiting_approval",
-          ])
-          .default("configured"),
+          .enum(["untested", "connected", "failed"])
+          .default("connected"),
       })
       .parse(d),
   )
