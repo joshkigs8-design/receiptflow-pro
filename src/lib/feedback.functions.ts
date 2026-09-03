@@ -169,7 +169,7 @@ export const updateDemoBookingStatus = createServerFn({ method: "POST" })
       .from("demo_bookings")
       .update({
         status: data.status,
-        admin_notes: data.adminNotes ?? undefined,
+        admin_notes: data.adminNotes ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -215,7 +215,7 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
       }
   )
   .handler(async ({ data }) => {
-    const updatePayload: Database["public"]["Tables"]["site_messages"]["Update"] = {
+    const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
     if (data.status !== undefined) updatePayload.status = data.status;
@@ -231,7 +231,7 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
     const sb = await getDbClient();
     const { error } = await sb
       .from("site_messages")
-      .update(updatePayload)
+      .update(updatePayload as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message || "Failed to update site message.");

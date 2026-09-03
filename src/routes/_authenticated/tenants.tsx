@@ -97,7 +97,7 @@ function TenantsPage() {
     return now.toISOString().slice(0, 7);
   });
   const [periodLabel, setPeriodLabel] = useState<string>("Current month");
-  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
+  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid' | 'arrears'>('all');
   
   // Pre-compute month options for the selector
   const monthOptions = useMemo(() => {

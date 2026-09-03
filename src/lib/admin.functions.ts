@@ -746,7 +746,7 @@ STRICT PARSING RULES:
     }
 
     try {
-      // Call Google Gemini API (gemini-2.0-flash or gemini-1.5-flash)
+      // Call Google Gemini API (gemini-3.5-flash or gemini-3.6-flash)
       const contents: any[] = [];
       const parts: any[] = [{ text: systemPrompt }];
 

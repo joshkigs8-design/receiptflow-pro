@@ -423,22 +423,22 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
 
     const totalRentAccrued = monthsElapsed * monthlyRent;
 
+    // Fetch all existing payments for this tenant
     const { data: allPayments } = await supabaseAdmin
       .from("payments")
       .select("amount, period_label, paid_at")
       .eq("tenant_id", tenant.id)
       .eq("landlord_id", data.landlord_id);
 
-    const paidBeforeAll = (allPayments ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const paidBeforeAll = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
     const paidBeforePeriod = (allPayments ?? [])
-      .filter((p) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
-      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+      .filter((p: any) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
+      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
 
     const totalRemainingBalance = Math.max(totalRentAccrued - (paidBeforeAll + data.amount), 0);
     const periodRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
     const priorArrears = Math.max(totalRemainingBalance - periodRemainingBalance, 0);
 
-    // 3. Insert payment record
     const { data: payment, error: payError } = await supabaseAdmin
       .from("payments")
       .insert({
@@ -459,7 +459,6 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
 
     if (payError || !payment) throw payError || new Error("Failed to record payment.");
 
-    // 4. Fetch Landlord Profile Branding
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("company_name, currency, logo_url, phone")
@@ -489,7 +488,6 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
           company_phone: profile?.phone ?? null,
           tenant_name: tenant.full_name,
           tenant_phone: tenant.phone,
-          property: tenant.properties?.name ?? null,
           property_code: tenant.properties?.code ?? null,
           unit: tenant.units?.unit_number ?? null,
           room: tenant.units?.room_number ?? null,
@@ -508,7 +506,6 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
 
     if (receiptError || !receipt) throw receiptError || new Error("Failed to issue digital receipt.");
 
-    // 6. Notify Master Landlord
     await supabaseAdmin.from("notifications").insert({
       landlord_id: data.landlord_id,
       title: "On-site Receipt Issued by Caretaker",
@@ -520,7 +517,7 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
       ok: true,
       publicId: receipt.public_id,
       receiptNumber: receipt.receipt_number,
-      balance,
+      balance: totalRemainingBalance,
     };
   });
 

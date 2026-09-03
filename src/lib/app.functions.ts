@@ -49,7 +49,7 @@ export const getDashboard = createServerFn({ method: "GET" })
         sb.from("units").select("id,status,rent,property_id").eq("landlord_id", mine),
         sb
           .from("tenants")
-          .select("id,full_name,rent_amount,status,lease_end,unit_id,property_id,phone")
+          .select("id,full_name,rent_amount,status,lease_start,lease_end,unit_id,property_id,phone,created_at")
           .eq("landlord_id", mine),
         sb
           .from("payments")
@@ -362,10 +362,10 @@ export const recordPayment = createServerFn({ method: "POST" })
       .eq("tenant_id", tenant.id)
       .eq("landlord_id", context.userId);
 
-    const paidBeforeAll = (allPayments ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const paidBeforeAll = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
     const paidBeforePeriod = (allPayments ?? [])
-      .filter((p) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
-      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+      .filter((p: any) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
+      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
 
     const totalRemainingBalance = Math.max(totalRentAccrued - (paidBeforeAll + data.amount), 0);
     const periodRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
