@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { PLANS, type PlanKey } from "./plans";
+import { PLANS, type PlanKey, getPlanPrice } from "./plans";
 import { accessState, nextPeriodEnd, paystackKey } from "./billing.server";
 
 export const getSubscription = createServerFn({ method: "GET" })
@@ -37,10 +37,17 @@ export const getSubscription = createServerFn({ method: "GET" })
 
     const email = (context.claims as { email?: string })?.email ?? "";
 
+    const historyList = history ?? [];
+    const successfulPayments = historyList.filter(
+      (h) => h.status === "success" || h.status === "paid",
+    );
+    const isFirstTimeUser = successfulPayments.length === 0;
+
     return {
       subscription: data,
       ...accessState(data),
-      history: history ?? [],
+      history: historyList,
+      isFirstTimeUser,
       profile: {
         company_name: profile?.company_name || null,
         full_name: profile?.full_name || null,
@@ -61,9 +68,18 @@ export const startCheckout = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const plan = PLANS[data.plan];
     const email = (context.claims as { email?: string }).email;
     if (!email) throw new Error("No email on account");
+
+    // Check if user has any previous successful subscription payment
+    const { count } = await context.supabase
+      .from("subscription_payments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("status", "success");
+
+    const isFirstTime = (count ?? 0) === 0;
+    const finalAmount = getPlanPrice(data.plan, isFirstTime);
 
     const reference = `rrp_${data.plan}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -75,11 +91,15 @@ export const startCheckout = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         email,
-        amount: plan.amount * 100,
+        amount: finalAmount * 100,
         currency: "KES",
         reference,
         callback_url: `${data.origin}/billing?reference=${reference}`,
-        metadata: { user_id: context.userId, plan: data.plan },
+        metadata: {
+          user_id: context.userId,
+          plan: data.plan,
+          is_first_time: isFirstTime,
+        },
       }),
     });
 
@@ -97,7 +117,7 @@ export const startCheckout = createServerFn({ method: "POST" })
       user_id: context.userId,
       reference,
       plan: data.plan,
-      amount: plan.amount,
+      amount: finalAmount,
       currency: "KES",
       status: "pending",
     });

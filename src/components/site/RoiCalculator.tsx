@@ -84,9 +84,9 @@ export function RoiCalculator() {
 
             <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs text-muted-foreground space-y-1.5">
               <div className="flex items-center gap-2 text-foreground font-semibold">
-                <Check className="size-4 text-emerald-500" /> Subscription Cost: only KSh 400/month (unlimited units)
+                <Check className="size-4 text-emerald-500" /> Subscription Cost: KSh 400/mo First-Time Offer (Standard: KSh 1,200/mo)
               </div>
-              <p>No per-unit charges, no hidden transaction fees, cancel anytime.</p>
+              <p>Unlimited units, automated reconciliation, cancel anytime.</p>
             </div>
           </div>
 

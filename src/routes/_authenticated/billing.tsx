@@ -63,7 +63,7 @@ export const Route = createFileRoute("/_authenticated/billing")({
       {
         name: "description",
         content:
-          "Manage your Rent Receipt Pro subscription — KSh 400 per month or KSh 4,000 per year, with 2 months free on signup.",
+          "Manage your Rent Receipt Pro subscription — Special KSh 400/month first-time offer (Standard KSh 1,200/mo) or KSh 4,000 per year, with 1 month free on signup.",
       },
       { property: "og:title", content: "Billing & Subscription — Rent Receipt Pro" },
       { property: "og:description", content: "Activate or renew your Rent Receipt Pro plan." },
@@ -182,11 +182,36 @@ function BillingPage() {
           </span>
         </div>
 
+        {/* First-Time User Welcome Offer Alert */}
+        {data?.isFirstTimeUser ? (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-foreground">
+                  Welcome Promotion Active: 67% Off First-Time Checkout
+                </p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+                  Standard subscription is KSh 1,200/month. As a first-time landlord, your welcome offer allows you to subscribe for only <strong>KSh 400/month</strong> or <strong>KSh 4,000/year</strong>!
+                </p>
+              </div>
+            </div>
+            <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-black shrink-0 shadow-sm">
+              Save KSh 800
+            </span>
+          </div>
+        ) : null}
+
         {/* Main Production Plan Cards Grid */}
         <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {(["monthly", "quarterly", "semiannual", "yearly"] as PlanKey[]).map((key) => {
             const plan = PLANS[key];
             const best = key === "yearly";
+            const isFirstTime = data?.isFirstTimeUser ?? true;
+            const effectivePrice = isFirstTime ? plan.amount : plan.regularAmount;
+
             return (
               <div
                 key={key}
@@ -203,13 +228,26 @@ function BillingPage() {
                     </span>
                   ) : null}
                   <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{plan.label}</h3>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    <span className="font-display text-2xl sm:text-3xl font-black text-foreground">
-                      {money(plan.amount)}
-                    </span>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      /{plan.periodLabel}
-                    </span>
+
+                  <div className="mt-2.5">
+                    {isFirstTime ? (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                        <span className="line-through font-semibold text-muted-foreground/70">
+                          {money(plan.regularAmount)}
+                        </span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/15 px-1.5 py-0.2 rounded">
+                          First-Time Offer
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                        {money(effectivePrice)}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        /{plan.periodLabel}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground leading-snug">{plan.blurb}</p>
 
@@ -233,7 +271,7 @@ function BillingPage() {
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
                     <>
-                      <CreditCard className="size-4" /> Pay with Paystack
+                      <CreditCard className="size-4" /> Pay {money(effectivePrice)} with Paystack
                     </>
                   )}
                 </Button>

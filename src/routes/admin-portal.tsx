@@ -763,7 +763,7 @@ function MobileAdminPage() {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-2xl bg-muted/40 border border-border/50 text-center">
-                      <span className="text-[11px] text-muted-foreground">Monthly (KSh 400)</span>
+                      <span className="text-[11px] text-muted-foreground">Monthly (1.2k / 400)</span>
                       <p className="font-display font-bold text-base mt-0.5">{stats.planBreakdown.monthly}</p>
                     </div>
                     <div className="p-3 rounded-2xl bg-muted/40 border border-border/50 text-center">

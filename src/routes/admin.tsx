@@ -984,7 +984,7 @@ function AdminDashboard() {
               </div>
               <div className="space-y-3 pt-2">
                 {[
-                  { label: "Monthly (KSh 400)", count: stats?.planBreakdown?.monthly ?? 0, color: "bg-blue-500" },
+                  { label: "Monthly (KSh 1,200 / KSh 400 Offer)", count: stats?.planBreakdown?.monthly ?? 0, color: "bg-blue-500" },
                   { label: "Quarterly (KSh 1,100)", count: stats?.planBreakdown?.quarterly ?? 0, color: "bg-amber-500" },
                   { label: "Half Year (KSh 2,100)", count: stats?.planBreakdown?.semiannual ?? 0, color: "bg-indigo-500" },
                   { label: "Yearly (KSh 4,000)", count: stats?.planBreakdown?.yearly ?? 0, color: "bg-emerald-500" },
@@ -2615,10 +2615,10 @@ function AdminDashboard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">Monthly (KSh 400)</SelectItem>
-                  <SelectItem value="quarterly">Quarterly (KSh 1,100)</SelectItem>
-                  <SelectItem value="semiannual">Half Year (KSh 2,100)</SelectItem>
-                  <SelectItem value="yearly">Yearly (KSh 4,000)</SelectItem>
+                  <SelectItem value="monthly">Monthly (KSh 1,200 / KSh 400 Offer)</SelectItem>
+                  <SelectItem value="quarterly">Quarterly (KSh 3,200 / KSh 1,100 Offer)</SelectItem>
+                  <SelectItem value="semiannual">Half Year (KSh 6,000 / KSh 2,100 Offer)</SelectItem>
+                  <SelectItem value="yearly">Yearly (KSh 10,800 / KSh 4,000 Offer)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

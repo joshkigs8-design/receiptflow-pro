@@ -16,7 +16,7 @@ export const faqsList = [
   },
   {
     q: "What are the pricing plans and is there a free trial?",
-    a: "All new accounts receive a full 1-month free trial with zero credit card required. Afterwards, plans are KES 400 monthly, KES 1,100 quarterly, KES 2,100 semi-annually, or KES 4,000 yearly for unlimited properties, units, and receipts.",
+    a: "All new accounts receive a full 1-month free trial with zero credit card required. Afterwards, standard plans are KES 1,200 monthly (with a special KES 400 first-time user offer), KES 1,100 quarterly, KES 2,100 semi-annually, or KES 4,000 yearly for unlimited properties, units, and receipts.",
   },
   {
     q: "How does the Done-For-You Data Setup work?",

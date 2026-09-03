@@ -210,8 +210,7 @@ export function AppShell({
               </span>
               <h2 className="mt-5 font-display text-2xl font-bold">Your access has ended</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Your free trial finished on {shortDate(sub?.endsAt)}. Subscribe for KSh 400/month or
-                KSh 4,000/year to unlock your dashboard, tenants, payments and receipts again.
+                Your free trial finished on {shortDate(sub?.endsAt)}. Subscribe now for only KSh 400/month (First-Time User Offer, Standard KSh 1,200) or KSh 4,000/year to unlock your dashboard, tenants, payments and receipts again.
               </p>
               <Button asChild size="lg" className="mt-6 rounded-full shadow-glow">
                 <Link to="/billing">

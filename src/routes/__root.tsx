@@ -211,7 +211,7 @@ function RootShell({ children }: { children: ReactNode }) {
             "name": "How much does RentReceiptPro cost in Kenya?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Plans start with a 14-day free trial, followed by KSh 400 monthly, KSh 1,100 quarterly, KSh 2,100 semi-annually, or KSh 4,000 yearly.",
+              "text": "Plans start with a 1-month free trial, followed by KSh 400 monthly (first-time user offer, standard KSh 1,200), KSh 1,100 quarterly, KSh 2,100 semi-annually, or KSh 4,000 yearly.",
             },
           },
         ],
