@@ -641,6 +641,63 @@ export const getLandlordPropertiesForAdmin = createServerFn({ method: "POST" })
     return properties ?? [];
   });
 
+function parseUnitsFromText(text: string): ExtractedUnitItem[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const units: ExtractedUnitItem[] = [];
+
+  for (const line of lines) {
+    if (/^(unit|room|house|name|rent|tenant|status|phone)/i.test(line) && line.includes(",")) {
+      continue; // skip header
+    }
+
+    // Match patterns like: "A01, 8000, John Mwangi, 0712345678" or "Room 1 - 10000 - Mary"
+    const parts = line.split(/[,\t|—–-]+/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 1) {
+      const unitNumber = parts[0] || `Unit ${units.length + 1}`;
+      let rent = 0;
+      let tenantName: string | null = null;
+      let tenantPhone: string | null = null;
+      let status: "occupied" | "vacant" = "vacant";
+
+      for (let i = 1; i < parts.length; i++) {
+        const p = parts[i];
+        if (!p) continue;
+        const numMatch = p.replace(/[^\d.kK]/g, "");
+        if (/\b(vacant|empty)\b/i.test(p)) {
+          status = "vacant";
+        } else if (/\b(occupied|taken)\b/i.test(p)) {
+          status = "occupied";
+        } else if (/(?:254|07|01)\d{8}/.test(p.replace(/\s+/g, ""))) {
+          tenantPhone = p.replace(/\s+/g, "");
+          status = "occupied";
+        } else if (numMatch && !rent && (/\d+k/i.test(p) || parseInt(numMatch, 10) >= 500)) {
+          if (/k$/i.test(numMatch)) {
+            rent = parseFloat(numMatch.replace(/k$/i, "")) * 1000;
+          } else {
+            rent = parseInt(numMatch, 10);
+          }
+        } else if (!tenantName && isNaN(Number(p)) && p.length > 2) {
+          tenantName = p;
+          status = "occupied";
+        }
+      }
+
+      units.push({
+        unit_number: unitNumber,
+        rent: rent || 0,
+        deposit: rent || 0,
+        status,
+        tenant_name: tenantName || null,
+        tenant_phone: tenantPhone || null,
+        confidence: rent > 0 ? "high" : "medium",
+        validation_flags: rent === 0 ? ["Missing rent amount"] : [],
+      });
+    }
+  }
+
+  return units;
+}
+
 export const extractUnitsWithAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) =>
@@ -683,61 +740,7 @@ STRICT PARSING RULES:
 7. Output MUST be valid JSON conforming strictly to the requested schema. No markdown formatting outside JSON.`;
 
     if (!apiKey) {
-      // Graceful fallback parser for plain text / CSV when API key is not yet set in environment
-      const text = data.textContent || "";
-      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const units: ExtractedUnitItem[] = [];
-
-      for (const line of lines) {
-        if (/^(unit|room|house|name|rent|tenant|status|phone)/i.test(line) && line.includes(",")) {
-          continue; // skip header
-        }
-
-        // Match patterns like: "A01, 8000, John Mwangi, 0712345678" or "Room 1 - 10000 - Mary"
-        const parts = line.split(/[,\t|—–-]+/).map((p) => p.trim()).filter(Boolean);
-        if (parts.length >= 1) {
-          const unitNumber = parts[0] || `Unit ${units.length + 1}`;
-          let rent = 0;
-          let tenantName: string | null = null;
-          let tenantPhone: string | null = null;
-          let status: "occupied" | "vacant" = "vacant";
-
-          for (let i = 1; i < parts.length; i++) {
-            const p = parts[i];
-            if (!p) continue;
-            const numMatch = p.replace(/[^\d.kK]/g, "");
-            if (/\b(vacant|empty)\b/i.test(p)) {
-              status = "vacant";
-            } else if (/\b(occupied|taken)\b/i.test(p)) {
-              status = "occupied";
-            } else if (/(?:254|07|01)\d{8}/.test(p.replace(/\s+/g, ""))) {
-              tenantPhone = p.replace(/\s+/g, "");
-              status = "occupied";
-            } else if (numMatch && !rent && (/\d+k/i.test(p) || parseInt(numMatch, 10) >= 500)) {
-              if (/k$/i.test(numMatch)) {
-                rent = parseFloat(numMatch.replace(/k$/i, "")) * 1000;
-              } else {
-                rent = parseInt(numMatch, 10);
-              }
-            } else if (!tenantName && isNaN(Number(p)) && p.length > 2) {
-              tenantName = p;
-              status = "occupied";
-            }
-          }
-
-          units.push({
-            unit_number: unitNumber,
-            rent: rent || 0,
-            deposit: rent || 0,
-            status,
-            tenant_name: tenantName || null,
-            tenant_phone: tenantPhone || null,
-            confidence: rent > 0 ? "high" : "medium",
-            validation_flags: rent === 0 ? ["Missing rent amount"] : [],
-          });
-        }
-      }
-
+      const units = parseUnitsFromText(data.textContent || "");
       return {
         units,
         detected_count: units.length,
@@ -746,7 +749,6 @@ STRICT PARSING RULES:
     }
 
     try {
-      // Call Google Gemini API (gemini-3.5-flash or gemini-3.6-flash)
       const contents: any[] = [];
       const parts: any[] = [{ text: systemPrompt }];
 
@@ -770,57 +772,85 @@ STRICT PARSING RULES:
 
       contents.push({ role: "user", parts });
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseSchema: {
+      // Support gemini-3.6-flash (recommended by Google) with fallbacks to other active models
+      const candidateModels = [
+        process.env["GEMINI_MODEL"],
+        process.env["VITE_GEMINI_MODEL"],
+        "gemini-3.6-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+      ].filter(Boolean) as string[];
+
+      const generationConfig = {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            units: {
+              type: "ARRAY",
+              items: {
                 type: "OBJECT",
                 properties: {
-                  units: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        unit_number: { type: "STRING" },
-                        rent: { type: "NUMBER" },
-                        deposit: { type: "NUMBER" },
-                        floor: { type: "STRING" },
-                        status: { type: "STRING", enum: ["occupied", "vacant"] },
-                        tenant_name: { type: "STRING" },
-                        tenant_phone: { type: "STRING" },
-                        notes: { type: "STRING" },
-                        confidence: { type: "STRING", enum: ["high", "medium", "low"] },
-                        validation_flags: { type: "ARRAY", items: { type: "STRING" } },
-                      },
-                      required: ["unit_number", "rent", "status", "confidence", "validation_flags"],
-                    },
-                  },
-                  detected_count: { type: "INTEGER" },
+                  unit_number: { type: "STRING" },
+                  rent: { type: "NUMBER" },
+                  deposit: { type: "NUMBER" },
+                  floor: { type: "STRING" },
+                  status: { type: "STRING", enum: ["occupied", "vacant"] },
+                  tenant_name: { type: "STRING" },
+                  tenant_phone: { type: "STRING" },
+                  notes: { type: "STRING" },
+                  confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+                  validation_flags: { type: "ARRAY", items: { type: "STRING" } },
                 },
-                required: ["units"],
+                required: ["unit_number", "rent", "status", "confidence", "validation_flags"],
               },
             },
-          }),
+            detected_count: { type: "INTEGER" },
+          },
+          required: ["units"],
         },
-      );
+      };
 
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error("Gemini API Error:", errText);
-        throw new Error(`Gemini Extraction Error (${res.status}): ${errText}`);
+      let rawOutput: string | null = null;
+      let lastError = "";
+
+      for (const model of candidateModels) {
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ contents, generationConfig }),
+            },
+          );
+
+          if (res.ok) {
+            const jsonRes = await res.json();
+            rawOutput = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawOutput) break;
+          } else {
+            lastError = await res.text();
+            console.warn(`[Gemini] Model ${model} returned (${res.status}):`, lastError);
+          }
+        } catch (callErr: any) {
+          lastError = callErr?.message || String(callErr);
+          console.warn(`[Gemini] Exception with model ${model}:`, lastError);
+        }
       }
 
-      const jsonRes = await res.json();
-      const rawOutput = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
-
       if (!rawOutput) {
-        throw new Error("No structured data returned by Gemini.");
+        if (data.textContent) {
+          const units = parseUnitsFromText(data.textContent);
+          if (units.length > 0) {
+            return {
+              units,
+              detected_count: units.length,
+              note: "Extracted via smart pattern parser (Gemini model unavailable).",
+            };
+          }
+        }
+        throw new Error(`Gemini Extraction Error: ${lastError || "No structured data returned by model."}`);
       }
 
       const parsed = JSON.parse(rawOutput);
@@ -846,6 +876,16 @@ STRICT PARSING RULES:
         detected_count: units.length,
       };
     } catch (err: any) {
+      if (data.textContent) {
+        const units = parseUnitsFromText(data.textContent);
+        if (units.length > 0) {
+          return {
+            units,
+            detected_count: units.length,
+            note: "Extracted via smart pattern parser (Gemini API fallback).",
+          };
+        }
+      }
       console.error("AI Extraction Exception:", err);
       throw new Error(err?.message || "Failed to extract units with AI.");
     }
