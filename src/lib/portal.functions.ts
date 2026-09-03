@@ -92,9 +92,23 @@ export const verifyTenant = createServerFn({ method: "POST" })
     });
     const paidThisMonth = thisMonthPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const monthlyRent = Number(tenant.rent_amount ?? 0);
-    const rentBalance = Math.max(monthlyRent - paidThisMonth, 0);
-
     const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+
+    // Calculate accrued rent from move-in / lease start up to current active month
+    const startPeriod = (tenant.lease_start || tenant.created_at || currentMonth).slice(0, 7);
+    let monthsElapsed = 1;
+    try {
+      const sY = parseInt(startPeriod.slice(0, 4));
+      const sM = parseInt(startPeriod.slice(5, 7));
+      const cY = parseInt(currentMonth.slice(0, 4));
+      const cM = parseInt(currentMonth.slice(5, 7));
+      monthsElapsed = Math.max((cY - sY) * 12 + (cM - sM) + 1, 1);
+    } catch {}
+
+    const totalRentAccrued = monthsElapsed * monthlyRent;
+    const totalOutstandingBalance = Math.max(totalRentAccrued - paidTotal, 0);
+    const thisMonthBalance = Math.max(monthlyRent - paidThisMonth, 0);
+    const priorArrears = Math.max(totalOutstandingBalance - thisMonthBalance, 0);
 
     // M-Pesa is enabled if active
     const mpesaConfigRes = (mpesaConfig as { data?: { is_active?: boolean; shortcode?: string; account_reference_prefix?: string } | null })?.data;
@@ -147,8 +161,18 @@ export const verifyTenant = createServerFn({ method: "POST" })
       totals: {
         paidThisMonth,
         monthlyRent,
-        rentBalance,
-        status: paidThisMonth >= monthlyRent && monthlyRent > 0 ? ("PAID" as const) : paidThisMonth > 0 ? ("PARTIAL" as const) : ("UNPAID" as const),
+        rentBalance: totalOutstandingBalance, // Full balance including last month's unpaid arrears!
+        totalOutstanding: totalOutstandingBalance,
+        priorArrears,
+        thisMonthBalance,
+        status:
+          totalOutstandingBalance <= 0 && monthlyRent > 0
+            ? ("PAID" as const)
+            : priorArrears > 0
+            ? ("ARREARS" as const)
+            : paidThisMonth > 0
+            ? ("PARTIAL" as const)
+            : ("UNPAID" as const),
         paidTotal,
       },
     };

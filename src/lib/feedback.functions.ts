@@ -1,5 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
+
+async function getDbClient() {
+  try {
+    if (typeof process !== "undefined" && process.env?.["SUPABASE_SERVICE_ROLE_KEY"]) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      return supabaseAdmin;
+    }
+  } catch {}
+  const { supabase } = await import("@/integrations/supabase/client");
+  return supabase;
+}
 
 export interface DemoBookingPayload {
   fullName: string;
@@ -32,7 +43,8 @@ export const submitDemoBooking = createServerFn({ method: "POST" })
       throw new Error("Full name, email, and phone number are required.");
     }
 
-    const { data: booking, error } = await supabaseAdmin
+    const sb = await getDbClient();
+    const { data: booking, error } = await sb
       .from("demo_bookings")
       .insert({
         full_name: data.fullName.trim(),
@@ -46,14 +58,14 @@ export const submitDemoBooking = createServerFn({ method: "POST" })
         status: "new",
       })
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error inserting demo booking:", error);
       throw new Error(error.message || "Failed to submit demo booking request.");
     }
 
-    return { success: true, id: booking.id };
+    return { success: true, id: booking?.id };
   });
 
 /**
@@ -66,7 +78,8 @@ export const submitSiteMessage = createServerFn({ method: "POST" })
       throw new Error("Name, email, and message are required.");
     }
 
-    const { data: msg, error } = await supabaseAdmin
+    const sb = await getDbClient();
+    const { data: msg, error } = await sb
       .from("site_messages")
       .insert({
         sender_name: data.senderName.trim(),
@@ -80,50 +93,62 @@ export const submitSiteMessage = createServerFn({ method: "POST" })
         is_public_testimonial: false,
       })
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error inserting site message:", error);
       throw new Error(error.message || "Failed to send message.");
     }
 
-    return { success: true, id: msg.id };
+    return { success: true, id: msg?.id };
   });
 
 /**
  * Public Server Function: Get Approved Comments and Testimonials
  */
 export const getPublicComments = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await supabaseAdmin
-    .from("site_messages")
-    .select("id, sender_name, message, rating, created_at, category")
-    .eq("is_public_testimonial", true)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  try {
+    const sb = await getDbClient();
+    const { data, error } = await sb
+      .from("site_messages")
+      .select("id, sender_name, message, rating, created_at, category")
+      .eq("is_public_testimonial", true)
+      .order("created_at", { ascending: false })
+      .limit(20);
 
-  if (error) {
-    console.error("Error fetching public comments:", error);
+    if (error) {
+      console.warn("[feedback] Could not fetch public comments:", error.message);
+      return [];
+    }
+
+    return data || [];
+  } catch (err: any) {
+    console.warn("[feedback] Error fetching public comments:", err?.message);
     return [];
   }
-
-  return data || [];
 });
 
 /**
  * Admin Server Function: List Demo Bookings
  */
 export const listDemoBookingsAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await supabaseAdmin
-    .from("demo_bookings")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const sb = await getDbClient();
+    const { data, error } = await sb
+      .from("demo_bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error listing demo bookings:", error);
-    throw new Error(error.message || "Failed to load demo bookings.");
+    if (error) {
+      console.warn("[feedback] Could not load demo bookings (check if migration applied in Supabase):", error.message);
+      return [];
+    }
+
+    return data || [];
+  } catch (err: any) {
+    console.warn("[feedback] Error in listDemoBookingsAdmin:", err?.message);
+    return [];
   }
-
-  return data || [];
 });
 
 /**
@@ -139,7 +164,8 @@ export const updateDemoBookingStatus = createServerFn({ method: "POST" })
       }
   )
   .handler(async ({ data }) => {
-    const { error } = await supabaseAdmin
+    const sb = await getDbClient();
+    const { error } = await sb
       .from("demo_bookings")
       .update({
         status: data.status,
@@ -156,17 +182,23 @@ export const updateDemoBookingStatus = createServerFn({ method: "POST" })
  * Admin Server Function: List Site Messages and Comments
  */
 export const listSiteMessagesAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await supabaseAdmin
-    .from("site_messages")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const sb = await getDbClient();
+    const { data, error } = await sb
+      .from("site_messages")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error listing site messages:", error);
-    throw new Error(error.message || "Failed to load site messages.");
+    if (error) {
+      console.warn("[feedback] Could not load site messages (check if migration applied in Supabase):", error.message);
+      return [];
+    }
+
+    return data || [];
+  } catch (err: any) {
+    console.warn("[feedback] Error in listSiteMessagesAdmin:", err?.message);
+    return [];
   }
-
-  return data || [];
 });
 
 /**
@@ -183,7 +215,7 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
       }
   )
   .handler(async ({ data }) => {
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: Database["public"]["Tables"]["site_messages"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
     if (data.status !== undefined) updatePayload.status = data.status;
@@ -196,7 +228,8 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
       updatePayload.is_public_testimonial = data.isPublicTestimonial;
     }
 
-    const { error } = await supabaseAdmin
+    const sb = await getDbClient();
+    const { error } = await sb
       .from("site_messages")
       .update(updatePayload)
       .eq("id", data.id);

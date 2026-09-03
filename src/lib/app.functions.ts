@@ -103,6 +103,39 @@ export const getDashboard = createServerFn({ method: "GET" })
       });
     }
 
+    // Calculate full outstanding balance across all active tenants including prior arrears
+    let totalOutstanding = 0;
+    let priorArrearsTotal = 0;
+
+    tenantRows.forEach((t) => {
+      if (t.status !== "active") return;
+      const rent = Number(t.rent_amount ?? 0);
+      const startPeriod = (t.lease_start || t.created_at || monthKey).slice(0, 7);
+      let monthsElapsed = 1;
+      try {
+        const sY = parseInt(startPeriod.slice(0, 4));
+        const sM = parseInt(startPeriod.slice(5, 7));
+        const cY = parseInt(monthKey.slice(0, 4));
+        const cM = parseInt(monthKey.slice(5, 7));
+        monthsElapsed = Math.max((cY - sY) * 12 + (cM - sM) + 1, 1);
+      } catch {}
+
+      const accrued = monthsElapsed * rent;
+      const paidAllTime = paymentRows
+        .filter((p) => p.tenant_id === t.id)
+        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+
+      const bal = Math.max(accrued - paidAllTime, 0);
+      totalOutstanding += bal;
+
+      const paidThisMonth = paymentRows
+        .filter((p) => p.tenant_id === t.id && (p.paid_at ?? "").startsWith(monthKey))
+        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+      const thisMonthBal = Math.max(rent - paidThisMonth, 0);
+      const arrears = Math.max(bal - thisMonthBal, 0);
+      priorArrearsTotal += arrears;
+    });
+
     const soon = new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     return {
       properties: properties.data ?? [],
@@ -114,7 +147,9 @@ export const getDashboard = createServerFn({ method: "GET" })
         tenants: tenantRows.length,
         monthlyIncome,
         expectedMonthly,
-        outstanding: Math.max(expectedMonthly - monthlyIncome, 0),
+        outstanding: totalOutstanding > 0 ? totalOutstanding : Math.max(expectedMonthly - monthlyIncome, 0),
+        priorArrears: priorArrearsTotal,
+        thisMonthOutstanding: Math.max(expectedMonthly - monthlyIncome, 0),
         collectionRate: expectedMonthly > 0 ? Math.min(Math.round((monthlyIncome / expectedMonthly) * 100), 100) : 0,
         occupancyRate: unitRows.length > 0 ? Math.round((unitRows.filter((u) => u.status === "occupied").length / unitRows.length) * 100) : 0,
         receipts: (receipts.data ?? []).length,
@@ -305,14 +340,36 @@ export const recordPayment = createServerFn({ method: "POST" })
     if (tenantError) throw tenantError;
 
     const period = data.period_label || data.paid_at.slice(0, 7);
-    const { data: existing } = await sb
+    const monthlyRent = Number(tenant.rent_amount ?? 0);
+
+    // Calculate accrued rent from move-in / lease start up to this period
+    const startPeriod = (tenant.lease_start || tenant.created_at || period).slice(0, 7);
+    let monthsElapsed = 1;
+    try {
+      const sY = parseInt(startPeriod.slice(0, 4));
+      const sM = parseInt(startPeriod.slice(5, 7));
+      const pY = parseInt(period.slice(0, 4));
+      const pM = parseInt(period.slice(5, 7));
+      monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+    } catch {}
+
+    const totalRentAccrued = monthsElapsed * monthlyRent;
+
+    // Fetch all existing payments for this tenant
+    const { data: allPayments } = await sb
       .from("payments")
-      .select("amount")
+      .select("amount, period_label, paid_at")
       .eq("tenant_id", tenant.id)
-      .eq("landlord_id", context.userId)
-      .eq("period_label", period);
-    const paidBefore = (existing ?? []).reduce((s, p) => s + Number(p.amount), 0);
-    const balance = Number(tenant.rent_amount) - (paidBefore + data.amount);
+      .eq("landlord_id", context.userId);
+
+    const paidBeforeAll = (allPayments ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const paidBeforePeriod = (allPayments ?? [])
+      .filter((p) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
+      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+
+    const totalRemainingBalance = Math.max(totalRentAccrued - (paidBeforeAll + data.amount), 0);
+    const periodRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
+    const priorArrears = Math.max(totalRemainingBalance - periodRemainingBalance, 0);
 
     const { data: payment, error } = await sb
       .from("payments")
@@ -326,7 +383,7 @@ export const recordPayment = createServerFn({ method: "POST" })
         reference: data.reference || null,
         paid_at: data.paid_at,
         period_label: period,
-        status: balance > 0 ? "partial" : "paid",
+        status: totalRemainingBalance > 0 ? "partial" : "paid",
         notes: data.notes || null,
       })
       .select()
@@ -352,7 +409,7 @@ export const recordPayment = createServerFn({ method: "POST" })
         tenant_id: tenant.id,
         receipt_number: receiptNumber,
         amount: data.amount,
-        balance,
+        balance: totalRemainingBalance,
         issued_by: data.issued_by || profile?.company_name || "Codevanta Ventures",
         snapshot: {
           company: profile?.company_name ?? "Codevanta Ventures",
@@ -370,6 +427,9 @@ export const recordPayment = createServerFn({ method: "POST" })
           period: period,
           paid_at: data.paid_at,
           rent_amount: Number(tenant.rent_amount),
+          prior_arrears: priorArrears,
+          total_balance: totalRemainingBalance,
+          period_balance: periodRemainingBalance,
         },
       })
       .select("id,public_id,receipt_number")
@@ -383,7 +443,7 @@ export const recordPayment = createServerFn({ method: "POST" })
       type: "receipt",
     });
 
-    return { publicId: receipt.public_id, receiptNumber: receipt.receipt_number, balance };
+    return { publicId: receipt.public_id, receiptNumber: receipt.receipt_number, balance: totalRemainingBalance };
   });
 
 export const listReceipts = createServerFn({ method: "GET" })

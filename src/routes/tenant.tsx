@@ -452,11 +452,22 @@ function TenantPortal() {
               </div>
 
               <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
-                <p className="text-xs text-muted-foreground uppercase font-medium">Balance Due</p>
-                <p className={`mt-2 font-display text-2xl font-bold ${portal.totals.rentBalance > 0 ? "text-rose-500" : "text-foreground"}`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Total Balance Due</p>
+                  {((portal.totals as any).priorArrears ?? 0) > 0 ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 font-bold border border-rose-500/20">
+                      Has Past Arrears
+                    </span>
+                  ) : null}
+                </div>
+                <p className={`mt-2 font-display text-2xl font-bold ${portal.totals.rentBalance > 0 ? "text-rose-500 font-mono" : "text-foreground"}`}>
                   {money(portal.totals.rentBalance)}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">Remaining for this cycle</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {((portal.totals as any).priorArrears ?? 0) > 0
+                    ? `Current Month: ${money((portal.totals as any).thisMonthBalance ?? 0)} · Past Arrears: +${money((portal.totals as any).priorArrears)}`
+                    : "Total balance outstanding"}
+                </p>
               </div>
 
               <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">

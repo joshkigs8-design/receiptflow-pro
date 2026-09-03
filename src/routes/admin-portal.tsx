@@ -22,18 +22,22 @@ import {
   Loader2,
   Lock,
   LogOut,
+  Mail,
   Megaphone,
   MessageCircle,
+  MessageSquare,
   Phone,
   Plus,
   Receipt,
   RefreshCw,
   Search,
+  Share2,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Star,
   Ticket,
   TrendingUp,
   UserCheck,
@@ -78,6 +82,12 @@ import {
   rejectWithdrawal,
   verifyAdmin2FAPin,
 } from "@/lib/admin.functions";
+import {
+  listDemoBookingsAdmin,
+  updateDemoBookingStatus,
+  listSiteMessagesAdmin,
+  updateSiteMessageAdmin,
+} from "@/lib/feedback.functions";
 
 export const Route = createFileRoute("/admin-portal")({
   ssr: false,
@@ -117,6 +127,10 @@ function MobileAdminPage() {
   const processWithdrawalFn = useServerFn(processWithdrawal);
   const rejectWithdrawalFn = useServerFn(rejectWithdrawal);
   const verify2FAFn = useServerFn(verifyAdmin2FAPin);
+  const listDemosFn = useServerFn(listDemoBookingsAdmin);
+  const updateDemoStatusFn = useServerFn(updateDemoBookingStatus);
+  const listMessagesFn = useServerFn(listSiteMessagesAdmin);
+  const updateMessageFn = useServerFn(updateSiteMessageAdmin);
 
   // Authentication State
   const [session, setSession] = useState<AdminSession | null>(null);
@@ -125,11 +139,15 @@ function MobileAdminPage() {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [twoFactorPinInput, setTwoFactorPinInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security" | "demos" | "messages">("overview");
 
   // Filter & Search State
   const [landlordSearch, setLandlordSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "trial" | "expired">("all");
+  const [demoSearch, setDemoSearch] = useState("");
+  const [demoStatusFilter, setDemoStatusFilter] = useState<string>("all");
+  const [messageSearch, setMessageSearch] = useState("");
+  const [messageStatusFilter, setMessageStatusFilter] = useState<string>("all");
 
   // 2FA Action Confirmation Modal State
   const [pinPromptOpen, setPinPromptOpen] = useState(false);
@@ -213,6 +231,40 @@ function MobileAdminPage() {
     queryKey: ["mobile_admin_withdrawals", session?.token],
     enabled: !!session?.authenticated,
     queryFn: () => listWithdrawalsFn(),
+  });
+
+  // Load Demo Bookings
+  const { data: demoBookings = [], refetch: refetchDemos, isLoading: demosLoading } = useQuery({
+    queryKey: ["mobile_admin_demos", session?.token],
+    enabled: !!session?.authenticated,
+    queryFn: () => listDemosFn(),
+  });
+
+  // Load Site Messages & Comments
+  const { data: siteMessages = [], refetch: refetchMessages, isLoading: messagesLoading } = useQuery({
+    queryKey: ["mobile_admin_messages", session?.token],
+    enabled: !!session?.authenticated,
+    queryFn: () => listMessagesFn(),
+  });
+
+  const updateDemoStatusMut = useMutation({
+    mutationFn: (data: { id: string; status: any; adminNotes?: string }) =>
+      updateDemoStatusFn({ data }),
+    onSuccess: () => {
+      toast.success("Demo booking status updated");
+      qc.invalidateQueries({ queryKey: ["mobile_admin_demos"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update demo booking"),
+  });
+
+  const updateMessageMut = useMutation({
+    mutationFn: (data: { id: string; status?: any; isPublicTestimonial?: boolean; adminReply?: string }) =>
+      updateMessageFn({ data }),
+    onSuccess: () => {
+      toast.success("Message updated successfully");
+      qc.invalidateQueries({ queryKey: ["mobile_admin_messages"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update message"),
   });
 
   // Security Guard for Sensitive Operations
@@ -514,53 +566,81 @@ function MobileAdminPage() {
       {/* Main Workspace */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-5 gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold">
+        <div className="flex overflow-x-auto gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+              activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <TrendingUp className="size-3.5 text-primary" />
-            <span className="hidden sm:inline">KPIs</span>
-            <span className="sm:hidden">KPIs</span>
+            <span>KPIs</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("landlords")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "landlords" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+              activeTab === "landlords" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Users className="size-3.5 text-emerald-500" />
-            <span className="hidden sm:inline">Landlords</span>
-            <span className="sm:hidden">Users</span>
+            <span>Landlords</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("demos")}
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 relative ${
+              activeTab === "demos" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Calendar className="size-3.5 text-sky-500" />
+            <span>Demos</span>
+            {demoBookings.filter((d: any) => d.status === "new").length > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-sky-500 text-white animate-pulse">
+                {demoBookings.filter((d: any) => d.status === "new").length}
+              </span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("messages")}
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 relative ${
+              activeTab === "messages" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MessageSquare className="size-3.5 text-purple-500" />
+            <span>Messages</span>
+            {siteMessages.filter((m: any) => m.status === "unread").length > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-500 text-white animate-pulse">
+                {siteMessages.filter((m: any) => m.status === "unread").length}
+              </span>
+            ) : null}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("vouchers")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+              activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Ticket className="size-3.5 text-purple-500" />
-            <span className="hidden sm:inline">Vouchers</span>
-            <span className="sm:hidden">Codes</span>
+            <Ticket className="size-3.5 text-amber-500" />
+            <span>Vouchers</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("payouts")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 relative ${
-              activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 relative ${
+              activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Wallet className="size-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Affiliates</span>
-            <span className="sm:hidden">Payouts</span>
+            <Wallet className="size-3.5 text-emerald-500" />
+            <span>Affiliates</span>
             {withdrawals.filter((w) => w.status === "pending").length > 0 ? (
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             ) : null}
@@ -569,13 +649,12 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("security")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
+            className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+              activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <ShieldCheck className="size-3.5 text-blue-500" />
-            <span className="hidden sm:inline">Security</span>
-            <span className="sm:hidden">2FA</span>
+            <span>Security</span>
           </button>
         </div>
 
@@ -635,6 +714,45 @@ function MobileAdminPage() {
                       {money(stats.rentTracked)}
                     </h3>
                     <p className="text-[10px] text-muted-foreground">{stats.rentReceiptsIssued} receipts</p>
+                  </div>
+                </div>
+
+                {/* Inbound Inquiries & Demos Quick Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setActiveTab("demos")}
+                    className="surface-card p-4 rounded-3xl border border-border/80 hover:border-sky-500/50 cursor-pointer transition-all space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
+                        <Calendar className="size-3 text-sky-500" /> Demo Bookings
+                      </p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600">
+                        {demoBookings.filter((d: any) => d.status === "new").length} New
+                      </span>
+                    </div>
+                    <h3 className="font-display font-bold text-lg sm:text-xl text-foreground">
+                      {demoBookings.length} Total Requests
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">Tap to view prospective landlord leads</p>
+                  </div>
+
+                  <div
+                    onClick={() => setActiveTab("messages")}
+                    className="surface-card p-4 rounded-3xl border border-border/80 hover:border-purple-500/50 cursor-pointer transition-all space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
+                        <MessageSquare className="size-3 text-purple-500" /> Inbound Messages
+                      </p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600">
+                        {siteMessages.filter((m: any) => m.status === "unread").length} Unread
+                      </span>
+                    </div>
+                    <h3 className="font-display font-bold text-lg sm:text-xl text-foreground">
+                      {siteMessages.length} Total Messages
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">Tap to review comments, support & feedback</p>
                   </div>
                 </div>
 
@@ -1007,6 +1125,367 @@ function MobileAdminPage() {
                     <li>This installs the Admin Portal as a dedicated standalone app icon on your phone!</li>
                   </ul>
                 </div>
+              </div>
+            )}
+
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB: DEMO BOOKINGS */}
+            {/* ----------------------------------------------------------------- */}
+            {activeTab === "demos" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display font-bold text-base">Demo Bookings & Leads</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Prospective landlords requesting platform walk-throughs
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetchDemos()}
+                    className="rounded-full h-8 text-xs gap-1.5"
+                  >
+                    <RefreshCw className="size-3" /> Refresh
+                  </Button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search name, email, phone, property..."
+                      value={demoSearch}
+                      onChange={(e) => setDemoSearch(e.target.value)}
+                      className="pl-8 h-9 text-xs rounded-2xl"
+                    />
+                  </div>
+                  <Select value={demoStatusFilter} onValueChange={setDemoStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-36 h-9 text-xs rounded-2xl">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {demosLoading ? (
+                  <div className="py-16 text-center text-muted-foreground flex flex-col items-center gap-2">
+                    <Loader2 className="size-6 animate-spin text-primary" />
+                    <span className="text-xs">Loading demo bookings...</span>
+                  </div>
+                ) : demoBookings.length === 0 ? (
+                  <div className="p-8 text-center rounded-3xl border border-dashed border-border/80 space-y-2">
+                    <Calendar className="size-8 text-muted-foreground mx-auto" />
+                    <p className="font-semibold text-sm">No demo bookings yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      When visitors book a demo on <code className="text-primary font-mono">/book-demo</code>, their contact info and schedule will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {demoBookings
+                      .filter((d: any) => {
+                        const matchesStatus = demoStatusFilter === "all" || d.status === demoStatusFilter;
+                        const q = demoSearch.toLowerCase().trim();
+                        const matchesSearch =
+                          !q ||
+                          (d.full_name || "").toLowerCase().includes(q) ||
+                          (d.email || "").toLowerCase().includes(q) ||
+                          (d.phone || "").includes(q) ||
+                          (d.property_name || "").toLowerCase().includes(q);
+                        return matchesStatus && matchesSearch;
+                      })
+                      .map((d: any) => {
+                        const cleanPhone = (d.phone || "").replace(/\D/g, "");
+                        const waNumber = cleanPhone.startsWith("0")
+                          ? `254${cleanPhone.slice(1)}`
+                          : cleanPhone.startsWith("254")
+                          ? cleanPhone
+                          : `254${cleanPhone}`;
+                        const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(
+                          `Hello ${d.full_name}, thank you for booking a RentReceiptPro demo! When would be the best time to connect?`
+                        )}`;
+
+                        return (
+                          <div
+                            key={d.id}
+                            className="surface-card p-4 sm:p-5 rounded-3xl border border-border/80 space-y-3"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-bold text-sm text-foreground">{d.full_name}</h4>
+                                  <Badge
+                                    variant={
+                                      d.status === "new"
+                                        ? "default"
+                                        : d.status === "scheduled"
+                                        ? "secondary"
+                                        : d.status === "completed"
+                                        ? "outline"
+                                        : "destructive"
+                                    }
+                                    className="capitalize text-[10px]"
+                                  >
+                                    {d.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                  <span>{d.email}</span>
+                                  <span>•</span>
+                                  <span>{d.phone}</span>
+                                  {d.property_name ? (
+                                    <>
+                                      <span>•</span>
+                                      <span className="font-medium text-foreground">{d.property_name} ({d.units_count || "Units"} units)</span>
+                                    </>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <a
+                                  href={waUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+                                >
+                                  <MessageCircle className="size-3.5" /> WhatsApp
+                                </a>
+                                <a
+                                  href={`tel:${d.phone}`}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                                >
+                                  <Phone className="size-3.5" /> Call
+                                </a>
+                                <a
+                                  href={`mailto:${d.email}`}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                                >
+                                  <Mail className="size-3.5" /> Email
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] p-2.5 rounded-2xl bg-muted/40 border border-border/50">
+                              <div>
+                                <span className="text-muted-foreground block">Preferred Date:</span>
+                                <span className="font-semibold">{d.preferred_date ? shortDate(d.preferred_date) : "Flexible"}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block">Time Slot:</span>
+                                <span className="font-semibold capitalize">{d.preferred_time || "Morning"}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block">Requested On:</span>
+                                <span className="font-mono text-muted-foreground">{shortDate(d.created_at)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Select
+                                  value={d.status}
+                                  onValueChange={(status: any) =>
+                                    updateDemoStatusMut.mutate({ id: d.id, status })
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 text-[11px] rounded-xl">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="new">New</SelectItem>
+                                    <SelectItem value="contacted">Contacted</SelectItem>
+                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            {d.notes ? (
+                              <p className="text-xs text-muted-foreground bg-accent/30 p-2.5 rounded-xl italic">
+                                "{d.notes}"
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB: SITE MESSAGES & FEEDBACK */}
+            {/* ----------------------------------------------------------------- */}
+            {activeTab === "messages" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display font-bold text-base">Inbound Messages & Feedback</h3>
+                    <p className="text-xs text-muted-foreground">
+                      User comments, inquiries, and customer reviews
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetchMessages()}
+                    className="rounded-full h-8 text-xs gap-1.5"
+                  >
+                    <RefreshCw className="size-3" /> Refresh
+                  </Button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search messages, sender, email..."
+                      value={messageSearch}
+                      onChange={(e) => setMessageSearch(e.target.value)}
+                      className="pl-8 h-9 text-xs rounded-2xl"
+                    />
+                  </div>
+                  <Select value={messageStatusFilter} onValueChange={setMessageStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-36 h-9 text-xs rounded-2xl">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="unread">Unread</SelectItem>
+                      <SelectItem value="read">Read</SelectItem>
+                      <SelectItem value="replied">Replied</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {messagesLoading ? (
+                  <div className="py-16 text-center text-muted-foreground flex flex-col items-center gap-2">
+                    <Loader2 className="size-6 animate-spin text-primary" />
+                    <span className="text-xs">Loading site messages...</span>
+                  </div>
+                ) : siteMessages.length === 0 ? (
+                  <div className="p-8 text-center rounded-3xl border border-dashed border-border/80 space-y-2">
+                    <MessageSquare className="size-8 text-muted-foreground mx-auto" />
+                    <p className="font-semibold text-sm">No messages received yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Inquiries from the website contact modal or feedback form will display here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {siteMessages
+                      .filter((m: any) => {
+                        const matchesStatus = messageStatusFilter === "all" || m.status === messageStatusFilter;
+                        const q = messageSearch.toLowerCase().trim();
+                        const matchesSearch =
+                          !q ||
+                          (m.sender_name || "").toLowerCase().includes(q) ||
+                          (m.email || "").toLowerCase().includes(q) ||
+                          (m.message || "").toLowerCase().includes(q) ||
+                          (m.subject || "").toLowerCase().includes(q);
+                        return matchesStatus && matchesSearch;
+                      })
+                      .map((m: any) => (
+                        <div
+                          key={m.id}
+                          className="surface-card p-4 sm:p-5 rounded-3xl border border-border/80 space-y-3"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-sm text-foreground">{m.sender_name}</h4>
+                                <Badge variant="outline" className="capitalize text-[10px]">
+                                  {m.category}
+                                </Badge>
+                                <Badge
+                                  variant={m.status === "unread" ? "default" : "secondary"}
+                                  className="capitalize text-[10px]"
+                                >
+                                  {m.status}
+                                </Badge>
+                                {m.rating ? (
+                                  <div className="flex items-center gap-0.5 text-amber-500 text-xs">
+                                    {Array.from({ length: m.rating }).map((_, i) => (
+                                      <Star key={i} className="size-3 fill-amber-500" />
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                <span>{m.email}</span>
+                                {m.phone ? (
+                                  <>
+                                    <span>•</span>
+                                    <span>{m.phone}</span>
+                                  </>
+                                ) : null}
+                                <span>•</span>
+                                <span className="font-mono">{shortDate(m.created_at)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Label htmlFor={`testimonial-${m.id}`} className="text-[11px] text-muted-foreground cursor-pointer">
+                                  Testimonial
+                                </Label>
+                                <Switch
+                                  id={`testimonial-${m.id}`}
+                                  checked={Boolean(m.is_public_testimonial)}
+                                  onCheckedChange={(checked) =>
+                                    updateMessageMut.mutate({ id: m.id, isPublicTestimonial: checked })
+                                  }
+                                />
+                              </div>
+
+                              <Select
+                                value={m.status}
+                                onValueChange={(status: any) =>
+                                  updateMessageMut.mutate({ id: m.id, status })
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-24 text-[11px] rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="unread">Unread</SelectItem>
+                                  <SelectItem value="read">Read</SelectItem>
+                                  <SelectItem value="replied">Replied</SelectItem>
+                                  <SelectItem value="archived">Archived</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {m.subject ? (
+                            <h5 className="font-semibold text-xs text-foreground">{m.subject}</h5>
+                          ) : null}
+
+                          <p className="text-xs text-foreground leading-relaxed bg-muted/40 p-3 rounded-2xl whitespace-pre-wrap">
+                            {m.message}
+                          </p>
+
+                          {m.admin_reply ? (
+                            <div className="bg-primary/5 border border-primary/20 p-3 rounded-2xl space-y-1">
+                              <p className="text-[10px] font-bold text-primary">Admin Reply ({shortDate(m.replied_at)}):</p>
+                              <p className="text-xs text-foreground">{m.admin_reply}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
           </>

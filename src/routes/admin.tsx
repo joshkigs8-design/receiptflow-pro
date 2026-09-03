@@ -435,6 +435,10 @@ function AdminDashboard() {
   const fetchAdminLandlordKcb = useServerFn(getAdminLandlordKcbSettings);
   const saveAdminLandlordKcb = useServerFn(saveAdminLandlordKcbSettings);
   const testKcb = useServerFn(testLandlordKcbConnection);
+  const fetchAdminDemos = useServerFn(listDemoBookingsAdmin);
+  const mutateDemoStatus = useServerFn(updateDemoBookingStatus);
+  const fetchAdminMessages = useServerFn(listSiteMessagesAdmin);
+  const mutateAdminMessage = useServerFn(updateSiteMessageAdmin);
 
   // Queries
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -632,19 +636,19 @@ function AdminDashboard() {
   const [messageCategoryFilter, setMessageCategoryFilter] = useState("all");
   const [messageStatusFilter, setMessageStatusFilter] = useState("all");
 
-  const { data: demoBookings = [], isLoading: demosLoading } = useQuery({
+  const { data: demoBookings = [], isLoading: demosLoading, refetch: refetchDemos } = useQuery({
     queryKey: ["admin-demos"],
-    queryFn: () => listDemoBookingsAdmin(),
+    queryFn: () => fetchAdminDemos(),
   });
 
-  const { data: siteMessages = [], isLoading: messagesLoading } = useQuery({
+  const { data: siteMessages = [], isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
     queryKey: ["admin-messages"],
-    queryFn: () => listSiteMessagesAdmin(),
+    queryFn: () => fetchAdminMessages(),
   });
 
   const updateDemoStatusMut = useMutation({
     mutationFn: (data: { id: string; status: any; adminNotes?: string }) =>
-      updateDemoBookingStatus({ data }),
+      mutateDemoStatus({ data }),
     onSuccess: () => {
       toast.success("Demo booking status updated");
       qc.invalidateQueries({ queryKey: ["admin-demos"] });
@@ -654,7 +658,7 @@ function AdminDashboard() {
 
   const updateMessageMut = useMutation({
     mutationFn: (data: { id: string; status?: any; isPublicTestimonial?: boolean; adminReply?: string }) =>
-      updateSiteMessageAdmin({ data }),
+      mutateAdminMessage({ data }),
     onSuccess: () => {
       toast.success("Message updated successfully");
       qc.invalidateQueries({ queryKey: ["admin-messages"] });
@@ -882,6 +886,22 @@ function AdminDashboard() {
     { label: "Paying Subscribers", value: stats?.paying ?? 0, icon: BadgeCheck, color: "text-emerald-500" },
     { label: "Active Trials", value: stats?.onTrial ?? 0, icon: CalendarClock, color: "text-amber-500" },
     { label: "Expired Accounts", value: stats?.expired ?? 0, icon: ShieldAlert, color: "text-rose-500" },
+    {
+      label: "Demo Bookings",
+      value: demoBookings.length,
+      icon: Calendar,
+      color: "text-sky-500",
+      sub: `${demoBookings.filter((d: any) => d.status === "new").length} new request(s)`,
+      tab: "demos",
+    },
+    {
+      label: "Inbound Messages",
+      value: siteMessages.length,
+      icon: MessageSquare,
+      color: "text-purple-500",
+      sub: `${siteMessages.filter((m: any) => m.status === "unread").length} unread message(s)`,
+      tab: "messages",
+    },
     { label: "Subscription Revenue", value: money(stats?.revenue ?? 0), icon: TrendingUp, color: "text-primary" },
     { label: "Platform Rent Tracked", value: money(stats?.rentTracked ?? 0), icon: Wallet, color: "text-emerald-400" },
     { label: "Managed Properties", value: stats?.properties ?? 0, icon: Building2, color: "text-indigo-400" },
@@ -891,9 +911,15 @@ function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Top Header Metrics Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => (
-          <div key={c.label} className="surface-card p-5 transition-all hover:shadow-md border border-border/80 rounded-2xl">
+          <div
+            key={c.label}
+            onClick={() => (c as any).tab && setActiveTab((c as any).tab)}
+            className={`surface-card p-5 transition-all border border-border/80 rounded-2xl ${
+              (c as any).tab ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : ""
+            }`}
+          >
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase font-medium tracking-wide text-muted-foreground">{c.label}</p>
               <span className="p-2 rounded-xl bg-accent/60">
@@ -901,6 +927,9 @@ function AdminDashboard() {
               </span>
             </div>
             <p className="mt-2 font-display text-2xl font-bold tracking-tight">{c.value}</p>
+            {(c as any).sub ? (
+              <p className="text-[11px] text-muted-foreground mt-1 font-medium">{(c as any).sub}</p>
+            ) : null}
           </div>
         ))}
       </div>

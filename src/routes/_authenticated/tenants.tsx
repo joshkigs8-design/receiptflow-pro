@@ -137,7 +137,10 @@ function TenantsPage() {
       paidThisPeriod: number;
       monthlyRent: number;
       balance: number;
-      status: "PAID" | "PARTIAL" | "UNPAID";
+      totalBalance: number;
+      thisPeriodBalance: number;
+      priorArrears: number;
+      status: "PAID" | "PARTIAL" | "UNPAID" | "ARREARS";
     }> = {};
 
     const allPayments = payments.data ?? [];
@@ -145,12 +148,29 @@ function TenantsPage() {
     rows.forEach((t) => {
       const monthlyRent = Number(t.rent_amount ?? 0);
       let paidThisPeriod = 0;
+      let totalPaidAllTime = 0;
+
+      // Calculate how many months the tenant has been active up to the selected period
+      const startMonth = (t.lease_start || t.created_at || period).slice(0, 7);
+      let monthsElapsed = 1;
+      try {
+        const sY = parseInt(startMonth.slice(0, 4));
+        const sM = parseInt(startMonth.slice(5, 7));
+        const pY = parseInt(period.slice(0, 4));
+        const pM = parseInt(period.slice(5, 7));
+        monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+      } catch {}
 
       allPayments.forEach((p: any) => {
         const pTenantId = p.tenant_id ?? "";
+        if (pTenantId !== t.id) return;
+
         const pPeriod = (p.period_label || "").trim().toLowerCase();
         const paidAtMonth = (p.paid_at || "").slice(0, 7);
         const pAmount = Number(p.amount ?? 0);
+        if (pAmount <= 0) return;
+
+        totalPaidAllTime += pAmount;
 
         let selectedMonthLower = "";
         let selectedShortMonth = "";
@@ -169,26 +189,38 @@ function TenantsPage() {
           (selectedShortMonth && pPeriod.includes(selectedShortMonth) && pPeriod.includes(selectedYear)) ||
           (!pPeriod && paidAtMonth === period);
 
-        if (pTenantId === t.id && matchesPeriod && pAmount > 0) {
+        if (matchesPeriod) {
           paidThisPeriod += pAmount;
         }
       });
 
-      const balance = Math.max(monthlyRent - paidThisPeriod, 0);
-      let status: "PAID" | "PARTIAL" | "UNPAID";
+      // Total rent accrued up to this period:
+      const totalRentAccrued = monthsElapsed * monthlyRent;
+      // Total balance outstanding across their entire lease/stay:
+      const totalBalance = Math.max(totalRentAccrued - totalPaidAllTime, 0);
+      // Unpaid portion of the currently selected month:
+      const thisPeriodBalance = Math.max(monthlyRent - paidThisPeriod, 0);
+      // Unpaid arrears carried forward from previous months:
+      const priorArrears = Math.max(totalBalance - thisPeriodBalance, 0);
 
-      if (paidThisPeriod <= 0) {
-        status = "UNPAID";
-      } else if (paidThisPeriod < monthlyRent) {
+      let status: "PAID" | "PARTIAL" | "UNPAID" | "ARREARS";
+      if (totalBalance <= 0) {
+        status = "PAID";
+      } else if (priorArrears > 0) {
+        status = "ARREARS";
+      } else if (paidThisPeriod > 0) {
         status = "PARTIAL";
       } else {
-        status = "PAID";
+        status = "UNPAID";
       }
 
       statuses[t.id] = {
         paidThisPeriod,
         monthlyRent,
-        balance,
+        balance: totalBalance, // Full balance shows the true remaining debt
+        totalBalance,
+        thisPeriodBalance,
+        priorArrears,
         status,
       };
     });
@@ -210,7 +242,9 @@ function TenantsPage() {
               ? rentStatuses[t.id]?.status === "PARTIAL"
               : filter === "unpaid"
                 ? rentStatuses[t.id]?.status === "UNPAID"
-                : true) &&
+                : filter === "arrears"
+                  ? rentStatuses[t.id]?.status === "ARREARS"
+                  : true) &&
         (t.full_name.toLowerCase().includes(q) ||
           t.phone.includes(q) ||
           (t.properties?.name ?? "").toLowerCase().includes(q)),
@@ -231,8 +265,11 @@ function TenantsPage() {
   }, [rentStatuses]);
 
   const outstandingTotal = useMemo(() => {
-    return Math.max(expectedTotal - collectedTotal, 0);
-  }, [expectedTotal, collectedTotal]);
+    return Object.values(rentStatuses).reduce(
+      (s, item) => s + item.totalBalance,
+      0,
+    );
+  }, [rentStatuses]);
 
   const paidCount = useMemo(() => {
     return Object.values(rentStatuses).filter(
@@ -249,6 +286,12 @@ function TenantsPage() {
   const unpaidCount = useMemo(() => {
     return Object.values(rentStatuses).filter(
       (s) => s.status === "UNPAID",
+    ).length;
+  }, [rentStatuses]);
+
+  const arrearsCount = useMemo(() => {
+    return Object.values(rentStatuses).filter(
+      (s) => s.status === "ARREARS",
     ).length;
   }, [rentStatuses]);
 
@@ -340,10 +383,10 @@ function TenantsPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Button
           size="sm"
-          variant={paidCount > 0 ? "default" : "outline"}
+          variant={filter === "paid" ? "default" : "outline"}
           className="rounded-full text-xs"
           onClick={() => setFilter("paid")}
         >
@@ -351,7 +394,7 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
-          variant={partialCount > 0 ? "default" : "outline"}
+          variant={filter === "partial" ? "default" : "outline"}
           className="rounded-full text-xs"
           onClick={() => setFilter("partial")}
         >
@@ -359,7 +402,7 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
-          variant={unpaidCount > 0 ? "default" : "outline"}
+          variant={filter === "unpaid" ? "default" : "outline"}
           className="rounded-full text-xs text-destructive"
           onClick={() => setFilter("unpaid")}
         >
@@ -367,7 +410,15 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
-          variant="outline"
+          variant={filter === "arrears" ? "default" : "outline"}
+          className="rounded-full text-xs text-amber-600 dark:text-amber-400 border-amber-500/40"
+          onClick={() => setFilter("arrears")}
+        >
+          In Arrears {arrearsCount}
+        </Button>
+        <Button
+          size="sm"
+          variant={filter === "all" ? "default" : "outline"}
           className="rounded-full text-xs"
           onClick={() => setFilter("all")}
         >
@@ -417,7 +468,7 @@ function TenantsPage() {
                   </dd>
                 </div>
                 <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">Rent</dt>
+                  <dt className="text-muted-foreground">Monthly Rent</dt>
                   <dd className="font-semibold">{money(t.rent_amount)}</dd>
                 </div>
 <div className="flex justify-between gap-2">
@@ -426,20 +477,38 @@ function TenantsPage() {
                 </div>
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Paid this period</dt>
-                  <dd>{money(rentStatuses[t.id]?.paidThisPeriod ?? 0, CURRENCY)}</dd>
+                  <dd className="font-medium">{money(rentStatuses[t.id]?.paidThisPeriod ?? 0, CURRENCY)}</dd>
                 </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">Balance</dt>
-                  <dd>{money(rentStatuses[t.id]?.balance ?? 0, CURRENCY)}</dd>
+                {rentStatuses[t.id]?.priorArrears ? (
+                  <div className="flex justify-between gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-1 rounded-lg">
+                    <dt>Prior Unpaid Arrears</dt>
+                    <dd>+{money(rentStatuses[t.id]?.priorArrears ?? 0, CURRENCY)}</dd>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-2 pt-1 border-t border-border/40">
+                  <dt className="font-semibold text-foreground">Total Balance Due</dt>
+                  <dd className={`font-bold ${rentStatuses[t.id]?.totalBalance ? "text-rose-500 font-mono text-base" : "text-emerald-600 font-mono text-base"}`}>
+                    {money(rentStatuses[t.id]?.totalBalance ?? 0, CURRENCY)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Rent status</dt>
                   <dd>
                     <Badge
-                      variant={rentStatuses[t.id]?.status === "PAID" ? "default" : rentStatuses[t.id]?.status === "PARTIAL" ? "secondary" : "destructive"}
-                      className="capitalize"
+                      variant={
+                        rentStatuses[t.id]?.status === "PAID"
+                          ? "default"
+                          : rentStatuses[t.id]?.status === "ARREARS"
+                          ? "destructive"
+                          : rentStatuses[t.id]?.status === "PARTIAL"
+                          ? "secondary"
+                          : "destructive"
+                      }
+                      className="capitalize font-semibold text-[11px]"
                     >
-                      {rentStatuses[t.id]?.status}
+                      {rentStatuses[t.id]?.status === "ARREARS"
+                        ? "In Arrears"
+                        : rentStatuses[t.id]?.status}
                     </Badge>
                   </dd>
                 </div>

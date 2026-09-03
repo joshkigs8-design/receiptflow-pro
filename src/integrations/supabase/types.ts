@@ -1095,6 +1095,105 @@ export type Database = {
         };
         Relationships: [];
       };
+      demo_bookings: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          property_name: string | null;
+          units_count: string;
+          preferred_date: string | null;
+          preferred_time: "morning" | "afternoon" | "evening";
+          notes: string | null;
+          status: "new" | "contacted" | "scheduled" | "completed" | "cancelled";
+          admin_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          property_name?: string | null;
+          units_count?: string;
+          preferred_date?: string | null;
+          preferred_time?: "morning" | "afternoon" | "evening";
+          notes?: string | null;
+          status?: "new" | "contacted" | "scheduled" | "completed" | "cancelled";
+          admin_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string;
+          phone?: string;
+          property_name?: string | null;
+          units_count?: string;
+          preferred_date?: string | null;
+          preferred_time?: "morning" | "afternoon" | "evening";
+          notes?: string | null;
+          status?: "new" | "contacted" | "scheduled" | "completed" | "cancelled";
+          admin_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      site_messages: {
+        Row: {
+          id: string;
+          sender_name: string;
+          email: string;
+          phone: string | null;
+          category: "general" | "comment" | "feedback" | "feature_request" | "support" | "partnership";
+          subject: string | null;
+          message: string;
+          rating: number | null;
+          is_public_testimonial: boolean;
+          status: "unread" | "read" | "replied" | "archived";
+          admin_reply: string | null;
+          replied_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          sender_name: string;
+          email: string;
+          phone?: string | null;
+          category?: "general" | "comment" | "feedback" | "feature_request" | "support" | "partnership";
+          subject?: string | null;
+          message: string;
+          rating?: number | null;
+          is_public_testimonial?: boolean;
+          status?: "unread" | "read" | "replied" | "archived";
+          admin_reply?: string | null;
+          replied_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          sender_name?: string;
+          email?: string;
+          phone?: string | null;
+          category?: "general" | "comment" | "feedback" | "feature_request" | "support" | "partnership";
+          subject?: string | null;
+          message?: string;
+          rating?: number | null;
+          is_public_testimonial?: boolean;
+          status?: "unread" | "read" | "replied" | "archived";
+          admin_reply?: string | null;
+          replied_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

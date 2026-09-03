@@ -408,17 +408,35 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
     }
 
     const period = data.period_label || data.paid_at.slice(0, 7);
+    const monthlyRent = Number(tenant.rent_amount ?? 0);
 
-    // 2. Calculate balance
-    const { data: existing } = await supabaseAdmin
+    // 2. Calculate cumulative balance across tenant tenancy
+    const startPeriod = (tenant.lease_start || tenant.created_at || period).slice(0, 7);
+    let monthsElapsed = 1;
+    try {
+      const sY = parseInt(startPeriod.slice(0, 4));
+      const sM = parseInt(startPeriod.slice(5, 7));
+      const pY = parseInt(period.slice(0, 4));
+      const pM = parseInt(period.slice(5, 7));
+      monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+    } catch {}
+
+    const totalRentAccrued = monthsElapsed * monthlyRent;
+
+    const { data: allPayments } = await supabaseAdmin
       .from("payments")
-      .select("amount")
+      .select("amount, period_label, paid_at")
       .eq("tenant_id", tenant.id)
-      .eq("landlord_id", data.landlord_id)
-      .eq("period_label", period);
+      .eq("landlord_id", data.landlord_id);
 
-    const paidBefore = (existing ?? []).reduce((s, p) => s + Number(p.amount), 0);
-    const balance = Number(tenant.rent_amount) - (paidBefore + data.amount);
+    const paidBeforeAll = (allPayments ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const paidBeforePeriod = (allPayments ?? [])
+      .filter((p) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
+      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+
+    const totalRemainingBalance = Math.max(totalRentAccrued - (paidBeforeAll + data.amount), 0);
+    const periodRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
+    const priorArrears = Math.max(totalRemainingBalance - periodRemainingBalance, 0);
 
     // 3. Insert payment record
     const { data: payment, error: payError } = await supabaseAdmin
@@ -433,7 +451,7 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
         reference: data.reference || null,
         paid_at: data.paid_at,
         period_label: period,
-        status: balance > 0 ? "partial" : "paid",
+        status: totalRemainingBalance > 0 ? "partial" : "paid",
         notes: data.notes ? `${data.notes} (Issued by Caretaker: ${data.caretaker_name})` : `Issued on-site by Caretaker: ${data.caretaker_name}`,
       })
       .select()
@@ -462,7 +480,7 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
         tenant_id: tenant.id,
         receipt_number: receiptNumber,
         amount: data.amount,
-        balance,
+        balance: totalRemainingBalance,
         issued_by: `${data.caretaker_name} (Caretaker) · ${profile?.company_name || "Codevanta"}`,
         snapshot: {
           company: profile?.company_name ?? "RentReceiptPro Landlord",
@@ -480,6 +498,9 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
           period: period,
           paid_at: data.paid_at,
           rent_amount: Number(tenant.rent_amount),
+          prior_arrears: priorArrears,
+          total_balance: totalRemainingBalance,
+          period_balance: periodRemainingBalance,
         },
       })
       .select("id, public_id, receipt_number")
