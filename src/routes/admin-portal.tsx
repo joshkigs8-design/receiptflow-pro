@@ -571,8 +571,6 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}

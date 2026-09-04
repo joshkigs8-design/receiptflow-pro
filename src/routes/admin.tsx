@@ -648,7 +648,6 @@ function AdminDashboard() {
 
   const updateDemoStatusMut = useMutation({
     mutationFn: (data: { id: string; status: any; adminNotes?: string }) =>
-      updateDemoBookingStatus({ data }),
       mutateDemoStatus({ data }),
     onSuccess: () => {
       toast.success("Demo booking status updated");

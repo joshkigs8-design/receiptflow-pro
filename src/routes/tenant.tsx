@@ -468,7 +468,7 @@ function TenantPortal() {
                 <p className="mt-1 text-[11px] text-muted-foreground">Remaining for this cycle</p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {((portal.totals as any).priorArrears ?? 0) > 0
-                    ? `Current Month: ${money((portal.totals as any).thisMonthBalance ?? 0)} · Past Arrears: +${money((portal.totals as any).priorArrears)}`
+                    ? `Current Month: ${money((portal.totals as any).thisMonthBalance ?? 0)} · Past Arrears: +${money((portal.totals as any).priorArrears ?? 0)}`
                     : "Total balance outstanding"}
                 </p>
               </div>

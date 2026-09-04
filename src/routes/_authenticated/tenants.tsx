@@ -190,7 +190,6 @@ function TenantsPage() {
           (selectedShortMonth && pPeriod.includes(selectedShortMonth) && pPeriod.includes(selectedYear)) ||
           (!pPeriod && paidAtMonth === period);
 
-        if (pTenantId === t.id && matchesPeriod && pAmount > 0) {
         if (matchesPeriod) {
           paidThisPeriod += pAmount;
         }
