@@ -49,12 +49,12 @@ export const getDashboard = createServerFn({ method: "GET" })
         sb.from("units").select("id,status,rent,property_id").eq("landlord_id", mine),
         sb
           .from("tenants")
-          .select("id,full_name,rent_amount,status,lease_end,unit_id,property_id,phone")
+          .select("id,full_name,rent_amount,status,lease_start,lease_end,unit_id,property_id,phone,created_at")
           .eq("landlord_id", mine),
         sb
           .from("payments")
           .select(
-            "id,amount,paid_at,method,status,tenant_id,tenants(full_name,phone),properties(name),units(unit_number,room_number),receipts(id,receipt_number,public_id)"
+            "id,amount,paid_at,method,status,period_label,tenant_id,tenants(full_name,phone),properties(name),units(unit_number,room_number),receipts(id,receipt_number,public_id)"
           )
           .eq("landlord_id", mine)
           .order("paid_at", { ascending: false }),
@@ -84,8 +84,33 @@ export const getDashboard = createServerFn({ method: "GET" })
     const now = new Date();
     const monthKey = now.toISOString().slice(0, 7);
 
+    // Helper: matches whether payment belongs to given target month (YYYY-MM)
+    const isPaymentForMonth = (
+      p: { paid_at: string | null; period_label?: string | null; status?: string },
+      targetMonth: string
+    ) => {
+      if (p.status === "failed" || p.status === "cancelled") return false;
+      const pPeriod = (p.period_label || "").trim().toLowerCase();
+      const paidAtMonth = (p.paid_at || "").slice(0, 7);
+      if (pPeriod === targetMonth || pPeriod.startsWith(targetMonth)) return true;
+      if (paidAtMonth === targetMonth && !pPeriod) return true;
+      if (paidAtMonth === targetMonth) return true;
+
+      try {
+        const d = new Date(targetMonth + "-01");
+        const monthLong = d.toLocaleDateString("en-GB", { month: "long" }).toLowerCase();
+        const monthShort = d.toLocaleDateString("en-GB", { month: "short" }).toLowerCase();
+        const yearStr = targetMonth.slice(0, 4);
+        if ((pPeriod.includes(monthLong) || pPeriod.includes(monthShort)) && pPeriod.includes(yearStr)) {
+          return true;
+        }
+      } catch {}
+
+      return false;
+    };
+
     const monthlyIncome = paymentRows
-      .filter((p) => (p.paid_at ?? "").startsWith(monthKey))
+      .filter((p) => isPaymentForMonth(p, monthKey))
       .reduce((s, p) => s + Number(p.amount), 0);
     const expectedMonthly = tenantRows
       .filter((t) => t.status === "active")
@@ -98,42 +123,63 @@ export const getDashboard = createServerFn({ method: "GET" })
       revenueByMonth.push({
         month: d.toLocaleDateString("en-GB", { month: "short" }),
         income: paymentRows
-          .filter((p) => (p.paid_at ?? "").startsWith(key))
+          .filter((p) => isPaymentForMonth(p, key))
           .reduce((s, p) => s + Number(p.amount), 0),
       });
     }
 
-    // Calculate full outstanding balance across all active tenants including prior arrears
+    // Accurate portfolio outstanding balances:
+    // 1. Current cycle pending rent (this month's unpaid balance)
+    // 2. Prior arrears (unpaid debt accumulated from earlier months)
+    // 3. Total outstanding = Current cycle pending + Prior arrears
     let totalOutstanding = 0;
     let priorArrearsTotal = 0;
+    let thisMonthOutstandingTotal = 0;
 
     tenantRows.forEach((t) => {
       if (t.status !== "active") return;
       const rent = Number(t.rent_amount ?? 0);
-      const startPeriod = monthKey; // Use current month as calculation period
+      if (rent <= 0) return;
+
+      // Start month: when tenant lease began or account was registered
+      const startMonth = (t.lease_start || t.created_at || monthKey).slice(0, 7);
       let monthsElapsed = 1;
       try {
-        const sY = parseInt(startPeriod.slice(0, 4));
-        const sM = parseInt(startPeriod.slice(5, 7));
+        const sY = parseInt(startMonth.slice(0, 4));
+        const sM = parseInt(startMonth.slice(5, 7));
         const cY = parseInt(monthKey.slice(0, 4));
         const cM = parseInt(monthKey.slice(5, 7));
-        monthsElapsed = Math.max((cY - sY) * 12 + (cM - sM) + 1, 1);
+        const diff = (cY - sY) * 12 + (cM - sM) + 1;
+        // If lease begins in the future, 0 months accrued so far
+        monthsElapsed = Math.max(diff, 0);
       } catch {}
 
-      const accrued = monthsElapsed * rent;
-      const paidAllTime = paymentRows
-        .filter((p) => p.tenant_id === t.id)
+      // Total rent accrued across active months up to the current cycle
+      const totalAccrued = monthsElapsed * rent;
+
+      // All valid payments made by this tenant
+      const tenantPayments = paymentRows.filter(
+        (p) => p.tenant_id === t.id && p.status !== "failed" && p.status !== "cancelled"
+      );
+      const totalPaidAllTime = tenantPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+
+      // Total net debt across their entire tenancy
+      const tenantTotalBalance = Math.max(totalAccrued - totalPaidAllTime, 0);
+
+      // Portion paid specifically for this current active month
+      const tenantPaidThisMonth = tenantPayments
+        .filter((p) => isPaymentForMonth(p, monthKey))
         .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
 
-      const bal = Math.max(accrued - paidAllTime, 0);
-      totalOutstanding += bal;
+      // Remaining unpaid balance for this month (cannot exceed monthly rent)
+      const tenantThisMonthBalance = monthsElapsed > 0 ? Math.max(rent - tenantPaidThisMonth, 0) : 0;
 
-      const paidThisMonth = paymentRows
-        .filter((p) => p.tenant_id === t.id && (p.paid_at ?? "").startsWith(monthKey))
-        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
-      const thisMonthBal = Math.max(rent - paidThisMonth, 0);
-      const arrears = Math.max(bal - thisMonthBal, 0);
-      priorArrearsTotal += arrears;
+      // Prior arrears: cumulative unpaid debt from earlier months
+      const tenantPriorArrears = Math.max(tenantTotalBalance - tenantThisMonthBalance, 0);
+
+      totalOutstanding += tenantTotalBalance;
+      priorArrearsTotal += tenantPriorArrears;
+      thisMonthOutstandingTotal += tenantThisMonthBalance;
     });
 
     const soon = new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
@@ -147,9 +193,9 @@ export const getDashboard = createServerFn({ method: "GET" })
         tenants: tenantRows.length,
         monthlyIncome,
         expectedMonthly,
-        outstanding: totalOutstanding > 0 ? totalOutstanding : Math.max(expectedMonthly - monthlyIncome, 0),
+        outstanding: totalOutstanding,
         priorArrears: priorArrearsTotal,
-        thisMonthOutstanding: Math.max(expectedMonthly - monthlyIncome, 0),
+        thisMonthOutstanding: thisMonthOutstandingTotal,
         collectionRate: expectedMonthly > 0 ? Math.min(Math.round((monthlyIncome / expectedMonthly) * 100), 100) : 0,
         occupancyRate: unitRows.length > 0 ? Math.round((unitRows.filter((u) => u.status === "occupied").length / unitRows.length) * 100) : 0,
         receipts: (receipts.data ?? []).length,

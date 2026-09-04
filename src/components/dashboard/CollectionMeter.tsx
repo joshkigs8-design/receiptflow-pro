@@ -261,21 +261,38 @@ export function CollectionMeter({
           </div>
         </div>
 
-        {/* Card 3: Outstanding / Arrears */}
-        <div className="p-3.5 rounded-2xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 flex flex-col justify-between space-y-2">
+        {/* Card 3: Prior Arrears */}
+        <div className={cn(
+          "p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 transition-colors",
+          arrearsAmount > 0
+            ? "bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20"
+            : "bg-muted/40 border-border/60"
+        )}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-500/20" />
-              {safePriorArrears > 0 ? "Prior Arrears" : "Overdue Balance"}
+            <span className={cn(
+              "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5",
+              arrearsAmount > 0 ? "text-rose-700 dark:text-rose-400" : "text-muted-foreground"
+            )}>
+              <span className={cn(
+                "size-2 rounded-full",
+                arrearsAmount > 0 ? "bg-rose-500 ring-2 ring-rose-500/20" : "bg-muted-foreground/40"
+              )} />
+              Prior Arrears
             </span>
-            <AlertCircle className="size-3.5 text-rose-500" />
+            <AlertCircle className={cn(
+              "size-3.5",
+              arrearsAmount > 0 ? "text-rose-500" : "text-muted-foreground"
+            )} />
           </div>
           <div>
-            <p className="font-display text-lg font-bold text-rose-600 dark:text-rose-400 font-mono">
-              {money(arrearsAmount > 0 ? arrearsAmount : safeOutstanding)}
+            <p className={cn(
+              "font-display text-lg font-bold font-mono",
+              arrearsAmount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+            )}>
+              {money(arrearsAmount)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              {safePriorArrears > 0 ? "Past due from earlier cycles" : "Requires tenant follow-up"}
+              {arrearsAmount > 0 ? "Past due from earlier cycles" : "All prior cycles settled"}
             </p>
           </div>
         </div>
