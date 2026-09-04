@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, Search, Trash2, Users } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
@@ -14,8 +14,6 @@ import {
 } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
-import { ConfirmDialog } from "@/components/app/ConfirmDialog";
-import { CardGridSkeleton } from "@/components/app/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,16 +56,13 @@ type Draft = {
   phone: string;
   email: string;
   national_id: string;
-  passport: string;
   occupation: string;
   emergency_contact: string;
-  photo_url: string;
   lease_start: string;
   lease_end: string;
   rent_amount: number;
   deposit_paid: number;
   status: string;
-  notes: string;
 };
 
 const blank: Draft = {
@@ -77,16 +72,13 @@ const blank: Draft = {
   phone: "",
   email: "",
   national_id: "",
-  passport: "",
   occupation: "",
   emergency_contact: "",
-  photo_url: "",
   lease_start: "",
   lease_end: "",
   rent_amount: 0,
   deposit_paid: 0,
   status: "active",
-  notes: "",
 };
 
 function TenantsPage() {
@@ -100,13 +92,12 @@ function TenantsPage() {
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(blank);
-  const [deletingTenant, setDeletingTenant] = useState<{ id: string; name: string } | null>(null);
   const [rentalPeriod, setRentalPeriod] = useState<string>(() => {
     const now = new Date();
     return now.toISOString().slice(0, 7);
   });
   const [periodLabel, setPeriodLabel] = useState<string>("Current month");
-  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid' | 'arrears'>('all');
+  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
   
   // Pre-compute month options for the selector
   const monthOptions = useMemo(() => {
@@ -146,6 +137,7 @@ function TenantsPage() {
       paidThisPeriod: number;
       monthlyRent: number;
       balance: number;
+      status: "PAID" | "PARTIAL" | "UNPAID";
       totalBalance: number;
       thisPeriodBalance: number;
       priorArrears: number;
@@ -198,11 +190,14 @@ function TenantsPage() {
           (selectedShortMonth && pPeriod.includes(selectedShortMonth) && pPeriod.includes(selectedYear)) ||
           (!pPeriod && paidAtMonth === period);
 
+        if (pTenantId === t.id && matchesPeriod && pAmount > 0) {
         if (matchesPeriod) {
           paidThisPeriod += pAmount;
         }
       });
 
+      const balance = Math.max(monthlyRent - paidThisPeriod, 0);
+      let status: "PAID" | "PARTIAL" | "UNPAID";
       // Total rent accrued up to this period:
       const totalRentAccrued = monthsElapsed * monthlyRent;
       // Total balance outstanding across their entire lease/stay:
@@ -212,6 +207,9 @@ function TenantsPage() {
       // Unpaid arrears carried forward from previous months:
       const priorArrears = Math.max(totalBalance - thisPeriodBalance, 0);
 
+      if (paidThisPeriod <= 0) {
+        status = "UNPAID";
+      } else if (paidThisPeriod < monthlyRent) {
       let status: "PAID" | "PARTIAL" | "UNPAID" | "ARREARS";
       if (totalBalance <= 0) {
         status = "PAID";
@@ -220,12 +218,14 @@ function TenantsPage() {
       } else if (paidThisPeriod > 0) {
         status = "PARTIAL";
       } else {
+        status = "PAID";
         status = "UNPAID";
       }
 
       statuses[t.id] = {
         paidThisPeriod,
         monthlyRent,
+        balance,
         balance: totalBalance, // Full balance shows the true remaining debt
         totalBalance,
         thisPeriodBalance,
@@ -251,6 +251,7 @@ function TenantsPage() {
               ? rentStatuses[t.id]?.status === "PARTIAL"
               : filter === "unpaid"
                 ? rentStatuses[t.id]?.status === "UNPAID"
+                : true) &&
                 : filter === "arrears"
                   ? rentStatuses[t.id]?.status === "ARREARS"
                   : true) &&
@@ -274,6 +275,8 @@ function TenantsPage() {
   }, [rentStatuses]);
 
   const outstandingTotal = useMemo(() => {
+    return Math.max(expectedTotal - collectedTotal, 0);
+  }, [expectedTotal, collectedTotal]);
     return Object.values(rentStatuses).reduce(
       (s, item) => s + item.totalBalance,
       0,
@@ -392,9 +395,11 @@ function TenantsPage() {
         </div>
       </div>
 
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Button
           size="sm"
+          variant={paidCount > 0 ? "default" : "outline"}
           variant={filter === "paid" ? "default" : "outline"}
           className="rounded-full text-xs"
           onClick={() => setFilter("paid")}
@@ -403,6 +408,7 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
+          variant={partialCount > 0 ? "default" : "outline"}
           variant={filter === "partial" ? "default" : "outline"}
           className="rounded-full text-xs"
           onClick={() => setFilter("partial")}
@@ -411,6 +417,7 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
+          variant={unpaidCount > 0 ? "default" : "outline"}
           variant={filter === "unpaid" ? "default" : "outline"}
           className="rounded-full text-xs text-destructive"
           onClick={() => setFilter("unpaid")}
@@ -419,6 +426,7 @@ function TenantsPage() {
         </Button>
         <Button
           size="sm"
+          variant="outline"
           variant={filter === "arrears" ? "default" : "outline"}
           className="rounded-full text-xs text-amber-600 dark:text-amber-400 border-amber-500/40"
           onClick={() => setFilter("arrears")}
@@ -446,23 +454,8 @@ function TenantsPage() {
         />
       </div>
 
-      {tenants.isLoading || payments.isLoading ? (
-        <CardGridSkeleton count={6} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={term || filter !== "all" ? "No matching tenants" : "No tenants found"}
-          hint={
-            term || filter !== "all"
-              ? "Try adjusting your search keywords or filter tab."
-              : "Add your first tenant and assign them to a unit to start tracking rent."
-          }
-          action={
-            term || filter !== "all"
-              ? { label: "Clear Filters", onClick: () => { setTerm(""); setFilter("all"); } }
-              : { label: "+ Add First Tenant", onClick: () => { setDraft(blank); setOpen(true); } }
-          }
-        />
+      {filtered.length === 0 ? (
+        <EmptyState title="No tenants found" hint="Add a tenant and assign them to a unit." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((t) => (
@@ -492,6 +485,7 @@ function TenantsPage() {
                   </dd>
                 </div>
                 <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Rent</dt>
                   <dt className="text-muted-foreground">Monthly Rent</dt>
                   <dd className="font-semibold">{money(t.rent_amount)}</dd>
                 </div>
@@ -501,8 +495,12 @@ function TenantsPage() {
                 </div>
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Paid this period</dt>
+                  <dd>{money(rentStatuses[t.id]?.paidThisPeriod ?? 0, CURRENCY)}</dd>
                   <dd className="font-medium">{money(rentStatuses[t.id]?.paidThisPeriod ?? 0, CURRENCY)}</dd>
                 </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Balance</dt>
+                  <dd>{money(rentStatuses[t.id]?.balance ?? 0, CURRENCY)}</dd>
                 {rentStatuses[t.id]?.priorArrears ? (
                   <div className="flex justify-between gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-1 rounded-lg">
                     <dt>Prior Unpaid Arrears</dt>
@@ -519,6 +517,8 @@ function TenantsPage() {
                   <dt className="text-muted-foreground">Rent status</dt>
                   <dd>
                     <Badge
+                      variant={rentStatuses[t.id]?.status === "PAID" ? "default" : rentStatuses[t.id]?.status === "PARTIAL" ? "secondary" : "destructive"}
+                      className="capitalize"
                       variant={
                         rentStatuses[t.id]?.status === "PAID"
                           ? "default"
@@ -530,6 +530,7 @@ function TenantsPage() {
                       }
                       className="capitalize font-semibold text-[11px]"
                     >
+                      {rentStatuses[t.id]?.status}
                       {rentStatuses[t.id]?.status === "ARREARS"
                         ? "In Arrears"
                         : rentStatuses[t.id]?.status}
@@ -552,16 +553,13 @@ function TenantsPage() {
                       phone: t.phone,
                       email: t.email ?? "",
                       national_id: t.national_id ?? "",
-                      passport: (t as any).passport ?? "",
                       occupation: t.occupation ?? "",
                       emergency_contact: t.emergency_contact ?? "",
-                      photo_url: (t as any).photo_url ?? "",
                       lease_start: t.lease_start ?? "",
                       lease_end: t.lease_end ?? "",
                       rent_amount: Number(t.rent_amount ?? 0),
                       deposit_paid: Number(t.deposit_paid ?? 0),
                       status: t.status ?? "active",
-                      notes: (t as any).notes ?? "",
                     });
                     setOpen(true);
                   }}
@@ -573,7 +571,7 @@ function TenantsPage() {
                   variant="ghost"
                   className="rounded-full text-destructive"
                   onClick={() => {
-                    setDeletingTenant({ id: t.id, name: t.full_name });
+                    if (confirm(`Remove ${t.full_name}?`)) deleteMutation.mutate(t.id);
                   }}
                 >
                   <Trash2 className="size-3.5" />
@@ -630,15 +628,6 @@ function TenantsPage() {
                 maxLength={40}
                 value={draft.national_id}
                 onChange={(e) => setDraft({ ...draft, national_id: e.target.value })}
-              />
-            </Field>
-            <Field label="Passport No. (Optional)" htmlFor="passport">
-              <Input
-                id="passport"
-                maxLength={40}
-                placeholder="e.g. A1234567"
-                value={draft.passport}
-                onChange={(e) => setDraft({ ...draft, passport: e.target.value })}
               />
             </Field>
             <Field label="Property">
@@ -734,24 +723,6 @@ function TenantsPage() {
                 onChange={(e) => setDraft({ ...draft, emergency_contact: e.target.value })}
               />
             </Field>
-            <Field label="Photo URL (Optional)" htmlFor="photo">
-              <Input
-                id="photo"
-                maxLength={600}
-                placeholder="https://..."
-                value={draft.photo_url}
-                onChange={(e) => setDraft({ ...draft, photo_url: e.target.value })}
-              />
-            </Field>
-            <Field label="Private Notes (Optional)" htmlFor="notes" className="sm:col-span-2">
-              <Input
-                id="notes"
-                maxLength={2000}
-                placeholder="Internal notes about tenant, special terms, background check, etc."
-                value={draft.notes}
-                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-              />
-            </Field>
             <DialogFooter className="sm:col-span-2">
               <Button type="submit" className="rounded-full" disabled={saveMutation.isPending}>
                 Save tenant
@@ -760,22 +731,6 @@ function TenantsPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <ConfirmDialog
-        open={Boolean(deletingTenant)}
-        onOpenChange={(isOpen) => !isOpen && setDeletingTenant(null)}
-        title="Remove Tenant"
-        description={`Are you sure you want to remove ${deletingTenant?.name}? This action cannot be undone.`}
-        confirmText="Remove Tenant"
-        loading={deleteMutation.isPending}
-        onConfirm={() => {
-          if (deletingTenant) {
-            deleteMutation.mutate(deletingTenant.id, {
-              onSettled: () => setDeletingTenant(null),
-            });
-          }
-        }}
-      />
     </AppShell>
   );
 }

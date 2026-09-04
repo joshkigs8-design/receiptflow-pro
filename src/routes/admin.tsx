@@ -636,17 +636,13 @@ function AdminDashboard() {
   const [messageCategoryFilter, setMessageCategoryFilter] = useState("all");
   const [messageStatusFilter, setMessageStatusFilter] = useState("all");
 
-  const { data: demoBookings = [], isLoading: demosLoading } = useQuery({
   const { data: demoBookings = [], isLoading: demosLoading, refetch: refetchDemos } = useQuery({
     queryKey: ["admin-demos"],
-    queryFn: () => listDemoBookingsAdmin(),
     queryFn: () => fetchAdminDemos(),
   });
 
-  const { data: siteMessages = [], isLoading: messagesLoading } = useQuery({
   const { data: siteMessages = [], isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
     queryKey: ["admin-messages"],
-    queryFn: () => listSiteMessagesAdmin(),
     queryFn: () => fetchAdminMessages(),
   });
 

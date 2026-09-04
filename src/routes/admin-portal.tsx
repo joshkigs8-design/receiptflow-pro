@@ -139,7 +139,6 @@ function MobileAdminPage() {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [twoFactorPinInput, setTwoFactorPinInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security">("overview");
   const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security" | "demos" | "messages">("overview");
 
   // Filter & Search State

@@ -97,7 +97,6 @@ function TenantPortal() {
     category: "plumbing",
     priority: "normal",
     description: "",
-    photo_url: "",
   });
 
   // M-Pesa Payment Dialog & Flow State
@@ -256,7 +255,7 @@ function TenantPortal() {
         return;
       }
       toast.success("Maintenance request submitted successfully");
-      setRequest({ category: "plumbing", priority: "normal", description: "", photo_url: "" });
+      setRequest({ category: "plumbing", priority: "normal", description: "" });
       login.mutate(creds);
     },
     onError: () => toast.error("Failed to submit request"),
@@ -453,6 +452,8 @@ function TenantPortal() {
               </div>
 
               <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
+                <p className="text-xs text-muted-foreground uppercase font-medium">Balance Due</p>
+                <p className={`mt-2 font-display text-2xl font-bold ${portal.totals.rentBalance > 0 ? "text-rose-500" : "text-foreground"}`}>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground uppercase font-medium">Total Balance Due</p>
                   {((portal.totals as any).priorArrears ?? 0) > 0 ? (
@@ -464,6 +465,7 @@ function TenantPortal() {
                 <p className={`mt-2 font-display text-2xl font-bold ${portal.totals.rentBalance > 0 ? "text-rose-500 font-mono" : "text-foreground"}`}>
                   {money(portal.totals.rentBalance)}
                 </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Remaining for this cycle</p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {((portal.totals as any).priorArrears ?? 0) > 0
                     ? `Current Month: ${money((portal.totals as any).thisMonthBalance ?? 0)} · Past Arrears: +${money((portal.totals as any).priorArrears)}`
@@ -777,20 +779,6 @@ function TenantPortal() {
                   />
                 </div>
 
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Photo / Evidence URL (Optional)</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://... (link to photo of the issue)"
-                    value={request.photo_url}
-                    onChange={(e) => setRequest({ ...request, photo_url: e.target.value })}
-                    className="rounded-2xl h-10 text-xs"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Provide an image link showing the repair or damage (e.g. Supabase, Imgur, or cloud storage).
-                  </p>
-                </div>
-
                 <div className="sm:col-span-2">
                   <Button
                     type="submit"
@@ -815,7 +803,7 @@ function TenantPortal() {
                         key={r.id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs"
                       >
-                        <div className="space-y-1.5 max-w-xl">
+                        <div className="space-y-1 max-w-xl">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold uppercase tracking-wider text-primary text-[11px]">
                               {r.category}
@@ -823,18 +811,6 @@ function TenantPortal() {
                             <span className="text-muted-foreground font-mono">· {shortDate(r.created_at)}</span>
                           </div>
                           <p className="text-foreground text-sm font-medium leading-relaxed">{r.description}</p>
-                          {(r as any).photo_url && (
-                            <div className="mt-1">
-                              <a
-                                href={(r as any).photo_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
-                              >
-                                <ExternalLink className="size-3" /> View Attached Photo
-                              </a>
-                            </div>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-center">
                           <Badge
