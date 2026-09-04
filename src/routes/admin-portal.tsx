@@ -566,7 +566,6 @@ function MobileAdminPage() {
       {/* Main Workspace */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-5 gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold">
         <div className="flex overflow-x-auto gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold no-scrollbar">
           <button
             type="button"
@@ -656,8 +655,6 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("security")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -665,7 +662,6 @@ function MobileAdminPage() {
             <ShieldCheck className="size-3.5 text-blue-500" />
             <span className="hidden sm:inline">Security</span>
             <span className="sm:hidden">2FA</span>
-            <span>Security</span>
           </button>
         </div>
 

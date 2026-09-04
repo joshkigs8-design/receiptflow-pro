@@ -144,7 +144,7 @@ export const updateDemoBookingStatus = createServerFn({ method: "POST" })
       .from("demo_bookings")
       .update({
         status: data.status,
-        admin_notes: data.adminNotes ?? undefined,
+        admin_notes: data.adminNotes ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -184,7 +184,6 @@ export const updateSiteMessageAdmin = createServerFn({ method: "POST" })
       }
   )
   .handler(async ({ data }) => {
-    const updatePayload: Record<string, unknown> = {
     const updatePayload: Database["public"]["Tables"]["site_messages"]["Update"] = {
       updated_at: new Date().toISOString(),
     };

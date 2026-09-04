@@ -102,7 +102,6 @@ function DashboardPage() {
     {
       label: "Outstanding Rent",
       value: t ? money(t.outstanding) : "—",
-      sub: "Pending collection this month",
       sub: (t as any)?.priorArrears > 0 ? `Includes ${money((t as any).priorArrears)} prior arrears` : "Pending collection this month",
       icon: TrendingUp,
       color: t?.outstanding && t.outstanding > 0 ? "text-rose-500" : "text-emerald-500",

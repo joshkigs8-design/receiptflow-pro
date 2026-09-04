@@ -163,8 +163,6 @@ export const verifyTenant = createServerFn({ method: "POST" })
       totals: {
         paidThisMonth,
         monthlyRent,
-        rentBalance,
-        status: paidThisMonth >= monthlyRent && monthlyRent > 0 ? ("PAID" as const) : paidThisMonth > 0 ? ("PARTIAL" as const) : ("UNPAID" as const),
         rentBalance: totalOutstandingBalance, // Full balance including last month's unpaid arrears!
         totalOutstanding: totalOutstandingBalance,
         priorArrears,
