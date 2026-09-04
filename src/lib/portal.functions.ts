@@ -50,7 +50,7 @@ export const verifyTenant = createServerFn({ method: "POST" })
         .limit(10),
       supabaseAdmin
         .from("maintenance_requests")
-        .select("id,category,description,priority,status,photo_url,created_at")
+        .select("id,category,description,priority,status,created_at")
         .eq("tenant_id", tenant.id)
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -92,6 +92,8 @@ export const verifyTenant = createServerFn({ method: "POST" })
     });
     const paidThisMonth = thisMonthPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const monthlyRent = Number(tenant.rent_amount ?? 0);
+    const rentBalance = Math.max(monthlyRent - paidThisMonth, 0);
+
     const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
     // Calculate accrued rent from move-in / lease start up to current active month
@@ -161,6 +163,8 @@ export const verifyTenant = createServerFn({ method: "POST" })
       totals: {
         paidThisMonth,
         monthlyRent,
+        rentBalance,
+        status: paidThisMonth >= monthlyRent && monthlyRent > 0 ? ("PAID" as const) : paidThisMonth > 0 ? ("PARTIAL" as const) : ("UNPAID" as const),
         rentBalance: totalOutstandingBalance, // Full balance including last month's unpaid arrears!
         totalOutstanding: totalOutstandingBalance,
         priorArrears,
@@ -208,7 +212,6 @@ export const submitTenantRequest = createServerFn({ method: "POST" })
       category: data.category,
       description: data.description,
       priority: data.priority,
-      photo_url: data.photo_url || null,
     });
     if (error) return { ok: false as const, error: "Could not submit request." };
 

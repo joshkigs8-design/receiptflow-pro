@@ -43,6 +43,7 @@ export function NotificationDropdown() {
         .limit(10);
       if (error) return [];
       return (data as unknown as NotificationItem[]) || [];
+    },
     refetchInterval: 30_000,
     staleTime: 15_000,
   });

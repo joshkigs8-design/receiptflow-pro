@@ -139,6 +139,7 @@ function MobileAdminPage() {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [twoFactorPinInput, setTwoFactorPinInput] = useState("");
+  const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security">("overview");
   const [activeTab, setActiveTab] = useState<"overview" | "landlords" | "vouchers" | "payouts" | "security" | "demos" | "messages">("overview");
 
   // Filter & Search State
@@ -566,26 +567,35 @@ function MobileAdminPage() {
       {/* Main Workspace */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Navigation Tabs */}
+        <div className="grid grid-cols-5 gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold">
         <div className="flex overflow-x-auto gap-1 p-1.5 rounded-2xl bg-muted/70 border border-border/60 text-xs font-semibold no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "overview" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <TrendingUp className="size-3.5 text-primary" />
+            <span className="hidden sm:inline">KPIs</span>
+            <span className="sm:hidden">KPIs</span>
             <span>KPIs</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("landlords")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === "landlords" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "landlords" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Users className="size-3.5 text-emerald-500" />
+            <span className="hidden sm:inline">Landlords</span>
+            <span className="sm:hidden">Users</span>
             <span>Landlords</span>
           </button>
 
@@ -624,10 +634,15 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("vouchers")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
+            <Ticket className="size-3.5 text-purple-500" />
+            <span className="hidden sm:inline">Vouchers</span>
+            <span className="sm:hidden">Codes</span>
             <Ticket className="size-3.5 text-amber-500" />
             <span>Vouchers</span>
           </button>
@@ -635,10 +650,15 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("payouts")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 relative ${
+              activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 relative ${
               activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
+            <Wallet className="size-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Affiliates</span>
+            <span className="sm:hidden">Payouts</span>
             <Wallet className="size-3.5 text-emerald-500" />
             <span>Affiliates</span>
             {withdrawals.filter((w) => w.status === "pending").length > 0 ? (
@@ -649,11 +669,15 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("security")}
+            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "security" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <ShieldCheck className="size-3.5 text-blue-500" />
+            <span className="hidden sm:inline">Security</span>
+            <span className="sm:hidden">2FA</span>
             <span>Security</span>
           </button>
         </div>
@@ -763,7 +787,7 @@ function MobileAdminPage() {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-2xl bg-muted/40 border border-border/50 text-center">
-                      <span className="text-[11px] text-muted-foreground">Monthly (1.2k / 400)</span>
+                      <span className="text-[11px] text-muted-foreground">Monthly (KSh 400)</span>
                       <p className="font-display font-bold text-base mt-0.5">{stats.planBreakdown.monthly}</p>
                     </div>
                     <div className="p-3 rounded-2xl bg-muted/40 border border-border/50 text-center">

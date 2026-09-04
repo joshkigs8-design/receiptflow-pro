@@ -102,6 +102,7 @@ function DashboardPage() {
     {
       label: "Outstanding Rent",
       value: t ? money(t.outstanding) : "—",
+      sub: "Pending collection this month",
       sub: (t as any)?.priorArrears > 0 ? `Includes ${money((t as any).priorArrears)} prior arrears` : "Pending collection this month",
       icon: TrendingUp,
       color: t?.outstanding && t.outstanding > 0 ? "text-rose-500" : "text-emerald-500",
@@ -121,6 +122,14 @@ function DashboardPage() {
     toast.success("Tenant Portal link copied! Share with your tenants.");
   }
 
+  function shareReceiptWhatsApp(receiptNumber: string, publicId: string, amount: number, tenantName: string) {
+    const url = receiptUrl(publicId);
+    const message = encodeURIComponent(
+      `Hello ${tenantName}, here is your official verified rent receipt (${receiptNumber}) for ${money(amount)}:\n${url}`
+    );
+    window.open(`https://wa.me/?text=${message}`, "_blank");
+  }
+
   return (
     <AppShell
       title="Dashboard"
@@ -134,6 +143,14 @@ function DashboardPage() {
             onClick={copyTenantPortalLink}
           >
             <Share2 className="size-3.5" /> Share Tenant Portal
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs h-9 gap-1.5 hidden md:inline-flex border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+            onClick={() => downloadLandlordManualPdf()}
+          >
+            <BookOpen className="size-3.5" /> Manual (PDF)
           </Button>
           <Button asChild size="sm" className="rounded-full shadow-glow text-xs h-9 gap-1.5 font-semibold">
             <Link to="/payments">
@@ -252,39 +269,35 @@ function DashboardPage() {
             </div>
 
             <div className="h-64 pt-2">
-              {isLoading ? (
-                <Skeleton className="h-full w-full rounded-2xl" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data?.revenueByMonth ?? []}>
-                    <defs>
-                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#10B981" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.6} />
-                    <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `KSh ${v}`} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--color-card)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 16,
-                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                      }}
-                      formatter={(v: number) => [money(v), "Rent Collected"]}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="income"
-                      stroke="#10B981"
-                      strokeWidth={2.5}
-                      fill="url(#revGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data?.revenueByMonth ?? []}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#FF7A00" stopOpacity={0.5} />
+                      <stop offset="100%" stopColor="#FF7A00" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.6} />
+                  <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `KSh ${v}`} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 16,
+                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                    }}
+                    formatter={(v: number) => [money(v), "Rent Collected"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    stroke="#FF7A00"
+                    strokeWidth={2.5}
+                    fill="url(#revGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -357,13 +370,7 @@ function DashboardPage() {
             </Button>
           </div>
 
-          {isLoading ? (
-            <div className="space-y-2 py-2">
-              <Skeleton className="h-10 w-full rounded-xl" />
-              <Skeleton className="h-10 w-full rounded-xl" />
-              <Skeleton className="h-10 w-full rounded-xl" />
-            </div>
-          ) : (data?.recentPayments ?? []).length ? (
+          {(data?.recentPayments ?? []).length ? (
             <div className="overflow-x-auto">
               <Table className="min-w-[700px]">
                 <TableHeader>

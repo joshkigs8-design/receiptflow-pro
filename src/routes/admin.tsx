@@ -636,18 +636,23 @@ function AdminDashboard() {
   const [messageCategoryFilter, setMessageCategoryFilter] = useState("all");
   const [messageStatusFilter, setMessageStatusFilter] = useState("all");
 
+  const { data: demoBookings = [], isLoading: demosLoading } = useQuery({
   const { data: demoBookings = [], isLoading: demosLoading, refetch: refetchDemos } = useQuery({
     queryKey: ["admin-demos"],
+    queryFn: () => listDemoBookingsAdmin(),
     queryFn: () => fetchAdminDemos(),
   });
 
+  const { data: siteMessages = [], isLoading: messagesLoading } = useQuery({
   const { data: siteMessages = [], isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
     queryKey: ["admin-messages"],
+    queryFn: () => listSiteMessagesAdmin(),
     queryFn: () => fetchAdminMessages(),
   });
 
   const updateDemoStatusMut = useMutation({
     mutationFn: (data: { id: string; status: any; adminNotes?: string }) =>
+      updateDemoBookingStatus({ data }),
       mutateDemoStatus({ data }),
     onSuccess: () => {
       toast.success("Demo booking status updated");
@@ -658,6 +663,7 @@ function AdminDashboard() {
 
   const updateMessageMut = useMutation({
     mutationFn: (data: { id: string; status?: any; isPublicTestimonial?: boolean; adminReply?: string }) =>
+      updateSiteMessageAdmin({ data }),
       mutateAdminMessage({ data }),
     onSuccess: () => {
       toast.success("Message updated successfully");
@@ -911,8 +917,10 @@ function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Top Header Metrics Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => (
+          <div key={c.label} className="surface-card p-5 transition-all hover:shadow-md border border-border/80 rounded-2xl">
           <div
             key={c.label}
             onClick={() => (c as any).tab && setActiveTab((c as any).tab)}
@@ -984,7 +992,7 @@ function AdminDashboard() {
               </div>
               <div className="space-y-3 pt-2">
                 {[
-                  { label: "Monthly (KSh 1,200 / KSh 400 Offer)", count: stats?.planBreakdown?.monthly ?? 0, color: "bg-blue-500" },
+                  { label: "Monthly (KSh 400)", count: stats?.planBreakdown?.monthly ?? 0, color: "bg-blue-500" },
                   { label: "Quarterly (KSh 1,100)", count: stats?.planBreakdown?.quarterly ?? 0, color: "bg-amber-500" },
                   { label: "Half Year (KSh 2,100)", count: stats?.planBreakdown?.semiannual ?? 0, color: "bg-indigo-500" },
                   { label: "Yearly (KSh 4,000)", count: stats?.planBreakdown?.yearly ?? 0, color: "bg-emerald-500" },
@@ -2615,10 +2623,10 @@ function AdminDashboard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">Monthly (KSh 1,200 / KSh 400 Offer)</SelectItem>
-                  <SelectItem value="quarterly">Quarterly (KSh 3,200 / KSh 1,100 Offer)</SelectItem>
-                  <SelectItem value="semiannual">Half Year (KSh 6,000 / KSh 2,100 Offer)</SelectItem>
-                  <SelectItem value="yearly">Yearly (KSh 10,800 / KSh 4,000 Offer)</SelectItem>
+                  <SelectItem value="monthly">Monthly (KSh 400)</SelectItem>
+                  <SelectItem value="quarterly">Quarterly (KSh 1,100)</SelectItem>
+                  <SelectItem value="semiannual">Half Year (KSh 2,100)</SelectItem>
+                  <SelectItem value="yearly">Yearly (KSh 4,000)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

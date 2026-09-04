@@ -47,7 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemePicker, useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -97,6 +96,7 @@ function SettingsPage() {
 
   const [form, setForm] = useState({
     full_name: "",
+    company_name: "Codevanta Ventures",
     company_name: "",
     logo_url: "",
     phone: "",
@@ -132,6 +132,7 @@ function SettingsPage() {
     if (!data) return;
     setForm({
       full_name: data.full_name ?? "",
+      company_name: data.company_name ?? "Codevanta Ventures",
       company_name: data.company_name ?? "",
       logo_url: data.logo_url ?? "",
       phone: data.phone ?? "",
@@ -323,20 +324,6 @@ function SettingsPage() {
               value={form.logo_url}
               onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
             />
-            {form.logo_url ? (
-              <div className="mt-2 flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border border-border/60">
-                <img
-                  src={form.logo_url}
-                  alt="Company Logo"
-                  className="size-10 rounded-xl object-contain bg-white p-1 border border-border shadow-xs"
-                  onError={(e) => ((e.target as HTMLElement).style.display = "none")}
-                />
-                <div className="text-xs">
-                  <p className="font-semibold text-foreground">Logo Preview</p>
-                  <p className="text-muted-foreground text-[11px]">This logo is displayed on your PDF receipts and tenant portal.</p>
-                </div>
-              </div>
-            ) : null}
           </Field>
 
           <Field label="Business / Payment Instructions" htmlFor="bd" className="sm:col-span-2">
