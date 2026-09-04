@@ -29,9 +29,9 @@ export function EmptyState({
   action,
 }: {
   title: string;
-  hint?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  action?: { label: string; onClick?: () => void; to?: string };
+  hint?: string | undefined;
+  icon?: React.ComponentType<{ className?: string }> | undefined;
+  action?: { label: string; onClick?: () => void; to?: string } | undefined;
 }) {
   return (
     <div className="surface-card p-10 text-center flex flex-col items-center justify-center rounded-2xl border border-border/80">
