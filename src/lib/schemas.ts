@@ -92,4 +92,37 @@ export const portalRequestSchema = portalVerifySchema.extend({
   category: z.string().max(40),
   description: z.string().trim().min(4).max(2000),
   priority: z.string().max(20),
+  photo_url: z.string().max(600).optional().nullable(),
 });
+
+export const leaseSchema = z.object({
+  id: z.string().uuid().optional(),
+  tenant_id: z.string().uuid({ message: "Tenant is required" }),
+  start_date: z.string().optional().nullable(),
+  end_date: z.string().optional().nullable(),
+  status: z.enum(["active", "expiring", "expired", "terminated"]).default("active"),
+  document_url: z.string().max(800).optional().nullable(),
+  signed: z.boolean().default(false),
+});
+
+export const expenseSchema = z.object({
+  id: z.string().uuid().optional(),
+  property_id: z.string().uuid().optional().nullable(),
+  category: z.enum([
+    "repairs",
+    "salaries",
+    "electricity",
+    "water",
+    "garbage",
+    "security",
+    "taxes",
+    "maintenance",
+    "other",
+  ]).default("other"),
+  amount: z.coerce.number().positive({ message: "Amount must be greater than 0" }),
+  expense_date: z.string().min(4),
+  vendor: z.string().max(120).optional().nullable(),
+  receipt_image_url: z.string().max(800).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+

@@ -56,6 +56,8 @@ export function FaqSection() {
               >
                 <button
                   type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${idx}`}
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
                   className="flex w-full items-center justify-between p-5 text-left text-sm font-bold text-[#101714] dark:text-[#F7F8F5] hover:text-[#087443] transition-colors"
                 >
@@ -68,7 +70,10 @@ export function FaqSection() {
                 </button>
 
                 {isOpen ? (
-                  <div className="px-5 pb-5 pt-1 text-xs text-[#4A5B53] dark:text-[#94A89E] leading-relaxed border-t border-[#E2E8E4] dark:border-white/10">
+                  <div
+                    id={`faq-answer-${idx}`}
+                    className="px-5 pb-5 pt-1 text-xs text-[#4A5B53] dark:text-[#94A89E] leading-relaxed border-t border-[#E2E8E4] dark:border-white/10"
+                  >
                     <p>{faq.a}</p>
                   </div>
                 ) : null}

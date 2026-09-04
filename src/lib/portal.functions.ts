@@ -50,7 +50,7 @@ export const verifyTenant = createServerFn({ method: "POST" })
         .limit(10),
       supabaseAdmin
         .from("maintenance_requests")
-        .select("id,category,description,priority,status,created_at")
+        .select("id,category,description,priority,status,photo_url,created_at")
         .eq("tenant_id", tenant.id)
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -208,6 +208,7 @@ export const submitTenantRequest = createServerFn({ method: "POST" })
       category: data.category,
       description: data.description,
       priority: data.priority,
+      photo_url: data.photo_url || null,
     });
     if (error) return { ok: false as const, error: "Could not submit request." };
 

@@ -7,6 +7,8 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   Download,
@@ -35,6 +37,8 @@ import {
 } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
+import { ConfirmDialog } from "@/components/app/ConfirmDialog";
+import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -140,6 +144,7 @@ function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [editing, setEditing] = useState<null | { id: string }>(null);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
   const [editDraft, setEditDraft] = useState({
     amount: 0,
@@ -192,6 +197,13 @@ function PaymentsPage() {
       return matchesMethod && matchesSearch;
     });
   }, [rawPayments, methodFilter, searchQuery]);
+
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 15;
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / pageSize));
+  const paginatedPayments = useMemo(() => {
+    return filteredPayments.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredPayments, page, pageSize]);
 
   // Financial Metrics
   const metrics = useMemo(() => {
@@ -417,13 +429,41 @@ function PaymentsPage() {
           </div>
 
           {payments.isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader2 className="size-6 animate-spin text-primary" />
-            </div>
+            <TableSkeleton rows={6} cols={10} />
           ) : filteredPayments.length === 0 ? (
             <EmptyState
-              title={searchQuery || methodFilter !== "all" ? "No payments match your filters" : "No payments yet"}
-              hint={searchQuery || methodFilter !== "all" ? "Try clearing search or filter criteria." : "Record a payment to generate the first receipt."}
+              icon={Receipt}
+              title={searchQuery || methodFilter !== "all" ? "No payments match your filters" : "No payments recorded yet"}
+              hint={
+                searchQuery || methodFilter !== "all"
+                  ? "Try clearing your search query or payment method filter."
+                  : "Record your first rent collection to generate and dispatch an instant verified receipt."
+              }
+              action={
+                searchQuery || methodFilter !== "all"
+                  ? {
+                      label: "Clear Filters",
+                      onClick: () => {
+                        setSearchQuery("");
+                        setMethodFilter("all");
+                      },
+                    }
+                  : {
+                      label: "+ Record First Payment",
+                      onClick: () => {
+                        setDraft({
+                          tenant_id: "",
+                          amount: 0,
+                          method: "mpesa",
+                          reference: "",
+                          paid_at: today(),
+                          period_label: new Date().toISOString().slice(0, 7),
+                          notes: "",
+                        });
+                        setOpen(true);
+                      },
+                    }
+              }
             />
           ) : (
             <div className="overflow-x-auto">
@@ -443,7 +483,7 @@ function PaymentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {filteredPayments.map((p: any) => (
+                  {paginatedPayments.map((p: any) => (
                     <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                       <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                         {shortDate(p.paid_at)}
@@ -523,10 +563,7 @@ function PaymentsPage() {
                             className="size-8 rounded-full text-destructive"
                             aria-label="Delete payment"
                             onClick={() => {
-                              if (
-                                confirm("Delete this payment and its receipt? This cannot be undone.")
-                              )
-                                deleteMutation.mutate(p.id);
+                              setDeletingPaymentId(p.id);
                             }}
                           >
                             <Trash2 className="size-3.5" />
@@ -537,6 +574,38 @@ function PaymentsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {filteredPayments.length > pageSize && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 text-xs text-muted-foreground">
+              <span>
+                Showing {(page - 1) * pageSize + 1} to{" "}
+                {Math.min(page * pageSize, filteredPayments.length)} of {filteredPayments.length} payments
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full px-3 text-xs gap-1"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p: number) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="size-3.5" /> Previous
+                </Button>
+                <span className="font-semibold text-foreground px-1">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full px-3 text-xs gap-1"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))}
+                >
+                  Next <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -722,6 +791,22 @@ function PaymentsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deletingPaymentId)}
+        onOpenChange={(isOpen) => !isOpen && setDeletingPaymentId(null)}
+        title="Delete Payment & Receipt"
+        description="Are you sure you want to delete this payment record and its associated digital receipt? This action cannot be undone."
+        confirmText="Delete Payment"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingPaymentId) {
+            deleteMutation.mutate(deletingPaymentId, {
+              onSettled: () => setDeletingPaymentId(null),
+            });
+          }
+        }}
+      />
     </AppShell>
   );
 }

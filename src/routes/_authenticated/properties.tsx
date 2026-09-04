@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Building2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Building2, Pencil, Plus, Trash2, Wifi, Shield, Zap, Car, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { deleteProperty, listProperties, saveProperty } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
+import { ConfirmDialog } from "@/components/app/ConfirmDialog";
+import { CardGridSkeleton } from "@/components/app/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +41,16 @@ export const Route = createFileRoute("/_authenticated/properties")({
   component: PropertiesPage,
 });
 
+const COMMON_AMENITIES = [
+  "Free High-Speed WiFi",
+  "CCTV 24/7 Surveillance",
+  "Borehole / Clean Water Backup",
+  "Backup Power Generator",
+  "Dedicated Tenant Parking",
+  "Perimeter Electric Fence",
+  "Garbage Collection Included",
+];
+
 type Draft = {
   id?: string;
   name: string;
@@ -49,6 +61,8 @@ type Draft = {
   units_count: number;
   status: string;
   notes: string;
+  amenities: string[];
+  image_url: string;
 };
 
 const blank: Draft = {
@@ -60,6 +74,8 @@ const blank: Draft = {
   units_count: 0,
   status: "active",
   notes: "",
+  amenities: [],
+  image_url: "",
 };
 
 function PropertiesPage() {
@@ -69,11 +85,19 @@ function PropertiesPage() {
   const remove = useServerFn(deleteProperty);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(blank);
+  const [deletingProperty, setDeletingProperty] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["properties"], queryFn: () => fetchAll() });
 
   const saveMutation = useMutation({
-    mutationFn: (d: Draft) => save({ data: { ...d, amenities: [] } }),
+    mutationFn: (d: Draft) =>
+      save({
+        data: {
+          ...d,
+          amenities: d.amenities || [],
+          image_url: d.image_url || null,
+        },
+      }),
     onSuccess: () => {
       toast.success("Property saved");
       setOpen(false);
@@ -110,11 +134,19 @@ function PropertiesPage() {
       }
     >
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading properties…</p>
+        <CardGridSkeleton count={3} />
       ) : (data ?? []).length === 0 ? (
         <EmptyState
-          title="No properties yet"
-          hint="Add your first property to start tracking units and tenants."
+          icon={Building2}
+          title="No properties added yet"
+          hint="Add your first property to start tracking units, tenants, and digital rent receipts."
+          action={{
+            label: "+ Add First Property",
+            onClick: () => {
+              setDraft(blank);
+              setOpen(true);
+            },
+          }}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -163,7 +195,9 @@ function PropertiesPage() {
                         description: p.description ?? "",
                         units_count: Number(p.units_count ?? 0),
                         status: p.status ?? "active",
-                        notes: p.notes ?? "",
+                        notes: (p as any).notes ?? "",
+                        amenities: (p as any).amenities ?? [],
+                        image_url: (p as any).image_url ?? "",
                       });
                       setOpen(true);
                     }}
@@ -175,9 +209,7 @@ function PropertiesPage() {
                     variant="ghost"
                     className="rounded-full text-destructive"
                     onClick={() => {
-                      if (confirm(`Delete ${p.name}? This removes its units and tenants.`)) {
-                        deleteMutation.mutate(p.id);
-                      }
+                      setDeletingProperty({ id: p.id, name: p.name });
                     }}
                   >
                     <Trash2 className="size-3.5" />
@@ -265,11 +297,59 @@ function PropertiesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Building Photo URL (Optional)" htmlFor="pimg" className="sm:col-span-2">
+              <Input
+                id="pimg"
+                maxLength={600}
+                placeholder="https://..."
+                value={draft.image_url}
+                onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
+              />
+            </Field>
+            <div className="sm:col-span-2 space-y-2">
+              <label className="text-xs font-semibold text-foreground">
+                Property Amenities (Optional)
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {COMMON_AMENITIES.map((amenity) => {
+                  const selected = draft.amenities.includes(amenity);
+                  return (
+                    <button
+                      key={amenity}
+                      type="button"
+                      onClick={() => {
+                        setDraft({
+                          ...draft,
+                          amenities: selected
+                            ? draft.amenities.filter((a) => a !== amenity)
+                            : [...draft.amenities, amenity],
+                        });
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
+                          : "bg-muted/30 hover:bg-muted text-muted-foreground border-border"
+                      }`}
+                    >
+                      {amenity}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <Field label="Description" className="sm:col-span-2">
               <Textarea
                 maxLength={2000}
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              />
+            </Field>
+            <Field label="Private Notes (Optional)" className="sm:col-span-2">
+              <Input
+                maxLength={2000}
+                placeholder="Internal landlord notes, caretakers, meter instructions..."
+                value={draft.notes}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               />
             </Field>
             <DialogFooter className="sm:col-span-2">
@@ -280,6 +360,22 @@ function PropertiesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deletingProperty)}
+        onOpenChange={(isOpen) => !isOpen && setDeletingProperty(null)}
+        title="Delete Property"
+        description={`Are you sure you want to delete "${deletingProperty?.name}"? Warning: this permanently removes all its units, tenants, and payment records.`}
+        confirmText="Delete Property"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingProperty) {
+            deleteMutation.mutate(deletingProperty.id, {
+              onSettled: () => setDeletingProperty(null),
+            });
+          }
+        }}
+      />
     </AppShell>
   );
 }

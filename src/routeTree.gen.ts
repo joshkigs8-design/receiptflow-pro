@@ -28,6 +28,8 @@ import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authen
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedCaretakersRouteImport } from './routes/_authenticated/caretakers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
+import { Route as AuthenticatedLeasesRouteImport } from './routes/_authenticated/leases'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedPropertiesRouteImport } from './routes/_authenticated/properties'
 import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
@@ -139,6 +141,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLeasesRoute = AuthenticatedLeasesRouteImport.update({
+  id: '/leases',
+  path: '/leases',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -235,6 +247,8 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AuthenticatedBillingRoute
   '/caretakers': typeof AuthenticatedCaretakersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
+  '/leases': typeof AuthenticatedLeasesRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
   '/receipts': typeof AuthenticatedReceiptsRoute
@@ -269,6 +283,8 @@ export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
   '/caretakers': typeof AuthenticatedCaretakersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
+  '/leases': typeof AuthenticatedLeasesRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/properties': typeof AuthenticatedPropertiesRoute
   '/receipts': typeof AuthenticatedReceiptsRoute
@@ -306,6 +322,8 @@ export interface FileRoutesById {
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/caretakers': typeof AuthenticatedCaretakersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
+  '/_authenticated/leases': typeof AuthenticatedLeasesRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/properties': typeof AuthenticatedPropertiesRoute
   '/_authenticated/receipts': typeof AuthenticatedReceiptsRoute
@@ -343,6 +361,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/caretakers'
     | '/dashboard'
+    | '/expenses'
+    | '/leases'
     | '/payments'
     | '/properties'
     | '/receipts'
@@ -377,6 +397,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/caretakers'
     | '/dashboard'
+    | '/expenses'
+    | '/leases'
     | '/payments'
     | '/properties'
     | '/receipts'
@@ -413,6 +435,8 @@ export interface FileRouteTypes {
     | '/_authenticated/billing'
     | '/_authenticated/caretakers'
     | '/_authenticated/dashboard'
+    | '/_authenticated/expenses'
+    | '/_authenticated/leases'
     | '/_authenticated/payments'
     | '/_authenticated/properties'
     | '/_authenticated/receipts'
@@ -587,6 +611,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/expenses': {
+      id: '/_authenticated/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof AuthenticatedExpensesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/leases': {
+      id: '/_authenticated/leases'
+      path: '/leases'
+      fullPath: '/leases'
+      preLoaderRoute: typeof AuthenticatedLeasesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/payments': {
       id: '/_authenticated/payments'
       path: '/payments'
@@ -700,6 +738,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCaretakersRoute: typeof AuthenticatedCaretakersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
+  AuthenticatedLeasesRoute: typeof AuthenticatedLeasesRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedPropertiesRoute: typeof AuthenticatedPropertiesRoute
   AuthenticatedReceiptsRoute: typeof AuthenticatedReceiptsRoute
@@ -715,6 +755,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCaretakersRoute: AuthenticatedCaretakersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
+  AuthenticatedLeasesRoute: AuthenticatedLeasesRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedPropertiesRoute: AuthenticatedPropertiesRoute,
   AuthenticatedReceiptsRoute: AuthenticatedReceiptsRoute,

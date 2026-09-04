@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 
 export function Field({
   label,
@@ -20,11 +22,43 @@ export function Field({
   );
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({
+  title,
+  hint,
+  icon: Icon,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  action?: { label: string; onClick?: () => void; to?: string };
+}) {
   return (
-    <div className="surface-card p-10 text-center">
-      <p className="font-semibold">{title}</p>
-      {hint ? <p className="mt-2 text-sm text-muted-foreground">{hint}</p> : null}
+    <div className="surface-card p-10 text-center flex flex-col items-center justify-center rounded-2xl border border-border/80">
+      {Icon ? (
+        <div className="mb-3.5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon className="size-6" />
+        </div>
+      ) : null}
+      <p className="font-semibold text-foreground">{title}</p>
+      {hint ? <p className="mt-1.5 text-xs text-muted-foreground max-w-sm">{hint}</p> : null}
+      {action ? (
+        <div className="mt-4">
+          {action.to ? (
+            <Button asChild size="sm" className="rounded-full shadow-glow font-semibold text-xs">
+              <Link to={action.to}>{action.label}</Link>
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={action.onClick}
+              className="rounded-full shadow-glow font-semibold text-xs"
+            >
+              {action.label}
+            </Button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

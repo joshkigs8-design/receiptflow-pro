@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { DoorOpen, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteUnit, listProperties, listUnits, saveUnit } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
+import { ConfirmDialog } from "@/components/app/ConfirmDialog";
+import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +50,8 @@ type Draft = {
   deposit: number;
   status: string;
   utilities: string;
+  image_url: string;
+  notes: string;
 };
 
 const blank: Draft = {
@@ -59,6 +63,8 @@ const blank: Draft = {
   deposit: 0,
   status: "vacant",
   utilities: "",
+  image_url: "",
+  notes: "",
 };
 
 function UnitsPage() {
@@ -70,6 +76,7 @@ function UnitsPage() {
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(blank);
+  const [deletingUnit, setDeletingUnit] = useState<{ id: string; unit_number: string } | null>(null);
 
   const properties = useQuery({ queryKey: ["properties"], queryFn: () => fetchProperties() });
   const units = useQuery({
@@ -131,9 +138,20 @@ function UnitsPage() {
       </div>
 
       {units.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading units…</p>
+        <TableSkeleton rows={5} cols={7} />
       ) : (units.data ?? []).length === 0 ? (
-        <EmptyState title="No units yet" hint="Add units so tenants and rent can be tracked." />
+        <EmptyState
+          icon={DoorOpen}
+          title="No units found"
+          hint="Add units to your property to track rooms, rent amounts, utilities and tenant occupancy."
+          action={{
+            label: "+ Add First Unit",
+            onClick: () => {
+              setDraft(blank);
+              setOpen(true);
+            },
+          }}
+        />
       ) : (
         <div className="surface-card overflow-x-auto p-2">
           <table className="w-full text-sm">
@@ -180,6 +198,8 @@ function UnitsPage() {
                           deposit: Number(u.deposit ?? 0),
                           status: u.status ?? "vacant",
                           utilities: u.utilities ?? "",
+                          image_url: (u as any).image_url ?? "",
+                          notes: (u as any).notes ?? "",
                         });
                         setOpen(true);
                       }}
@@ -191,7 +211,7 @@ function UnitsPage() {
                       variant="ghost"
                       className="rounded-full text-destructive"
                       onClick={() => {
-                        if (confirm(`Delete unit ${u.unit_number}?`)) deleteMutation.mutate(u.id);
+                        setDeletingUnit({ id: u.id, unit_number: u.unit_number });
                       }}
                     >
                       <Trash2 className="size-3.5" />
@@ -301,6 +321,23 @@ function UnitsPage() {
                 onChange={(e) => setDraft({ ...draft, utilities: e.target.value })}
               />
             </Field>
+            <Field label="Unit Photo URL (Optional)" htmlFor="uimg" className="sm:col-span-2">
+              <Input
+                id="uimg"
+                maxLength={600}
+                placeholder="https://..."
+                value={draft.image_url}
+                onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
+              />
+            </Field>
+            <Field label="Internal Notes (Optional)" className="sm:col-span-2">
+              <Input
+                maxLength={1000}
+                placeholder="Key codes, inventory, meter number..."
+                value={draft.notes}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              />
+            </Field>
             <DialogFooter className="sm:col-span-2">
               <Button type="submit" className="rounded-full" disabled={saveMutation.isPending}>
                 Save unit
@@ -309,6 +346,22 @@ function UnitsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deletingUnit)}
+        onOpenChange={(isOpen) => !isOpen && setDeletingUnit(null)}
+        title="Delete Unit"
+        description={`Are you sure you want to delete Unit ${deletingUnit?.unit_number}? This action cannot be undone.`}
+        confirmText="Delete Unit"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingUnit) {
+            deleteMutation.mutate(deletingUnit.id, {
+              onSettled: () => setDeletingUnit(null),
+            });
+          }
+        }}
+      />
     </AppShell>
   );
 }

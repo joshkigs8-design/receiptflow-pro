@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   announcementSchema,
+  expenseSchema,
+  leaseSchema,
   paymentSchema,
   propertySchema,
   settingsSchema,
@@ -257,16 +259,32 @@ export const deleteUnit = createServerFn({ method: "POST" })
 
 export const listTenants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .validator((data: unknown) =>
+    z
+      .object({
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(100).optional(),
+      })
+      .optional()
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    let query = context.supabase
       .from("tenants")
       .select("*, properties(name,code), units(unit_number,room_number)")
       .eq("landlord_id", context.userId)
       .neq("status", "vacated")
       .neq("status", "inactive")
       .order("created_at", { ascending: false });
+
+    if (data?.page && data?.pageSize) {
+      const from = (data.page - 1) * data.pageSize;
+      const to = from + data.pageSize - 1;
+      query = query.range(from, to);
+    }
+    const { data: rows, error } = await query;
     if (error) throw error;
-    return data;
+    return rows;
   });
 
 export const saveTenant = createServerFn({ method: "POST" })
@@ -314,16 +332,32 @@ export const deleteTenant = createServerFn({ method: "POST" })
 
 export const listPayments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .validator((data: unknown) =>
+    z
+      .object({
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(100).optional(),
+      })
+      .optional()
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    let query = context.supabase
       .from("payments")
       .select(
         "*, tenants(full_name,phone,rent_amount), properties(name), units(unit_number,room_number), receipts(id,receipt_number,public_id)",
       )
       .eq("landlord_id", context.userId)
       .order("paid_at", { ascending: false });
+
+    if (data?.page && data?.pageSize) {
+      const from = (data.page - 1) * data.pageSize;
+      const to = from + data.pageSize - 1;
+      query = query.range(from, to);
+    }
+    const { data: rows, error } = await query;
     if (error) throw error;
-    return data;
+    return rows;
   });
 
 export const recordPayment = createServerFn({ method: "POST" })
@@ -448,14 +482,30 @@ export const recordPayment = createServerFn({ method: "POST" })
 
 export const listReceipts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .validator((data: unknown) =>
+    z
+      .object({
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(100).optional(),
+      })
+      .optional()
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    let query = context.supabase
       .from("receipts")
       .select("*, tenants(full_name,phone)")
       .eq("landlord_id", context.userId)
       .order("issued_at", { ascending: false });
+
+    if (data?.page && data?.pageSize) {
+      const from = (data.page - 1) * data.pageSize;
+      const to = from + data.pageSize - 1;
+      query = query.range(from, to);
+    }
+    const { data: rows, error } = await query;
     if (error) throw error;
-    return data;
+    return rows;
   });
 
 export const updatePayment = createServerFn({ method: "POST" })
@@ -642,14 +692,133 @@ export const getReports = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb = context.supabase;
     const mine = context.userId;
-    const [payments, tenants, units] = await Promise.all([
+    const [payments, tenants, units, expenses] = await Promise.all([
       sb.from("payments").select("amount,paid_at,method,status,tenant_id").eq("landlord_id", mine),
       sb.from("tenants").select("id,full_name,rent_amount,status").eq("landlord_id", mine),
       sb.from("units").select("id,status,rent").eq("landlord_id", mine),
+      (sb.from("expenses" as any) as any)
+        .select("id,amount,category,expense_date,vendor")
+        .eq("landlord_id", mine),
     ]);
     return {
       payments: payments.data ?? [],
       tenants: tenants.data ?? [],
       units: units.data ?? [],
+      expenses: ((expenses as any)?.data ?? []) as Array<{
+        id: string;
+        amount: number;
+        category: string;
+        expense_date: string;
+        vendor: string | null;
+      }>,
     };
   });
+
+export const listLeases = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await (context.supabase.from("leases" as any) as any)
+      .select("*, tenants(id,full_name,phone,rent_amount,units(unit_number,room_number),properties(name))")
+      .eq("landlord_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as any[];
+  });
+
+export const saveLease = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => leaseSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { id, ...rest } = data;
+    const payload = clean({
+      ...rest,
+      start_date: rest.start_date || null,
+      end_date: rest.end_date || null,
+      document_url: rest.document_url || null,
+      landlord_id: context.userId,
+    });
+    const { error } = id
+      ? await (context.supabase.from("leases" as any) as any)
+          .update(payload)
+          .eq("id", id)
+          .eq("landlord_id", context.userId)
+      : await (context.supabase.from("leases" as any) as any).insert(payload);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const deleteLease = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase.from("leases" as any) as any)
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const listExpenses = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        propertyId: z.string().uuid().optional(),
+        category: z.string().optional(),
+      })
+      .optional()
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    let query = (context.supabase.from("expenses" as any) as any)
+      .select("*, properties(id,name,code)")
+      .eq("landlord_id", context.userId)
+      .order("expense_date", { ascending: false });
+
+    if (data?.propertyId) {
+      query = query.eq("property_id", data.propertyId);
+    }
+    if (data?.category && data.category !== "all") {
+      query = query.eq("category", data.category);
+    }
+    const { data: rows, error } = await query;
+    if (error) throw error;
+    return (rows ?? []) as any[];
+  });
+
+export const saveExpense = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => expenseSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { id, ...rest } = data;
+    const payload = clean({
+      ...rest,
+      property_id: rest.property_id || null,
+      vendor: rest.vendor || null,
+      receipt_image_url: rest.receipt_image_url || null,
+      notes: rest.notes || null,
+      landlord_id: context.userId,
+    });
+    const { error } = id
+      ? await (context.supabase.from("expenses" as any) as any)
+          .update(payload)
+          .eq("id", id)
+          .eq("landlord_id", context.userId)
+      : await (context.supabase.from("expenses" as any) as any).insert(payload);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const deleteExpense = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase.from("expenses" as any) as any)
+      .delete()
+      .eq("id", data.id)
+      .eq("landlord_id", context.userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+

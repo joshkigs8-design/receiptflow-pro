@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteTenant,
@@ -14,6 +14,8 @@ import {
 } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { EmptyState, Field } from "@/components/app/Field";
+import { ConfirmDialog } from "@/components/app/ConfirmDialog";
+import { CardGridSkeleton } from "@/components/app/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,13 +58,16 @@ type Draft = {
   phone: string;
   email: string;
   national_id: string;
+  passport: string;
   occupation: string;
   emergency_contact: string;
+  photo_url: string;
   lease_start: string;
   lease_end: string;
   rent_amount: number;
   deposit_paid: number;
   status: string;
+  notes: string;
 };
 
 const blank: Draft = {
@@ -72,13 +77,16 @@ const blank: Draft = {
   phone: "",
   email: "",
   national_id: "",
+  passport: "",
   occupation: "",
   emergency_contact: "",
+  photo_url: "",
   lease_start: "",
   lease_end: "",
   rent_amount: 0,
   deposit_paid: 0,
   status: "active",
+  notes: "",
 };
 
 function TenantsPage() {
@@ -92,6 +100,7 @@ function TenantsPage() {
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(blank);
+  const [deletingTenant, setDeletingTenant] = useState<{ id: string; name: string } | null>(null);
   const [rentalPeriod, setRentalPeriod] = useState<string>(() => {
     const now = new Date();
     return now.toISOString().slice(0, 7);
@@ -437,8 +446,23 @@ function TenantsPage() {
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState title="No tenants found" hint="Add a tenant and assign them to a unit." />
+      {tenants.isLoading || payments.isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={term || filter !== "all" ? "No matching tenants" : "No tenants found"}
+          hint={
+            term || filter !== "all"
+              ? "Try adjusting your search keywords or filter tab."
+              : "Add your first tenant and assign them to a unit to start tracking rent."
+          }
+          action={
+            term || filter !== "all"
+              ? { label: "Clear Filters", onClick: () => { setTerm(""); setFilter("all"); } }
+              : { label: "+ Add First Tenant", onClick: () => { setDraft(blank); setOpen(true); } }
+          }
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((t) => (
@@ -528,13 +552,16 @@ function TenantsPage() {
                       phone: t.phone,
                       email: t.email ?? "",
                       national_id: t.national_id ?? "",
+                      passport: (t as any).passport ?? "",
                       occupation: t.occupation ?? "",
                       emergency_contact: t.emergency_contact ?? "",
+                      photo_url: (t as any).photo_url ?? "",
                       lease_start: t.lease_start ?? "",
                       lease_end: t.lease_end ?? "",
                       rent_amount: Number(t.rent_amount ?? 0),
                       deposit_paid: Number(t.deposit_paid ?? 0),
                       status: t.status ?? "active",
+                      notes: (t as any).notes ?? "",
                     });
                     setOpen(true);
                   }}
@@ -546,7 +573,7 @@ function TenantsPage() {
                   variant="ghost"
                   className="rounded-full text-destructive"
                   onClick={() => {
-                    if (confirm(`Remove ${t.full_name}?`)) deleteMutation.mutate(t.id);
+                    setDeletingTenant({ id: t.id, name: t.full_name });
                   }}
                 >
                   <Trash2 className="size-3.5" />
@@ -603,6 +630,15 @@ function TenantsPage() {
                 maxLength={40}
                 value={draft.national_id}
                 onChange={(e) => setDraft({ ...draft, national_id: e.target.value })}
+              />
+            </Field>
+            <Field label="Passport No. (Optional)" htmlFor="passport">
+              <Input
+                id="passport"
+                maxLength={40}
+                placeholder="e.g. A1234567"
+                value={draft.passport}
+                onChange={(e) => setDraft({ ...draft, passport: e.target.value })}
               />
             </Field>
             <Field label="Property">
@@ -698,6 +734,24 @@ function TenantsPage() {
                 onChange={(e) => setDraft({ ...draft, emergency_contact: e.target.value })}
               />
             </Field>
+            <Field label="Photo URL (Optional)" htmlFor="photo">
+              <Input
+                id="photo"
+                maxLength={600}
+                placeholder="https://..."
+                value={draft.photo_url}
+                onChange={(e) => setDraft({ ...draft, photo_url: e.target.value })}
+              />
+            </Field>
+            <Field label="Private Notes (Optional)" htmlFor="notes" className="sm:col-span-2">
+              <Input
+                id="notes"
+                maxLength={2000}
+                placeholder="Internal notes about tenant, special terms, background check, etc."
+                value={draft.notes}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              />
+            </Field>
             <DialogFooter className="sm:col-span-2">
               <Button type="submit" className="rounded-full" disabled={saveMutation.isPending}>
                 Save tenant
@@ -706,6 +760,22 @@ function TenantsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deletingTenant)}
+        onOpenChange={(isOpen) => !isOpen && setDeletingTenant(null)}
+        title="Remove Tenant"
+        description={`Are you sure you want to remove ${deletingTenant?.name}? This action cannot be undone.`}
+        confirmText="Remove Tenant"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingTenant) {
+            deleteMutation.mutate(deletingTenant.id, {
+              onSettled: () => setDeletingTenant(null),
+            });
+          }
+        }}
+      />
     </AppShell>
   );
 }

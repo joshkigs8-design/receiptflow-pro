@@ -21,10 +21,12 @@ import {
   Receipt,
   ShieldCheck,
   Sparkles,
+  Tag,
 } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getSubscription, startCheckout, verifyCheckout } from "@/lib/billing.functions";
+import { redeemVoucher } from "@/lib/admin.functions";
 import { PLANS, type PlanKey } from "@/lib/plans";
 import { money, shortDate } from "@/lib/format";
 import {
@@ -92,7 +95,10 @@ function BillingPage() {
   const [pending, setPending] = useState<PlanKey | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentRecord | null>(null);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
   const verified = useRef(false);
+  const redeem = useServerFn(redeemVoucher);
 
   const { data } = useQuery({ queryKey: ["subscription"], queryFn: () => fetchSubscription() });
 
@@ -145,6 +151,26 @@ function BillingPage() {
       toast.error("Could not generate PDF receipt");
     } finally {
       setDownloadingId(null);
+    }
+  }
+
+  async function handleRedeemVoucher(e: React.FormEvent) {
+    e.preventDefault();
+    if (!voucherCode.trim()) return;
+    setRedeeming(true);
+    try {
+      const res = await redeem({ data: { code: voucherCode.trim() } });
+      if (res.ok) {
+        toast.success(res.message || `Voucher applied successfully! Added ${res.months ?? ""} months.`);
+        setVoucherCode("");
+        await qc.invalidateQueries({ queryKey: ["subscription"] });
+      } else {
+        toast.error(res.message || "Invalid or expired voucher code");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to redeem voucher");
+    } finally {
+      setRedeeming(false);
     }
   }
 
@@ -271,7 +297,7 @@ function BillingPage() {
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
                     <>
-                      <CreditCard className="size-4" /> Pay {money(effectivePrice)} with Paystack
+                      <CreditCard className="size-4" /> Pay {money(effectivePrice)} (M-Pesa / Card)
                     </>
                   )}
                 </Button>
@@ -375,9 +401,37 @@ function BillingPage() {
           </div>
         </div>
 
+        {/* Redeem Voucher Card */}
+        <div className="surface-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <h3 className="font-display text-sm sm:text-base font-bold flex items-center gap-2">
+              <Tag className="size-4 text-primary" /> Have a Promo or Voucher Code?
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Enter your voucher code to claim promotional free subscription access.
+            </p>
+          </div>
+          <form onSubmit={handleRedeemVoucher} className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              placeholder="e.g. PROMO2026"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              className="uppercase font-mono text-xs h-10 w-full sm:w-48 rounded-xl"
+              disabled={redeeming}
+            />
+            <Button
+              type="submit"
+              disabled={redeeming || !voucherCode.trim()}
+              className="rounded-xl font-semibold text-xs h-10 shrink-0"
+            >
+              {redeeming ? <Loader2 className="size-3.5 animate-spin" /> : "Redeem"}
+            </Button>
+          </form>
+        </div>
+
         <p className="text-center text-xs text-muted-foreground px-2">
-          Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 14 days
-          free. Need help? WhatsApp 0742868209.
+          Secure payments by Paystack — M-Pesa, card and bank supported. New accounts get 1 month
+          free trial on signup. Need help? WhatsApp 0742868209.
         </p>
 
         {/* Subscription Payment History Ledger & Official Receipts */}

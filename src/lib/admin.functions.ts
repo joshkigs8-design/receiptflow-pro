@@ -46,7 +46,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .limit(200),
         supabaseAdmin.from("properties").select("id,landlord_id,name"),
-        supabaseAdmin.from("units").select("id,property_id,unit_number,rent_amount"),
+        supabaseAdmin.from("units").select("id,property_id,unit_number,rent"),
         supabaseAdmin.from("tenants").select("id,landlord_id,status,full_name"),
         supabaseAdmin
           .from("voucher_redemptions")
@@ -371,7 +371,7 @@ export const getAffiliateStats = createServerFn({ method: "GET" })
       affiliates: (affiliates.data ?? []).map((a) => ({
         ...a,
         email: userMap.get(a.user_id) ?? "—",
-        totalCommissions: commissionByAffiliate.get(a.user_id) ?? 0,
+        totalCommissions: commissionByAffiliate.get(a.id) ?? 0,
         totalWithdrawn: withdrawalByAffiliate.get(a.user_id)?.paid ?? 0,
         pendingWithdrawals: withdrawalByAffiliate.get(a.user_id)?.pending ?? 0,
       })),

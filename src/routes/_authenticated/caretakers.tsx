@@ -27,6 +27,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
+import { ConfirmDialog } from "@/components/app/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,7 @@ function CaretakersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [visiblePins, setVisiblePins] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<CaretakerRecord | null>(null);
+  const [revokingCaretaker, setRevokingCaretaker] = useState<{ id: string; name: string } | null>(null);
 
   // Form State
   const [name, setName] = useState("");
@@ -365,9 +367,7 @@ function CaretakersPage() {
                       variant="ghost"
                       className="rounded-full h-8 px-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
                       onClick={() => {
-                        if (confirm(`Revoke on-site access for ${c.name}?`)) {
-                          deleteMutation.mutate(c.id);
-                        }
+                        setRevokingCaretaker({ id: c.id, name: c.name });
                       }}
                     >
                       <Trash2 className="size-3.5" />
@@ -537,6 +537,22 @@ function CaretakersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(revokingCaretaker)}
+        onOpenChange={(isOpen) => !isOpen && setRevokingCaretaker(null)}
+        title="Revoke Caretaker Access"
+        description={`Are you sure you want to revoke on-site collection and management access for ${revokingCaretaker?.name}? Their PIN and session will be deactivated immediately.`}
+        confirmText="Revoke Access"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (revokingCaretaker) {
+            deleteMutation.mutate(revokingCaretaker.id, {
+              onSettled: () => setRevokingCaretaker(null),
+            });
+          }
+        }}
+      />
     </AppShell>
   );
 }
