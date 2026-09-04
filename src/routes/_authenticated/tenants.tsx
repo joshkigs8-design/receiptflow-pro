@@ -248,7 +248,6 @@ function TenantsPage() {
               ? rentStatuses[t.id]?.status === "PARTIAL"
               : filter === "unpaid"
                 ? rentStatuses[t.id]?.status === "UNPAID"
-                : true) &&
                 : filter === "arrears"
                   ? rentStatuses[t.id]?.status === "ARREARS"
                   : true) &&

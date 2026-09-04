@@ -629,8 +629,6 @@ function MobileAdminPage() {
           <button
             type="button"
             onClick={() => setActiveTab("vouchers")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 ${
               activeTab === "vouchers" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -638,15 +636,11 @@ function MobileAdminPage() {
             <Ticket className="size-3.5 text-purple-500" />
             <span className="hidden sm:inline">Vouchers</span>
             <span className="sm:hidden">Codes</span>
-            <Ticket className="size-3.5 text-amber-500" />
-            <span>Vouchers</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("payouts")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 relative ${
-              activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground"
             className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 relative ${
               activeTab === "payouts" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -654,8 +648,6 @@ function MobileAdminPage() {
             <Wallet className="size-3.5 text-amber-500" />
             <span className="hidden sm:inline">Affiliates</span>
             <span className="sm:hidden">Payouts</span>
-            <Wallet className="size-3.5 text-emerald-500" />
-            <span>Affiliates</span>
             {withdrawals.filter((w) => w.status === "pending").length > 0 ? (
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             ) : null}

@@ -911,10 +911,8 @@ function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Top Header Metrics Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => (
-          <div key={c.label} className="surface-card p-5 transition-all hover:shadow-md border border-border/80 rounded-2xl">
           <div
             key={c.label}
             onClick={() => (c as any).tab && setActiveTab((c as any).tab)}
