@@ -474,6 +474,56 @@ export type Database = {
           },
         ];
       };
+      expenses: {
+        Row: {
+          amount: number;
+          category: string;
+          created_at: string;
+          expense_date: string;
+          id: string;
+          landlord_id: string;
+          notes: string | null;
+          property_id: string | null;
+          receipt_image_url: string | null;
+          updated_at: string;
+          vendor: string | null;
+        };
+        Insert: {
+          amount: number;
+          category?: string;
+          created_at?: string;
+          expense_date?: string;
+          id?: string;
+          landlord_id?: string;
+          notes?: string | null;
+          property_id?: string | null;
+          receipt_image_url?: string | null;
+          updated_at?: string;
+          vendor?: string | null;
+        };
+        Update: {
+          amount?: number;
+          category?: string;
+          created_at?: string;
+          expense_date?: string;
+          id?: string;
+          landlord_id?: string;
+          notes?: string | null;
+          property_id?: string | null;
+          receipt_image_url?: string | null;
+          updated_at?: string;
+          vendor?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "expenses_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       maintenance_requests: {
         Row: {
           category: string;
