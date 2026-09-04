@@ -453,7 +453,6 @@ function TenantPortal() {
 
               <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-medium">Balance Due</p>
-                <p className={`mt-2 font-display text-2xl font-bold ${portal.totals.rentBalance > 0 ? "text-rose-500" : "text-foreground"}`}>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground uppercase font-medium">Total Balance Due</p>
                   {((portal.totals as any).priorArrears ?? 0) > 0 ? (

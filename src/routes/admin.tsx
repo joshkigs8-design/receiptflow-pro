@@ -658,7 +658,6 @@ function AdminDashboard() {
 
   const updateMessageMut = useMutation({
     mutationFn: (data: { id: string; status?: any; isPublicTestimonial?: boolean; adminReply?: string }) =>
-      updateSiteMessageAdmin({ data }),
       mutateAdminMessage({ data }),
     onSuccess: () => {
       toast.success("Message updated successfully");

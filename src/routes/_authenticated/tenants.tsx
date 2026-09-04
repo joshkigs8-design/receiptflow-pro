@@ -224,10 +224,8 @@ function TenantsPage() {
       statuses[t.id] = {
         paidThisPeriod,
         monthlyRent,
-        balance,
         balance: totalBalance, // Full balance shows the true remaining debt
         totalBalance,
-        thisPeriodBalance,
         priorArrears,
         status,
       };
