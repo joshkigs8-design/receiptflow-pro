@@ -97,7 +97,6 @@ function SettingsPage() {
   const [form, setForm] = useState({
     full_name: "",
     company_name: "Codevanta Ventures",
-    company_name: "",
     logo_url: "",
     phone: "",
     currency: "KSh",
@@ -133,7 +132,6 @@ function SettingsPage() {
     setForm({
       full_name: data.full_name ?? "",
       company_name: data.company_name ?? "Codevanta Ventures",
-      company_name: data.company_name ?? "",
       logo_url: data.logo_url ?? "",
       phone: data.phone ?? "",
       currency: data.currency ?? "KSh",

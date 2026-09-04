@@ -38,6 +38,10 @@ import {
 } from "recharts";
 import { getDashboard } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
+import { CollectionMeter } from "@/components/dashboard/CollectionMeter";
+import { OccupancyGauge } from "@/components/dashboard/OccupancyGauge";
+import { MotionContainer, MotionItem } from "@/components/ui/motion-stagger";
+import { LiveRadar } from "@/components/ui/live-radar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,6 +139,7 @@ function DashboardPage() {
       description="Live overview of your rental portfolio and collections"
       actions={
         <div className="flex items-center gap-2">
+          <LiveRadar status="online" label="M-Pesa Sync Active" className="hidden lg:inline-flex" />
           <Button
             variant="outline"
             size="sm"
@@ -151,7 +156,7 @@ function DashboardPage() {
           >
             <BookOpen className="size-3.5" /> Manual (PDF)
           </Button>
-          <Button asChild size="sm" className="rounded-full shadow-glow text-xs h-9 gap-1.5 font-semibold">
+          <Button asChild size="sm" className="rounded-full shadow-glow text-xs h-9 gap-1.5 font-semibold tactile-press">
             <Link to="/payments">
               <Plus className="size-4" /> Record Payment
             </Link>
@@ -159,83 +164,74 @@ function DashboardPage() {
         </div>
       }
     >
-      <div className="space-y-6">
+      <MotionContainer className="space-y-6" staggerChildren={0.08}>
         {/* KPI Metric Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MotionContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" staggerChildren={0.05}>
           {cards.map((c) => (
-            <div key={c.label} className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{c.label}</p>
-                <span className="p-2 rounded-xl bg-accent/60">
-                  <c.icon className={`size-4 ${c.color}`} />
-                </span>
+            <MotionItem key={c.label}>
+              <div className="surface-card p-5 rounded-2xl border border-border/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30 group">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{c.label}</p>
+                  <span className="p-2 rounded-xl bg-accent/60 transition-transform group-hover:scale-105">
+                    <c.icon className={`size-4 ${c.color}`} />
+                  </span>
+                </div>
+                {isLoading ? (
+                  <Skeleton className="mt-3 h-7 w-28" />
+                ) : (
+                  <>
+                    <p className="mt-2 font-display text-2xl font-bold tracking-tight">{c.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{c.sub}</p>
+                  </>
+                )}
               </div>
-              {isLoading ? (
-                <Skeleton className="mt-3 h-7 w-28" />
-              ) : (
-                <>
-                  <p className="mt-2 font-display text-2xl font-bold tracking-tight">{c.value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{c.sub}</p>
-                </>
-              )}
-            </div>
+            </MotionItem>
           ))}
-        </div>
+        </MotionContainer>
 
-        {/* Collection Progress & Quick Action Toolbar */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* Monthly Collection Progress Meter */}
-          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4 lg:col-span-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="font-display text-base font-bold flex items-center gap-2">
-                  <Wallet className="size-4 text-emerald-500" /> Monthly Rent Collection Progress
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Current cycle income vs expected total rent ({money(t?.expectedMonthly ?? 0)})
-                </p>
-              </div>
-              <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto">
-                {t?.collectionRate ?? 0}% Collected
-              </Badge>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <div className="h-3.5 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full gradient-primary transition-all duration-500"
-                  style={{ width: `${t?.collectionRate ?? 0}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground font-medium pt-1">
-                <span>Collected: <strong className="text-foreground">{money(t?.monthlyIncome ?? 0)}</strong></span>
-                <span>Remaining Due: <strong className="text-rose-500">{money(t?.outstanding ?? 0)}</strong></span>
-              </div>
-            </div>
+        {/* Visual Performance Gauges: CollectionMeter & OccupancyGauge */}
+        <MotionItem>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <CollectionMeter
+              collected={t?.monthlyIncome ?? 0}
+              expected={t?.expectedMonthly ?? 0}
+              outstanding={t?.outstanding ?? 0}
+              priorArrears={(t as { priorArrears?: number } | undefined)?.priorArrears}
+              collectionRate={t?.collectionRate ?? 0}
+              className="lg:col-span-2"
+            />
+            <OccupancyGauge
+              occupancyRate={t?.occupancyRate ?? 0}
+              occupiedUnits={t?.occupied ?? 0}
+              vacantUnits={t?.vacant ?? 0}
+              totalUnits={t?.units ?? 0}
+            />
           </div>
+        </MotionItem>
 
-          {/* Quick Shortcuts */}
-          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-3">
-            <h3 className="font-display text-base font-bold flex items-center gap-2">
+        {/* Management Shortcuts Toolbar */}
+        <MotionItem>
+          <div className="surface-card p-5 rounded-3xl border border-border/80 shadow-sm space-y-3">
+            <h3 className="font-display text-sm font-bold flex items-center gap-2">
               <Building2 className="size-4 text-primary" /> Management Shortcuts
             </h3>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
+              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3 tactile-press">
                 <Link to="/tenants">
                   <UserPlus className="size-3.5 mr-1.5 text-blue-500" /> Add Tenant
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3">
+              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3 tactile-press">
                 <Link to="/properties">
                   <Building2 className="size-3.5 mr-1.5 text-indigo-500" /> New Property
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3">
+              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3 tactile-press">
                 <Link to="/announcements">
                   <Megaphone className="size-3.5 mr-1.5 text-amber-500" /> Post Notice
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3">
+              <Button asChild variant="outline" size="sm" className="rounded-xl h-10 text-xs justify-start px-3 tactile-press">
                 <Link to="/reports">
                   <Receipt className="size-3.5 mr-1.5 text-emerald-500" /> Full Reports
                 </Link>
@@ -245,60 +241,65 @@ function DashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => downloadLandlordManualPdf()}
-                className="rounded-xl h-10 text-xs justify-start px-3 col-span-2 text-primary border-primary/30 hover:bg-primary/10 font-semibold"
+                className="rounded-xl h-10 text-xs justify-start px-3 col-span-2 sm:col-span-1 lg:col-span-1 text-primary border-primary/30 hover:bg-primary/10 font-semibold tactile-press"
               >
-                <Download className="size-3.5 mr-1.5 text-primary" /> Download Landlord Manual (PDF)
+                <Download className="size-3.5 mr-1.5 text-primary" /> Manual (PDF)
               </Button>
             </div>
           </div>
-        </div>
+        </MotionItem>
 
         {/* Charts & Receipts Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Revenue Chart */}
-          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-base font-bold flex items-center gap-2">
-                  <TrendingUp className="size-4 text-primary" /> Revenue Trend
-                </h2>
-                <p className="text-xs text-muted-foreground">Historical collections across the last 6 months</p>
+        <MotionItem>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Revenue Chart */}
+            <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-base font-bold flex items-center gap-2">
+                    <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" /> Revenue Trend
+                  </h2>
+                  <p className="text-xs text-muted-foreground">Historical collections across the last 6 months</p>
+                </div>
+                <Badge variant="outline" className="text-[11px] font-mono border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/5">KES Currency</Badge>
               </div>
-              <Badge variant="outline" className="text-[11px] font-mono">KES Currency</Badge>
-            </div>
 
-            <div className="h-64 pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data?.revenueByMonth ?? []}>
-                  <defs>
-                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FF7A00" stopOpacity={0.5} />
-                      <stop offset="100%" stopColor="#FF7A00" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.6} />
-                  <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `KSh ${v}`} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--color-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 16,
-                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                    }}
-                    formatter={(v: number) => [money(v), "Rent Collected"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="income"
-                    stroke="#FF7A00"
-                    strokeWidth={2.5}
-                    fill="url(#revGrad)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div className="h-64 pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data?.revenueByMonth ?? []}>
+                    <defs>
+                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.45} />
+                        <stop offset="60%" stopColor="#087443" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#087443" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.45} />
+                    <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} tickFormatter={(v) => `KSh ${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--color-card)",
+                        borderColor: "var(--color-border)",
+                        borderRadius: 16,
+                        boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.25)",
+                        backdropFilter: "blur(12px)",
+                      }}
+                      formatter={(v: number) => [money(v), "Rent Collected"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="income"
+                      stroke="#10B981"
+                      strokeWidth={3}
+                      fill="url(#revGrad)"
+                      dot={{ r: 3, fill: "#10B981", strokeWidth: 2, stroke: "#FFFFFF" }}
+                      activeDot={{ r: 6, fill: "#087443", stroke: "#34D399", strokeWidth: 2 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
 
           {/* Recent Receipts & Expiring Leases */}
           <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-6">
@@ -351,64 +352,67 @@ function DashboardPage() {
                   <p className="text-xs text-muted-foreground italic py-1">All leases are current and active.</p>
                 ) : null}
               </div>
+              </div>
             </div>
           </div>
-        </div>
+        </MotionItem>
 
         {/* Recent Payments Feed */}
-        <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <h2 className="font-display text-base font-bold flex items-center gap-2">
-                <Receipt className="size-4 text-primary" /> Recent Payment Transactions
-              </h2>
-              <p className="text-xs text-muted-foreground">Tenant rent payments recorded in your properties</p>
+        <MotionItem>
+          <div className="surface-card p-6 rounded-3xl border border-border/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <h2 className="font-display text-base font-bold flex items-center gap-2">
+                  <Receipt className="size-4 text-primary" /> Recent Payment Transactions
+                </h2>
+                <p className="text-xs text-muted-foreground">Tenant rent payments recorded in your properties</p>
+              </div>
+              <Button asChild variant="outline" size="sm" className="rounded-full text-xs h-8 whitespace-nowrap shrink-0 self-start sm:self-auto tactile-press">
+                <Link to="/payments">View full payment ledger</Link>
+              </Button>
             </div>
-            <Button asChild variant="outline" size="sm" className="rounded-full text-xs h-8 whitespace-nowrap shrink-0 self-start sm:self-auto">
-              <Link to="/payments">View full payment ledger</Link>
-            </Button>
-          </div>
 
-          {(data?.recentPayments ?? []).length ? (
-            <div className="overflow-x-auto">
-              <Table className="min-w-[700px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Tenant</TableHead>
-                    <TableHead>Property / Unit</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.recentPayments.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-xs font-mono">{shortDate(p.paid_at)}</TableCell>
-                      <TableCell className="text-xs font-semibold">{p.tenants?.full_name || "—"}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.properties?.name || "—"} {p.units?.unit_number ? `· Unit ${p.units.unit_number}` : ""}
-                      </TableCell>
-                      <TableCell className="text-xs capitalize font-medium">{p.method}</TableCell>
-                      <TableCell>
-                        <Badge variant={p.status === "paid" ? "default" : "secondary"} className="text-[10px] capitalize">
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-display text-sm font-bold text-emerald-500">
-                        {money(Number(p.amount))}
-                      </TableCell>
+            {(data?.recentPayments ?? []).length ? (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Tenant</TableHead>
+                      <TableHead>Property / Unit</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="py-6 text-sm text-muted-foreground text-center">No rent payments recorded yet.</p>
-          )}
-        </div>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {data?.recentPayments.map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs font-mono">{shortDate(p.paid_at)}</TableCell>
+                        <TableCell className="text-xs font-semibold">{p.tenants?.full_name || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {p.properties?.name || "—"} {p.units?.unit_number ? `· Unit ${p.units.unit_number}` : ""}
+                        </TableCell>
+                        <TableCell className="text-xs capitalize font-medium">{p.method}</TableCell>
+                        <TableCell>
+                          <Badge variant={p.status === "paid" ? "default" : "secondary"} className="text-[10px] capitalize">
+                            {p.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-display text-sm font-bold text-emerald-500">
+                          {money(Number(p.amount))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="py-6 text-sm text-muted-foreground text-center">No rent payments recorded yet.</p>
+            )}
+          </div>
+        </MotionItem>
+      </MotionContainer>
     </AppShell>
   );
 }

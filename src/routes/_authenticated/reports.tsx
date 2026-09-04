@@ -72,11 +72,11 @@ function ReportsPage() {
   const expenses = data?.expenses ?? [];
 
   const totalIncome = useMemo(
-    () => payments.reduce((s, p) => s + Number(p.amount || 0), 0),
+    () => payments.reduce((s: number, p) => s + Number(p.amount || 0), 0),
     [payments]
   );
   const totalExpenses = useMemo(
-    () => expenses.reduce((s, e) => s + Number(e.amount || 0), 0),
+    () => expenses.reduce((s: number, e: { amount: number | null }) => s + Number(e.amount || 0), 0),
     [expenses]
   );
   const netIncome = totalIncome - totalExpenses;
@@ -86,7 +86,7 @@ function ReportsPage() {
     () =>
       tenants
         .filter((t) => t.status === "active")
-        .reduce((s, t) => s + Number(t.rent_amount || 0), 0),
+        .reduce((s: number, t) => s + Number(t.rent_amount || 0), 0),
     [tenants]
   );
 
@@ -104,11 +104,11 @@ function ReportsPage() {
 
       const income = payments
         .filter((p) => (p.paid_at ?? "").startsWith(key))
-        .reduce((s, p) => s + Number(p.amount || 0), 0);
+        .reduce((s: number, p) => s + Number(p.amount || 0), 0);
 
       const outflow = expenses
-        .filter((e) => (e.expense_date ?? "").startsWith(key))
-        .reduce((s, e) => s + Number(e.amount || 0), 0);
+        .filter((e: { expense_date: string | null }) => (e.expense_date ?? "").startsWith(key))
+        .reduce((s: number, e: { amount: number | null }) => s + Number(e.amount || 0), 0);
 
       result.push({
         month: monthLabel,
@@ -125,7 +125,7 @@ function ReportsPage() {
     return ["cash", "mpesa", "bank", "card", "cheque"]
       .map((m) => ({
         name: m.toUpperCase(),
-        value: payments.filter((p) => (p.method || "").toLowerCase() === m).reduce((s, p) => s + Number(p.amount || 0), 0),
+        value: payments.filter((p) => (p.method || "").toLowerCase() === m).reduce((s: number, p) => s + Number(p.amount || 0), 0),
       }))
       .filter((x) => x.value > 0);
   }, [payments]);
@@ -133,7 +133,7 @@ function ReportsPage() {
   // Expenses category breakdown
   const byExpenseCategory = useMemo(() => {
     const catMap: Record<string, number> = {};
-    expenses.forEach((e) => {
+    expenses.forEach((e: { category: string | null; amount: number | null }) => {
       const c = e.category || "other";
       catMap[c] = (catMap[c] || 0) + Number(e.amount || 0);
     });
@@ -151,7 +151,8 @@ function ReportsPage() {
       (p) => `Revenue,${p.paid_at || ""},${p.method || "mpesa"},${p.amount},${p.status || "confirmed"}`
     );
     const expenseRows = expenses.map(
-      (e) => `Expense,${e.expense_date || ""},${e.category || "other"},${e.amount},"${(e.vendor || "").replace(/"/g, '""')}"`
+      (e: { expense_date: string | null; category: string | null; amount: number | null; vendor: string | null }) =>
+        `Expense,${e.expense_date || ""},${e.category || "other"},${e.amount},"${(e.vendor || "").replace(/"/g, '""')}"`
     );
     const blob = new Blob([[header, ...paymentRows, ...expenseRows].join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

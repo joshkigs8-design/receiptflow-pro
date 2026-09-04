@@ -748,14 +748,16 @@ export const getReports = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb = context.supabase;
     const mine = context.userId;
-    const [payments, tenants, units] = await Promise.all([
+    const [payments, tenants, units, expenses] = await Promise.all([
       sb.from("payments").select("amount,paid_at,method,status,tenant_id").eq("landlord_id", mine),
       sb.from("tenants").select("id,full_name,rent_amount,status").eq("landlord_id", mine),
       sb.from("units").select("id,status,rent").eq("landlord_id", mine),
+      sb.from("expenses").select("amount,expense_date,category,vendor").eq("landlord_id", mine),
     ]);
     return {
       payments: payments.data ?? [],
       tenants: tenants.data ?? [],
       units: units.data ?? [],
+      expenses: expenses.data ?? [],
     };
   });
