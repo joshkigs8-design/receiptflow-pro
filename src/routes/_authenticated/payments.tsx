@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
+  AlertCircle,
   Building,
   Building2,
   Calendar,
@@ -143,6 +144,7 @@ function PaymentsPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editing, setEditing] = useState<null | { id: string }>(null);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
@@ -171,6 +173,55 @@ function PaymentsPage() {
 
   const rawPayments = payments.data ?? [];
 
+  const selectedTenant = useMemo(() => {
+    return (tenants.data ?? []).find((t: any) => t.id === draft.tenant_id);
+  }, [tenants.data, draft.tenant_id]);
+
+  const tenantDebtInfo = useMemo(() => {
+    if (!selectedTenant) return null;
+    const monthlyRent = Number(selectedTenant.rent_amount ?? 0);
+    const period = draft.period_label || draft.paid_at.slice(0, 7) || today().slice(0, 7);
+    const startMonth = (selectedTenant.lease_start || selectedTenant.created_at || period).slice(0, 7);
+    let monthsElapsed = 1;
+    try {
+      const sY = parseInt(startMonth.slice(0, 4));
+      const sM = parseInt(startMonth.slice(5, 7));
+      const pY = parseInt(period.slice(0, 4));
+      const pM = parseInt(period.slice(5, 7));
+      monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+    } catch {}
+
+    const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+    const priorAccrued = priorMonthsCount * monthlyRent;
+
+    const validPayments = rawPayments.filter(
+      (p: any) => p.tenant_id === selectedTenant.id && p.status !== "failed" && p.status !== "cancelled"
+    );
+    const totalPaidAllTime = validPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+
+    const priorArrears = Math.max(priorAccrued - totalPaidAllTime, 0);
+    const paidForCurrentPeriod = Math.max(totalPaidAllTime - priorAccrued, 0);
+    const thisPeriodBalance = Math.max(monthlyRent - paidForCurrentPeriod, 0);
+    const totalBalance = priorArrears + thisPeriodBalance;
+
+    const amountToArrears = Math.min(draft.amount, priorArrears);
+    const remainingArrears = Math.max(priorArrears - amountToArrears, 0);
+    const amountToRent = Math.max(draft.amount - amountToArrears, 0);
+    const remainingRentBalance = Math.max(thisPeriodBalance - amountToRent, 0);
+
+    return {
+      monthlyRent,
+      priorArrears,
+      thisPeriodBalance,
+      totalBalance,
+      totalPaidAllTime,
+      amountToArrears,
+      remainingArrears,
+      amountToRent,
+      remainingRentBalance,
+    };
+  }, [selectedTenant, draft.period_label, draft.paid_at, draft.amount, rawPayments]);
+
   // Filtered Payments
   const filteredPayments = useMemo(() => {
     return rawPayments.filter((p: any) => {
@@ -178,6 +229,11 @@ function PaymentsPage() {
         methodFilter === "all" ||
         p.method === methodFilter ||
         (methodFilter === "kcb" && (p.method === "kcb" || p.method === "kcb_buni"));
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        p.status === statusFilter ||
+        (statusFilter === "arrears" && p.notes && p.notes.includes("prior arrears"));
 
       const q = searchQuery.toLowerCase().trim();
       const tenantName = (p.tenants?.full_name || "").toLowerCase();
@@ -194,9 +250,9 @@ function PaymentsPage() {
         unit.includes(q) ||
         period.includes(q);
 
-      return matchesMethod && matchesSearch;
+      return matchesMethod && matchesStatus && matchesSearch;
     });
-  }, [rawPayments, methodFilter, searchQuery]);
+  }, [rawPayments, methodFilter, statusFilter, searchQuery]);
 
   const [page, setPage] = useState<number>(1);
   const pageSize = 15;
@@ -425,6 +481,18 @@ function PaymentsPage() {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-32 rounded-full text-xs font-semibold">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="paid">Fully Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="arrears">Cleared Arrears</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -526,12 +594,19 @@ function PaymentsPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        <Badge
-                          variant={p.status === "paid" ? "default" : "secondary"}
-                          className="text-[10px] capitalize"
-                        >
-                          {p.status}
-                        </Badge>
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <Badge
+                            variant={p.status === "paid" ? "default" : "secondary"}
+                            className="text-[10px] capitalize"
+                          >
+                            {p.status}
+                          </Badge>
+                          {p.notes && p.notes.includes("prior arrears") && (
+                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                              Arrears cleared
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3 text-right font-bold text-foreground font-mono">
                         {money(p.amount)}
@@ -631,8 +706,33 @@ function PaymentsPage() {
               <Select
                 value={draft.tenant_id}
                 onValueChange={(v) => {
-                  const t = (tenants.data ?? []).find((x) => x.id === v);
-                  setDraft({ ...draft, tenant_id: v, amount: Number(t?.rent_amount ?? 0) });
+                  const t = (tenants.data ?? []).find((x: any) => x.id === v);
+                  const monthlyRent = Number(t?.rent_amount ?? 0);
+                  const period = draft.period_label || draft.paid_at.slice(0, 7) || today().slice(0, 7);
+                  const startMonth = (t?.lease_start || t?.created_at || period).slice(0, 7);
+                  let monthsElapsed = 1;
+                  try {
+                    const sY = parseInt(startMonth.slice(0, 4));
+                    const sM = parseInt(startMonth.slice(5, 7));
+                    const pY = parseInt(period.slice(0, 4));
+                    const pM = parseInt(period.slice(5, 7));
+                    monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+                  } catch {}
+                  const priorAccrued = Math.max(monthsElapsed - 1, 0) * monthlyRent;
+                  const validPays = rawPayments.filter(
+                    (p: any) => p.tenant_id === v && p.status !== "failed" && p.status !== "cancelled"
+                  );
+                  const totalPaid = validPays.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+                  const priorArrears = Math.max(priorAccrued - totalPaid, 0);
+                  const paidCur = Math.max(totalPaid - priorAccrued, 0);
+                  const curDue = Math.max(monthlyRent - paidCur, 0);
+                  const totalDue = priorArrears + curDue;
+
+                  setDraft({
+                    ...draft,
+                    tenant_id: v,
+                    amount: totalDue > 0 ? totalDue : monthlyRent,
+                  });
                 }}
               >
                 <SelectTrigger>
@@ -647,6 +747,91 @@ function PaymentsPage() {
                 </SelectContent>
               </Select>
             </Field>
+
+            {tenantDebtInfo && tenantDebtInfo.priorArrears > 0 && (
+              <div className="sm:col-span-2 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>Prior Arrears Detected: {money(tenantDebtInfo.priorArrears)}</span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-500/40 bg-amber-500/10">
+                    Arrears Priority
+                  </Badge>
+                </div>
+
+                <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                  Notice: Payments will <strong>first deduct from prior arrears ({money(tenantDebtInfo.priorArrears)})</strong> before clearing the current month rent.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2 py-1.5 px-2.5 rounded-xl bg-background/60 border border-amber-500/20 text-[11px]">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Prior Arrears</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400">{money(tenantDebtInfo.priorArrears)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Current Month</span>
+                    <span className="font-bold text-foreground">{money(tenantDebtInfo.thisPeriodBalance)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Total Due</span>
+                    <span className="font-bold text-rose-500 font-mono">{money(tenantDebtInfo.totalBalance)}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-muted-foreground self-center mr-1">Quick fill:</span>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 border border-amber-500/30 transition-colors"
+                    onClick={() => setDraft((d) => ({ ...d, amount: tenantDebtInfo.priorArrears }))}
+                  >
+                    Pay Arrears ({money(tenantDebtInfo.priorArrears)})
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
+                    onClick={() => setDraft((d) => ({ ...d, amount: tenantDebtInfo.totalBalance }))}
+                  >
+                    Clear Total Due ({money(tenantDebtInfo.totalBalance)})
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border transition-colors"
+                    onClick={() => setDraft((d) => ({ ...d, amount: tenantDebtInfo.monthlyRent }))}
+                  >
+                    1 Month Rent ({money(tenantDebtInfo.monthlyRent)})
+                  </button>
+                </div>
+
+                {draft.amount > 0 && (
+                  <div className="pt-2 border-t border-amber-500/20 text-[11px] flex flex-wrap justify-between gap-2 text-muted-foreground">
+                    <span>
+                      Deducted from Arrears: <strong className="text-foreground">{money(tenantDebtInfo.amountToArrears)}</strong>
+                      {tenantDebtInfo.remainingArrears === 0 ? " (Arrears cleared in full)" : ` (${money(tenantDebtInfo.remainingArrears)} arrears remaining)`}
+                    </span>
+                    <span>
+                      Applied to Current Month: <strong className="text-foreground">{money(tenantDebtInfo.amountToRent)}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tenantDebtInfo && tenantDebtInfo.priorArrears === 0 && (
+              <div className="sm:col-span-2 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs flex items-center justify-between">
+                <span className="text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1.5 text-[11px]">
+                  <CheckCircle2 className="size-3.5" /> No prior arrears. Payment applies directly to current rent ({money(tenantDebtInfo.thisPeriodBalance)} due).
+                </span>
+                <button
+                  type="button"
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-200 transition-colors"
+                  onClick={() => setDraft((d) => ({ ...d, amount: tenantDebtInfo.thisPeriodBalance || tenantDebtInfo.monthlyRent }))}
+                >
+                  Fill Due ({money(tenantDebtInfo.thisPeriodBalance || tenantDebtInfo.monthlyRent)})
+                </button>
+              </div>
+            )}
             <Field label="Amount" htmlFor="amt">
               <Input
                 id="amt"

@@ -80,21 +80,11 @@ export const verifyTenant = createServerFn({ method: "POST" })
     const curMonthShort = now.toLocaleDateString("en-GB", { month: "short" }).toLowerCase();
     const curYear = currentMonth.slice(0, 4);
 
-    const thisMonthPayments = (payments.data ?? []).filter((p) => {
-      const pPeriod = (p.period_label || "").trim().toLowerCase();
-      const pMonth = (p.paid_at || "").slice(0, 7);
-      return (
-        pPeriod === currentMonth ||
-        pPeriod.startsWith(currentMonth) ||
-        pMonth === currentMonth ||
-        (pPeriod.includes(curYear) && (pPeriod.includes(curMonthLong) || pPeriod.includes(curMonthShort)))
-      );
-    });
-    const paidThisMonth = thisMonthPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
     const monthlyRent = Number(tenant.rent_amount ?? 0);
-    const rentBalance = Math.max(monthlyRent - paidThisMonth, 0);
-
-    const paidTotal = (payments.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    const validPayments = (payments.data ?? []).filter(
+      (p: any) => p.status !== "failed" && p.status !== "cancelled"
+    );
+    const paidTotal = validPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
 
     // Calculate accrued rent from move-in / lease start up to current active month
     const startPeriod = (tenant.lease_start || tenant.created_at || currentMonth).slice(0, 7);
@@ -108,9 +98,18 @@ export const verifyTenant = createServerFn({ method: "POST" })
     } catch {}
 
     const totalRentAccrued = monthsElapsed * monthlyRent;
-    const totalOutstandingBalance = Math.max(totalRentAccrued - paidTotal, 0);
+    const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+    const priorAccrued = priorMonthsCount * monthlyRent;
+
+    // FIFO: All payments first clear prior arrears
+    const paidToPriorArrears = Math.min(paidTotal, priorAccrued);
+    const priorArrears = priorAccrued - paidToPriorArrears;
+
+    // Remaining payments go towards this current month
+    const remainingForThisMonth = Math.max(paidTotal - priorAccrued, 0);
+    const paidThisMonth = Math.min(remainingForThisMonth, monthlyRent);
     const thisMonthBalance = Math.max(monthlyRent - paidThisMonth, 0);
-    const priorArrears = Math.max(totalOutstandingBalance - thisMonthBalance, 0);
+    const totalOutstandingBalance = priorArrears + thisMonthBalance;
 
     // M-Pesa is enabled if active
     const mpesaConfigRes = (mpesaConfig as { data?: { is_active?: boolean; shortcode?: string; account_reference_prefix?: string } | null })?.data;

@@ -166,16 +166,18 @@ export const getDashboard = createServerFn({ method: "GET" })
       // Total net debt across their entire tenancy
       const tenantTotalBalance = Math.max(totalAccrued - totalPaidAllTime, 0);
 
-      // Portion paid specifically for this current active month
-      const tenantPaidThisMonth = tenantPayments
-        .filter((p) => isPaymentForMonth(p, monthKey))
-        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+      // Prior months count and accrued rent before the current active month
+      const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+      const priorAccrued = priorMonthsCount * rent;
 
-      // Remaining unpaid balance for this month (cannot exceed monthly rent)
+      // FIFO: Payments first minus from prior arrears
+      const paidToPriorArrears = Math.min(totalPaidAllTime, priorAccrued);
+      const tenantPriorArrears = priorAccrued - paidToPriorArrears;
+
+      // Any remaining payments after clearing prior arrears go towards current active month
+      const remainingForCurrentMonth = Math.max(totalPaidAllTime - priorAccrued, 0);
+      const tenantPaidThisMonth = Math.min(remainingForCurrentMonth, rent);
       const tenantThisMonthBalance = monthsElapsed > 0 ? Math.max(rent - tenantPaidThisMonth, 0) : 0;
-
-      // Prior arrears: cumulative unpaid debt from earlier months
-      const tenantPriorArrears = Math.max(tenantTotalBalance - tenantThisMonthBalance, 0);
 
       totalOutstanding += tenantTotalBalance;
       priorArrearsTotal += tenantPriorArrears;
@@ -509,19 +511,55 @@ export const recordPayment = createServerFn({ method: "POST" })
     // Fetch all existing payments for this tenant
     const { data: allPayments } = await sb
       .from("payments")
-      .select("amount, period_label, paid_at")
+      .select("amount, period_label, paid_at, status")
       .eq("tenant_id", tenant.id)
       .eq("landlord_id", context.userId);
 
-    const paidBeforeAll = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
-    const paidBeforePeriod = (allPayments ?? [])
-      .filter((p: any) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
-      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    const validPayments = (allPayments ?? []).filter(
+      (p: any) => p.status !== "failed" && p.status !== "cancelled"
+    );
 
-    const totalRentAccrued = monthlyRent; // For this period only
-    const totalRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
-    const periodRemainingBalance = totalRemainingBalance;
-    const priorArrears = 0;
+    const paidBeforeAll = validPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+
+    // Calculate tenancy timeline up to this payment's period
+    const startPeriod = (tenant.lease_start || tenant.created_at || period).slice(0, 7);
+    let monthsElapsed = 1;
+    try {
+      const sY = parseInt(startPeriod.slice(0, 4));
+      const sM = parseInt(startPeriod.slice(5, 7));
+      const pY = parseInt(period.slice(0, 4));
+      const pM = parseInt(period.slice(5, 7));
+      monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+    } catch {}
+
+    const totalRentAccrued = monthsElapsed * monthlyRent;
+    const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+    const priorAccrued = priorMonthsCount * monthlyRent;
+
+    // Prior arrears BEFORE this new payment
+    const priorArrearsBefore = Math.max(priorAccrued - paidBeforeAll, 0);
+
+    // FIFO: New payment is FIRST deducted from prior arrears!
+    const amountToArrears = Math.min(data.amount, priorArrearsBefore);
+    const remainingPriorArrears = priorArrearsBefore - amountToArrears;
+
+    // Any payment amount left over after arrears goes towards current month
+    const amountToCurrentMonth = data.amount - amountToArrears;
+    const currentMonthPaidBefore = Math.max(paidBeforeAll - priorAccrued, 0);
+    const totalPaidCurrentMonth = currentMonthPaidBefore + amountToCurrentMonth;
+    const currentMonthRemainingBalance = Math.max(monthlyRent - totalPaidCurrentMonth, 0);
+
+    // Total outstanding balance across entire tenancy after this payment
+    const totalRemainingBalance = remainingPriorArrears + currentMonthRemainingBalance;
+    const periodRemainingBalance = currentMonthRemainingBalance;
+    const priorArrears = remainingPriorArrears;
+
+    // Build explanatory notes if payment was allocated to arrears
+    let paymentNotes = data.notes || "";
+    if (amountToArrears > 0) {
+      const arrearsNote = `KSh ${amountToArrears.toLocaleString()} allocated to prior arrears${remainingPriorArrears === 0 ? " (arrears cleared in full)" : ` (remaining arrears: KSh ${remainingPriorArrears.toLocaleString()})`}`;
+      paymentNotes = paymentNotes ? `${paymentNotes} • ${arrearsNote}` : arrearsNote;
+    }
 
     const { data: payment, error } = await sb
       .from("payments")
@@ -536,7 +574,7 @@ export const recordPayment = createServerFn({ method: "POST" })
         paid_at: data.paid_at,
         period_label: period,
         status: totalRemainingBalance > 0 ? "partial" : "paid",
-        notes: data.notes || null,
+        notes: paymentNotes || null,
       })
       .select()
       .single();
@@ -582,6 +620,8 @@ export const recordPayment = createServerFn({ method: "POST" })
           prior_arrears: priorArrears,
           total_balance: totalRemainingBalance,
           period_balance: periodRemainingBalance,
+          amount_to_arrears: amountToArrears,
+          amount_to_rent: amountToCurrentMonth,
         },
       })
       .select("id,public_id,receipt_number")

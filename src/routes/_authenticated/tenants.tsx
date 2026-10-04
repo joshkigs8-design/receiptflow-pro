@@ -97,7 +97,7 @@ function TenantsPage() {
     return now.toISOString().slice(0, 7);
   });
   const [periodLabel, setPeriodLabel] = useState<string>("Current month");
-  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
+  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid' | 'arrears'>('all');
   
   // Pre-compute month options for the selector
   const monthOptions = useMemo(() => {
@@ -147,7 +147,6 @@ function TenantsPage() {
 
     rows.forEach((t) => {
       const monthlyRent = Number(t.rent_amount ?? 0);
-      let paidThisPeriod = 0;
       let totalPaidAllTime = 0;
 
       // Calculate how many months the tenant has been active up to the selected period
@@ -164,45 +163,29 @@ function TenantsPage() {
       allPayments.forEach((p: any) => {
         const pTenantId = p.tenant_id ?? "";
         if (pTenantId !== t.id) return;
-
-        const pPeriod = (p.period_label || "").trim().toLowerCase();
-        const paidAtMonth = (p.paid_at || "").slice(0, 7);
         const pAmount = Number(p.amount ?? 0);
         if (pAmount <= 0) return;
+        if (p.status === "failed" || p.status === "cancelled") return;
 
         totalPaidAllTime += pAmount;
-
-        let selectedMonthLower = "";
-        let selectedShortMonth = "";
-        try {
-          const d = new Date(period + "-01");
-          selectedMonthLower = d.toLocaleDateString("en-GB", { month: "long" }).toLowerCase();
-          selectedShortMonth = d.toLocaleDateString("en-GB", { month: "short" }).toLowerCase();
-        } catch {}
-        const selectedYear = period.slice(0, 4);
-
-        const matchesPeriod =
-          pPeriod === period ||
-          pPeriod.startsWith(period) ||
-          paidAtMonth === period ||
-          (selectedMonthLower && pPeriod.includes(selectedMonthLower) && pPeriod.includes(selectedYear)) ||
-          (selectedShortMonth && pPeriod.includes(selectedShortMonth) && pPeriod.includes(selectedYear)) ||
-          (!pPeriod && paidAtMonth === period);
-
-        if (matchesPeriod) {
-          paidThisPeriod += pAmount;
-        }
       });
 
-      const balance = Math.max(monthlyRent - paidThisPeriod, 0);
       // Total rent accrued up to this period:
       const totalRentAccrued = monthsElapsed * monthlyRent;
-      // Total balance outstanding across their entire lease/stay:
-      const totalBalance = Math.max(totalRentAccrued - totalPaidAllTime, 0);
-      // Unpaid portion of the currently selected month:
+      const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+      const priorAccrued = priorMonthsCount * monthlyRent;
+
+      // FIFO: All payments first minus from prior arrears
+      const paidToPriorArrears = Math.min(totalPaidAllTime, priorAccrued);
+      const priorArrears = priorAccrued - paidToPriorArrears;
+
+      // Remainder goes towards the selected period
+      const remainingForThisPeriod = Math.max(totalPaidAllTime - priorAccrued, 0);
+      const paidThisPeriod = Math.min(remainingForThisPeriod, monthlyRent);
       const thisPeriodBalance = Math.max(monthlyRent - paidThisPeriod, 0);
-      // Unpaid arrears carried forward from previous months:
-      const priorArrears = Math.max(totalBalance - thisPeriodBalance, 0);
+
+      // Total balance outstanding across their entire lease/stay:
+      const totalBalance = priorArrears + thisPeriodBalance;
 
       let status: "PAID" | "PARTIAL" | "UNPAID" | "ARREARS";
       if (totalBalance <= 0) {
@@ -242,8 +225,10 @@ function TenantsPage() {
             : filter === "partial"
               ? rentStatuses[t.id]?.status === "PARTIAL"
               : filter === "unpaid"
-                ? rentStatuses[t.id]?.status === "UNPAID"
-                : true) &&
+                ? (rentStatuses[t.id]?.status === "UNPAID" || rentStatuses[t.id]?.status === "ARREARS")
+                : filter === "arrears"
+                  ? rentStatuses[t.id]?.status === "ARREARS"
+                  : true) &&
         (t.full_name.toLowerCase().includes(q) ||
           t.phone.includes(q) ||
           (t.properties?.name ?? "").toLowerCase().includes(q)),
@@ -288,7 +273,7 @@ function TenantsPage() {
 
   const unpaidCount = useMemo(() => {
     return Object.values(rentStatuses).filter(
-      (s) => s.status === "UNPAID",
+      (s) => s.status === "UNPAID" || s.status === "ARREARS",
     ).length;
   }, [rentStatuses]);
 
@@ -386,7 +371,15 @@ function TenantsPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <Button
+          size="sm"
+          variant={filter === "all" ? "default" : "outline"}
+          className="rounded-full text-xs"
+          onClick={() => setFilter("all")}
+        >
+          All
+        </Button>
         <Button
           size="sm"
           variant={filter === "paid" ? "default" : "outline"}
@@ -409,15 +402,15 @@ function TenantsPage() {
           className="rounded-full text-xs text-destructive"
           onClick={() => setFilter("unpaid")}
         >
-          Unpaid {unpaidCount}
+          Unpaid / Due {unpaidCount}
         </Button>
         <Button
           size="sm"
-          variant={filter === "all" ? "default" : "outline"}
-          className="rounded-full text-xs"
-          onClick={() => setFilter("all")}
+          variant={filter === "arrears" ? "default" : "outline"}
+          className="rounded-full text-xs text-amber-600 dark:text-amber-400"
+          onClick={() => setFilter("arrears")}
         >
-          All
+          In Arrears {arrearsCount}
         </Button>
       </div>
 

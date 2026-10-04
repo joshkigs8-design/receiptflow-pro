@@ -178,17 +178,47 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
                 .eq("id", transaction.landlord_id)
                 .maybeSingle();
 
-              // Calculate updated balance
-              const { data: priorPayments } = await supabaseAdmin
+              // Calculate updated balance using FIFO allocation (arrears first)
+              const { data: allTenantPayments } = await supabaseAdmin
                 .from("payments")
-                .select("amount")
+                .select("amount, status")
                 .eq("tenant_id", transaction.tenant_id)
-                .eq("landlord_id", transaction.landlord_id)
-                .eq("period_label", period);
+                .eq("landlord_id", transaction.landlord_id);
 
-              const priorTotal = (priorPayments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+              const validPriorPays = (allTenantPayments ?? []).filter(
+                (p: any) => p.status !== "failed" && p.status !== "cancelled"
+              );
+              const paidBeforeAll = validPriorPays.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
               const monthlyRent = Number(tenant?.rent_amount || callbackAmount);
-              const newBalance = Math.max(monthlyRent - (priorTotal + callbackAmount), 0);
+
+              const startPeriod = (tenant?.lease_start || tenant?.created_at || period).slice(0, 7);
+              let monthsElapsed = 1;
+              try {
+                const sY = parseInt(startPeriod.slice(0, 4));
+                const sM = parseInt(startPeriod.slice(5, 7));
+                const pY = parseInt(period.slice(0, 4));
+                const pM = parseInt(period.slice(5, 7));
+                monthsElapsed = Math.max((pY - sY) * 12 + (pM - sM) + 1, 1);
+              } catch {}
+
+              const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+              const priorAccrued = priorMonthsCount * monthlyRent;
+              const priorArrearsBefore = Math.max(priorAccrued - paidBeforeAll, 0);
+
+              const amountToArrears = Math.min(callbackAmount, priorArrearsBefore);
+              const remainingPriorArrears = priorArrearsBefore - amountToArrears;
+
+              const amountToCurrentMonth = callbackAmount - amountToArrears;
+              const currentMonthPaidBefore = Math.max(paidBeforeAll - priorAccrued, 0);
+              const totalPaidCurrentMonth = currentMonthPaidBefore + amountToCurrentMonth;
+              const currentMonthRemainingBalance = Math.max(monthlyRent - totalPaidCurrentMonth, 0);
+
+              const totalRemainingBalance = remainingPriorArrears + currentMonthRemainingBalance;
+
+              let mpesaNotes = `Instant M-Pesa STK (${mpesaReceiptNumber})`;
+              if (amountToArrears > 0) {
+                mpesaNotes += ` • KSh ${amountToArrears.toLocaleString()} allocated to prior arrears${remainingPriorArrears === 0 ? " (cleared)" : ""}`;
+              }
 
               // Insert payment record
               const { data: newPayment, error: paymentInsertErr } = await supabaseAdmin
@@ -203,8 +233,8 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
                   reference: mpesaReceiptNumber,
                   paid_at: paidAtIso,
                   period_label: period,
-                  status: newBalance > 0 ? "partial" : "paid",
-                  notes: `Instant M-Pesa STK (${mpesaReceiptNumber})`,
+                  status: totalRemainingBalance > 0 ? "partial" : "paid",
+                  notes: mpesaNotes,
                 })
                 .select("id")
                 .single();
@@ -226,7 +256,7 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
                   tenant_id: tenant.id,
                   receipt_number: receiptNumber,
                   amount: callbackAmount,
-                  balance: newBalance,
+                  balance: totalRemainingBalance,
                   issued_by: profile?.company_name || "RentReceipt Pro",
                   snapshot: {
                     company: profile?.company_name || "RentReceipt Pro",
@@ -244,6 +274,11 @@ export const Route = createFileRoute("/api/public/mpesa/callback")({
                     period,
                     paid_at: paidAtIso,
                     rent_amount: monthlyRent,
+                    prior_arrears: remainingPriorArrears,
+                    total_balance: totalRemainingBalance,
+                    period_balance: currentMonthRemainingBalance,
+                    amount_to_arrears: amountToArrears,
+                    amount_to_rent: amountToCurrentMonth,
                   },
                 });
 

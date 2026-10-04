@@ -422,22 +422,43 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
     } catch {}
 
     const totalRentAccrued = monthsElapsed * monthlyRent;
+    const priorMonthsCount = Math.max(monthsElapsed - 1, 0);
+    const priorAccrued = priorMonthsCount * monthlyRent;
 
     // Fetch all existing payments for this tenant
     const { data: allPayments } = await supabaseAdmin
       .from("payments")
-      .select("amount, period_label, paid_at")
+      .select("amount, period_label, paid_at, status")
       .eq("tenant_id", tenant.id)
       .eq("landlord_id", data.landlord_id);
 
-    const paidBeforeAll = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
-    const paidBeforePeriod = (allPayments ?? [])
-      .filter((p: any) => p.period_label === period || (p.paid_at && p.paid_at.startsWith(period)))
-      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    const validPayments = (allPayments ?? []).filter(
+      (p: any) => p.status !== "failed" && p.status !== "cancelled"
+    );
 
-    const totalRemainingBalance = Math.max(totalRentAccrued - (paidBeforeAll + data.amount), 0);
-    const periodRemainingBalance = Math.max(monthlyRent - (paidBeforePeriod + data.amount), 0);
-    const priorArrears = Math.max(totalRemainingBalance - periodRemainingBalance, 0);
+    const paidBeforeAll = validPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+
+    // Prior arrears BEFORE this payment
+    const priorArrearsBefore = Math.max(priorAccrued - paidBeforeAll, 0);
+
+    // FIFO: Deduct from prior arrears first
+    const amountToArrears = Math.min(data.amount, priorArrearsBefore);
+    const remainingPriorArrears = priorArrearsBefore - amountToArrears;
+
+    // Remainder goes towards current active month
+    const amountToCurrentMonth = data.amount - amountToArrears;
+    const currentMonthPaidBefore = Math.max(paidBeforeAll - priorAccrued, 0);
+    const totalPaidCurrentMonth = currentMonthPaidBefore + amountToCurrentMonth;
+    const currentMonthRemainingBalance = Math.max(monthlyRent - totalPaidCurrentMonth, 0);
+
+    const totalRemainingBalance = remainingPriorArrears + currentMonthRemainingBalance;
+    const periodRemainingBalance = currentMonthRemainingBalance;
+    const priorArrears = remainingPriorArrears;
+
+    let caretakerNotes = data.notes ? `${data.notes} (Issued by Caretaker: ${data.caretaker_name})` : `Issued on-site by Caretaker: ${data.caretaker_name}`;
+    if (amountToArrears > 0) {
+      caretakerNotes += ` • KSh ${amountToArrears.toLocaleString()} allocated to prior arrears${remainingPriorArrears === 0 ? " (cleared)" : ""}`;
+    }
 
     const { data: payment, error: payError } = await supabaseAdmin
       .from("payments")
@@ -452,7 +473,7 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
         paid_at: data.paid_at,
         period_label: period,
         status: totalRemainingBalance > 0 ? "partial" : "paid",
-        notes: data.notes ? `${data.notes} (Issued by Caretaker: ${data.caretaker_name})` : `Issued on-site by Caretaker: ${data.caretaker_name}`,
+        notes: caretakerNotes,
       })
       .select()
       .single();
@@ -499,6 +520,8 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
           prior_arrears: priorArrears,
           total_balance: totalRemainingBalance,
           period_balance: periodRemainingBalance,
+          amount_to_arrears: amountToArrears,
+          amount_to_rent: amountToCurrentMonth,
         },
       })
       .select("id, public_id, receipt_number")
