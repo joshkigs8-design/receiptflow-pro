@@ -40,9 +40,15 @@ export function Hero() {
           <div className="lg:col-span-6 text-left space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             
             {/* Small Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#063B2A]/15 dark:border-white/15 bg-[#E8F2ED] dark:bg-[#0D3528] px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] shadow-sm">
-              <span className="text-sm">🇰🇪</span>
-              <span className="tracking-wide">BUILT FOR RENTAL BUSINESSES IN KENYA</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#063B2A]/15 dark:border-white/15 bg-[#E8F2ED] dark:bg-[#0D3528] px-3.5 py-1.5 text-xs font-bold text-[#063B2A] dark:text-[#52B788] shadow-sm">
+                <span className="text-sm">🇰🇪</span>
+                <span className="tracking-wide">BUILT FOR RENTAL BUSINESSES IN KENYA</span>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#C9A227]/35 bg-[#FFF8DF] px-3.5 py-1.5 text-xs font-bold text-[#725A00] shadow-sm dark:bg-[#3A2E0A] dark:text-[#E5BA38]">
+                <Sparkles className="size-3.5" />
+                <span className="tracking-wide">CUSTOMER SERVICE WEEK · OCT 5–9</span>
+              </div>
             </div>
 
             {/* Main Editorial Headline */}
