@@ -40,6 +40,7 @@ import { getDashboard } from "@/lib/app.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { CollectionMeter } from "@/components/dashboard/CollectionMeter";
 import { OccupancyGauge } from "@/components/dashboard/OccupancyGauge";
+import { CustomerServiceWeekBanner } from "@/components/dashboard/CustomerServiceWeekBanner";
 import { MotionContainer, MotionItem } from "@/components/ui/motion-stagger";
 import { LiveRadar } from "@/components/ui/live-radar";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,11 @@ function DashboardPage() {
       }
     >
       <MotionContainer className="space-y-6" staggerChildren={0.08}>
+        {/* Customer Service Week Appreciation Banner */}
+        <MotionItem>
+          <CustomerServiceWeekBanner />
+        </MotionItem>
+
         {/* KPI Metric Cards */}
         <MotionContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" staggerChildren={0.05}>
           {cards.map((c) => (
