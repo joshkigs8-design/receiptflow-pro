@@ -192,44 +192,45 @@ function ReceiptPage() {
             {/* Document Body */}
             <div className="p-6 sm:p-8 space-y-6">
               {/* Official Cryptographic Authenticity Stamp */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
                 <span className="inline-flex items-center gap-1.5 font-bold">
-                  <BadgeCheck className="size-4 text-emerald-600 dark:text-emerald-400" /> OFFICIAL DIGITAL STAMP &bull; CRYPTOGRAPHICALLY SECURED
+                  <BadgeCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>OFFICIAL DIGITAL STAMP &bull; CRYPTOGRAPHICALLY SECURED</span>
                 </span>
-                <span className="font-mono text-[11px] text-muted-foreground hidden sm:inline">
+                <span className="font-mono text-[11px] text-muted-foreground shrink-0">
                   Ref: {receipt.public_id.slice(0, 10).toUpperCase()}
                 </span>
               </div>
 
               {/* Tenancy & Payment Grid */}
-              <dl className="grid gap-4 sm:grid-cols-2 text-xs">
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+              <dl className="grid gap-3 sm:grid-cols-2 text-xs">
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-1 overflow-hidden">
                   <dt className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Tenant Name</dt>
-                  <dd className="text-sm font-semibold text-foreground">{snap.tenant_name ?? "—"}</dd>
+                  <dd className="text-sm font-semibold text-foreground truncate">{snap.tenant_name ?? "—"}</dd>
                   {snap.tenant_phone ? (
-                    <dd className="text-muted-foreground font-mono text-[11px]">{snap.tenant_phone}</dd>
+                    <dd className="text-muted-foreground font-mono text-[11px] truncate">{snap.tenant_phone}</dd>
                   ) : null}
                 </div>
 
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-1 overflow-hidden">
                   <dt className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Property &amp; Unit</dt>
-                  <dd className="text-sm font-semibold text-foreground">{snap.property ?? "—"}</dd>
-                  <dd className="text-muted-foreground text-[11px]">
+                  <dd className="text-sm font-semibold text-foreground truncate">{snap.property ?? "—"}</dd>
+                  <dd className="text-muted-foreground text-[11px] truncate">
                     Unit {snap.unit ?? "—"}{snap.room ? ` · Room ${snap.room}` : ""}
                   </dd>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-1 overflow-hidden">
                   <dt className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Rental Billing Period</dt>
-                  <dd className="text-sm font-semibold text-foreground">{snap.period ?? "—"}</dd>
-                  <dd className="text-muted-foreground text-[11px]">Paid on {shortDate(snap.paid_at || receipt.issued_at)}</dd>
+                  <dd className="text-sm font-semibold text-foreground truncate">{snap.period ?? "—"}</dd>
+                  <dd className="text-muted-foreground text-[11px] truncate">Paid on {shortDate(snap.paid_at || receipt.issued_at)}</dd>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-1 overflow-hidden">
                   <dt className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Payment Method</dt>
-                  <dd className="text-sm font-semibold capitalize text-foreground">{snap.method ?? "M-Pesa"}</dd>
+                  <dd className="text-sm font-semibold capitalize text-foreground truncate">{snap.method ?? "M-Pesa"}</dd>
                   {snap.reference ? (
-                    <dd className="text-muted-foreground font-mono text-[11px]">Ref: {snap.reference}</dd>
+                    <dd className="text-muted-foreground font-mono text-[11px] truncate">Ref: {snap.reference}</dd>
                   ) : null}
                 </div>
               </dl>
@@ -238,9 +239,9 @@ function ReceiptPage() {
               <div className="rounded-2xl border border-border/80 bg-muted/30 p-5 space-y-4 text-xs">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
                   <span className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Wallet className="size-3.5 text-primary" /> Payment Breakdown &amp; Allocation
+                    <Wallet className="size-3.5 text-primary shrink-0" /> Payment Breakdown &amp; Allocation
                   </span>
-                  <Badge variant="outline" className="text-[10px] font-mono">
+                  <Badge variant="outline" className="text-[10px] font-mono shrink-0">
                     FIFO Deduction
                   </Badge>
                 </div>
@@ -256,17 +257,17 @@ function ReceiptPage() {
                         <span>Current Month Contracted Rent:</span>
                         <span className="font-mono font-medium">{money(rentAmount, snap.currency)}</span>
                       </div>
-                      <div className="flex justify-between items-center pt-1 border-t border-border/40 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-1 pt-1 border-t border-border/40 text-emerald-600 dark:text-emerald-400 font-semibold">
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5" /> Allocated to Clear Prior Arrears:
+                          <CheckCircle2 className="size-3.5 shrink-0" /> Cleared from Prior Arrears:
                         </span>
-                        <span className="font-mono">-{money(amountToArrears, snap.currency)}</span>
+                        <span className="font-mono shrink-0">-{money(amountToArrears, snap.currency)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5" /> Allocated to Current Rent:
+                          <CheckCircle2 className="size-3.5 shrink-0" /> Applied to Current Rent:
                         </span>
-                        <span className="font-mono">-{money(amountToRent, snap.currency)}</span>
+                        <span className="font-mono shrink-0">-{money(amountToRent, snap.currency)}</span>
                       </div>
                     </>
                   ) : (
@@ -277,9 +278,9 @@ function ReceiptPage() {
                       </div>
                       <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5" /> Allocated Directly to Rent:
+                          <CheckCircle2 className="size-3.5 shrink-0" /> Applied Directly to Rent:
                         </span>
-                        <span className="font-mono">-{money(totalPaid, snap.currency)}</span>
+                        <span className="font-mono shrink-0">-{money(totalPaid, snap.currency)}</span>
                       </div>
                     </>
                   )}
@@ -297,7 +298,7 @@ function ReceiptPage() {
                   <div className="sm:text-right">
                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Net Outstanding Balance</p>
                     <p className={`font-display text-xl sm:text-2xl font-bold ${bal > 0 ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}`}>
-                      {bal > 0 ? money(bal, snap.currency) : "KSh 0.00 (Settled ✔)"}
+                      {bal > 0 ? money(bal, snap.currency) : "KSh 0.00 (Settled)"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {bal > 0 ? "Pending balance awaiting payment" : "Tenancy account is fully up to date"}
@@ -316,7 +317,7 @@ function ReceiptPage() {
                   />
                   <div className="text-xs text-muted-foreground space-y-1 text-center sm:text-left">
                     <p className="font-bold text-foreground text-sm flex items-center justify-center sm:justify-start gap-1.5">
-                      <QrCode className="size-4 text-primary" /> Instant Smartphone Verification
+                      <QrCode className="size-4 text-primary shrink-0" /> Instant Smartphone Verification
                     </p>
                     <p className="leading-relaxed">
                       Scan this QR code with any smartphone camera to independently verify authentic digital registration, payment timestamps, and tenancy records.
@@ -326,37 +327,37 @@ function ReceiptPage() {
               ) : null}
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
                 <Button
-                  className="rounded-full shadow-glow font-bold h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="rounded-full shadow-glow font-bold h-10 px-2 sm:px-3 text-xs gap-1.5 justify-center w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={downloading}
                   onClick={handleDownload}
                 >
-                  <Download className="size-4 shrink-0" /> Download PDF
+                  <Download className="size-3.5 shrink-0" /> Download PDF
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 font-semibold justify-center w-full whitespace-nowrap"
+                  className="rounded-full h-10 px-2 sm:px-3 text-xs gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 font-semibold justify-center w-full"
                   onClick={shareWhatsApp}
                 >
-                  <MessageCircle className="size-4 shrink-0" /> WhatsApp
+                  <MessageCircle className="size-3.5 shrink-0" /> WhatsApp
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap"
+                  className="rounded-full h-10 px-2 sm:px-3 text-xs gap-1.5 justify-center w-full"
                   onClick={() => {
                     navigator.clipboard.writeText(receiptUrl(publicId));
                     toast.success("Verification link copied to clipboard");
                   }}
                 >
-                  <Copy className="size-4 shrink-0" /> Copy Link
+                  <Copy className="size-3.5 shrink-0" /> Copy Link
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full h-11 px-4 text-xs gap-1.5 justify-center w-full whitespace-nowrap"
+                  className="rounded-full h-10 px-2 sm:px-3 text-xs gap-1.5 justify-center w-full"
                   onClick={() => window.print()}
                 >
-                  <Printer className="size-4 shrink-0" /> Print
+                  <Printer className="size-3.5 shrink-0" /> Print
                 </Button>
               </div>
 
