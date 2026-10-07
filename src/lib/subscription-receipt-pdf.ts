@@ -51,7 +51,7 @@ export async function buildSubscriptionReceiptPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(203, 213, 225);
-  doc.text("Codevanta Ventures · Property Management Systems", 40, 68);
+  doc.text("RentReceipt Pro · Property Management Systems", 40, 68);
   doc.text("Nairobi, Kenya · support@rentreceipt.co.ke · www.rentreceipt.co.ke", 40, 84);
 
   // Receipt Number & Date (Right)

@@ -163,10 +163,40 @@ function ReceiptsPage() {
 
   function shareWhatsApp(r: ReceiptRecord) {
     const snap = r.snapshot ?? {};
-    const tenantName = snap.tenant_name || "Tenant";
+    const tenantName = snap.tenant_name || "Valued Tenant";
     const url = receiptUrl(r.public_id);
+    const totalPaid = Number(r.amount ?? 0);
+    const bal = Number(r.balance ?? 0);
+    const priorArrears = Math.max(0, Number(snap.prior_arrears ?? 0));
+    const amountToArrears =
+      snap.amount_to_arrears !== undefined
+        ? Number(snap.amount_to_arrears)
+        : priorArrears > 0
+          ? Math.min(priorArrears, totalPaid)
+          : 0;
+    const amountToRent =
+      snap.amount_to_rent !== undefined
+        ? Number(snap.amount_to_rent)
+        : Math.max(0, totalPaid - amountToArrears);
+
+    const arrearsLines =
+      priorArrears > 0
+        ? `• *Cleared From Prior Arrears:* ${money(amountToArrears, snap.currency)}\n• *Applied To Current Rent:* ${money(amountToRent, snap.currency)}\n`
+        : "";
+
     const text = encodeURIComponent(
-      `Hello ${tenantName}, here is your official verified rent receipt (${r.receipt_number}) for ${money(Number(r.amount))}:\n${url}`
+      `*OFFICIAL RENT RECEIPT — RENT RECEIPT PRO*\n\n` +
+      `🧾 *Receipt Number:* ${r.receipt_number}\n` +
+      `👤 *Tenant:* ${tenantName}\n` +
+      `🏠 *Property:* ${snap.property || "Rental Property"}${snap.unit ? ` (Unit ${snap.unit})` : ""}\n` +
+      `📅 *Billing Period:* ${snap.period || "Current Period"}\n\n` +
+      `💰 *Payment Summary:*\n` +
+      `• *Amount Received:* ${money(totalPaid, snap.currency)}\n` +
+      `• *Method:* ${(snap.method || "M-Pesa").toUpperCase()}${snap.reference ? ` (Ref: ${snap.reference})` : ""}\n` +
+      arrearsLines +
+      `• *Net Balance Remaining:* ${bal > 0 ? money(bal, snap.currency) : "KSh 0 (Fully Settled ✔)"}\n\n` +
+      `🔐 *Verify Online & Download PDF:*\n${url}\n\n` +
+      `_Issued by ${r.issued_by || snap.company || "Rent Receipt Pro"}_`
     );
     const phone = (snap.tenant_phone || "").replace(/\D/g, "");
     if (phone) {
@@ -528,17 +558,64 @@ function ReceiptsPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground">Amount Paid</p>
-                      <p className="font-display text-2xl font-bold text-primary">
-                        {money(Number(previewReceipt.amount), previewReceipt.snapshot?.currency)}
-                      </p>
-                    </div>
-                    {previewQr ? (
-                      <img src={previewQr} alt="QR Code" className="size-20 rounded-xl bg-white p-1.5 border border-border" />
-                    ) : null}
-                  </div>
+                  {(() => {
+                    const snap = previewReceipt.snapshot ?? {};
+                    const totalPaid = Number(previewReceipt.amount ?? 0);
+                    const bal = Number(previewReceipt.balance ?? 0);
+                    const priorArrears = Math.max(0, Number(snap.prior_arrears ?? 0));
+                    const amountToArrears =
+                      snap.amount_to_arrears !== undefined
+                        ? Number(snap.amount_to_arrears)
+                        : priorArrears > 0
+                          ? Math.min(priorArrears, totalPaid)
+                          : 0;
+                    const amountToRent =
+                      snap.amount_to_rent !== undefined
+                        ? Number(snap.amount_to_rent)
+                        : Math.max(0, totalPaid - amountToArrears);
+
+                    return (
+                      <div className="space-y-3">
+                        {priorArrears > 0 ? (
+                          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1.5 text-[11px]">
+                            <p className="font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider text-[10px]">
+                              FIFO Arrears Deduction Breakdown
+                            </p>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Prior Arrears:</span>
+                              <span className="font-mono text-rose-500 font-semibold">{money(priorArrears, snap.currency)}</span>
+                            </div>
+                            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                              <span>Cleared from Arrears:</span>
+                              <span className="font-mono">-{money(amountToArrears, snap.currency)}</span>
+                            </div>
+                            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                              <span>Applied to Current Rent:</span>
+                              <span className="font-mono">-{money(amountToRent, snap.currency)}</span>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Amount Paid</p>
+                            <p className="font-display text-2xl font-bold text-primary">
+                              {money(totalPaid, snap.currency)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Remaining Balance:{" "}
+                              <strong className={bal > 0 ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}>
+                                {bal > 0 ? money(bal, snap.currency) : "Settled (KSh 0)"}
+                              </strong>
+                            </p>
+                          </div>
+                          {previewQr ? (
+                            <img src={previewQr} alt="QR Code" className="size-20 rounded-xl bg-white p-1.5 border border-border shrink-0" />
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

@@ -136,7 +136,12 @@ function DashboardPage() {
   function shareReceiptWhatsApp(receiptNumber: string, publicId: string, amount: number, tenantName: string) {
     const url = receiptUrl(publicId);
     const message = encodeURIComponent(
-      `Hello ${tenantName}, here is your official verified rent receipt (${receiptNumber}) for ${money(amount)}:\n${url}`
+      `*OFFICIAL RENT RECEIPT — RENT RECEIPT PRO*\n\n` +
+      `🧾 *Receipt Number:* ${receiptNumber}\n` +
+      `👤 *Tenant:* ${tenantName}\n` +
+      `💰 *Amount Paid:* ${money(amount)}\n\n` +
+      `🔐 *Verify Online & Download PDF:*\n${url}\n\n` +
+      `_Thank you for your payment!_`
     );
     window.open(`https://wa.me/?text=${message}`, "_blank");
   }

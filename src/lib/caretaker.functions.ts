@@ -501,9 +501,9 @@ export const caretakerRecordPayment = createServerFn({ method: "POST" })
         receipt_number: receiptNumber,
         amount: data.amount,
         balance: totalRemainingBalance,
-        issued_by: `${data.caretaker_name} (Caretaker) · ${profile?.company_name || "Codevanta"}`,
+        issued_by: `${data.caretaker_name} (Caretaker) · ${profile?.company_name || "RentReceipt Pro"}`,
         snapshot: {
-          company: profile?.company_name ?? "RentReceiptPro Landlord",
+          company: profile?.company_name ?? "RentReceipt Pro",
           currency: profile?.currency ?? "KSh",
           logo_url: profile?.logo_url ?? null,
           company_phone: profile?.phone ?? null,

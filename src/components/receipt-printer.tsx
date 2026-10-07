@@ -486,7 +486,7 @@ export function SubscriptionReceiptPrinter({
                 RENTRECEIPTPRO
               </h3>
               <p className="text-[10px] text-slate-500">
-                Codevanta Ventures · Tax Receipt
+                RentReceipt Pro · Official Tax Receipt
               </p>
               <p className="text-[10px] text-slate-500 font-mono">
                 {receiptNo} · {dateFormatted}

@@ -600,9 +600,9 @@ export const recordPayment = createServerFn({ method: "POST" })
         receipt_number: receiptNumber,
         amount: data.amount,
         balance: totalRemainingBalance,
-        issued_by: data.issued_by || profile?.company_name || "Codevanta Ventures",
+        issued_by: data.issued_by || profile?.company_name || "RentReceipt Pro",
         snapshot: {
-          company: profile?.company_name ?? "Codevanta Ventures",
+          company: profile?.company_name ?? "RentReceipt Pro",
           currency: profile?.currency ?? "KSh",
           logo_url: profile?.logo_url ?? null,
           company_phone: profile?.phone ?? null,
